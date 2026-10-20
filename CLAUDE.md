@@ -11,6 +11,17 @@ App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mud
 - Para continuar o planejamento: `/rodada` (questionário assíncrono com vários tickets de uma vez) ou `/proximo` (um ticket numa conversa ao vivo). Entre um ticket e outro, `/clear`.
 - Planejar, não fazer: até o mapa terminar, a saída de cada ticket é uma decisão, não código.
 
+## Workflow de desenvolvimento
+Vale depois que o mapa terminar.
+- Monorepo: `api/` (NestJS) e `app/` (Flutter); ver `docs/adr/0005-monorepo-com-api-e-app.md`.
+- Fluxo: `/to-spec` → `/to-tickets` → `/implement` por ticket (TDD + `/code-review`), `/clear` entre tickets e `/retro` no fim de cada sessão de código.
+- Cada ticket numa branch com PR; a `main` só recebe PR com CI verde (sem exigir aprovação).
+- API: TypeScript `strict`, Zod nas fronteiras (requests, `.env`, resposta do Claude), ESLint + Prettier, Jest, integração com PostGIS real via Testcontainers.
+- App: `flutter_lints` com `strict-casts`, `strict-inference` e `strict-raw-types`, `dart format`, testes de unidade nos ViewModels e de widget nas telas principais.
+- Pre-commit (Husky + lint-staged): só format e lint nos arquivos alterados. Typecheck e testes rodam no CI, em todo PR, só na parte cuja pasta mudou.
+- Deploy: merge na `main` publica a API no Lambda (GitHub Actions com OIDC, sem chave da AWS no GitHub); tag `v*` gera o APK assinado no GitHub Release.
+- `git push` comum é liberado; `push --force`, `reset --hard`, `clean` e `branch -D` ficam bloqueados (`git-guardrails`).
+
 ## Onde as coisas ficam
 - `CONTEXT.md`: glossário do domínio, sem detalhes de implementação
 - `docs/adr/`: decisões difíceis de reverter
