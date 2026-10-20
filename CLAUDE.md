@@ -19,7 +19,7 @@ App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mud
 ## Decisões já tomadas
 - Objetivo: portfólio primeiro, MVP enxuto até 15/11/2026
 - App em Flutter; API própria em NestJS + PostgreSQL/PostGIS
-- MVP: login, identificação por foto, dicas de cuidado geradas pelo Claude, anúncio de doação de muda, lista de mudas por perto, botão "tenho interesse" que abre o WhatsApp
+- MVP: login, identificação por foto, dicas de cuidado geradas pelo Claude, Meu jardim simples, anúncio de doação de muda, lista de mudas por perto, botão "tenho interesse" que abre o WhatsApp
 - Repositório público; segredos só em `.env`
 
 ## Agent skills
