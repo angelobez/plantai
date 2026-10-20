@@ -8,7 +8,7 @@ App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mud
 
 ## Como o projeto é planejado
 - O caminho até o MVP é um mapa do wayfinder: a issue com o label `wayfinder:map`, com os tickets como sub-issues e o vínculo "blocked by" entre eles.
-- Para continuar o planejamento: `/wayfinder` passando o mapa. Um ticket por sessão.
+- Para continuar o planejamento: `/rodada` (questionário assíncrono com vários tickets de uma vez) ou `/proximo` (um ticket numa conversa ao vivo). Entre um ticket e outro, `/clear`.
 - Planejar, não fazer: até o mapa terminar, a saída de cada ticket é uma decisão, não código.
 
 ## Onde as coisas ficam
