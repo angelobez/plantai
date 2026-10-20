@@ -8,3 +8,4 @@ dist/
 .dart_tool/
 build/
 .flutter-plugins*
+.claude/worktrees/
