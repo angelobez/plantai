@@ -15,8 +15,12 @@ _Avoid_: Anunciante, vendedor
 ## Plantas
 
 **Espécie**:
-Um tipo de planta, identificado pelo nome científico, com um ou mais nomes populares.
+Um tipo de planta, identificado pelo nome científico. Tem um nome popular principal, que é o mostrado nas telas, e pode ter outros nomes populares (regionais ou sinônimos), que servem para encontrá-la na busca.
 _Avoid_: Tipo, variedade
+
+**Catálogo**:
+O conjunto de espécies que o PlantAí conhece, cada uma com foto de referência e dicas de cuidado. Nasce com uma seleção de espécies populares no Brasil e cresce com cada espécie escolhida numa identificação. O usuário pode buscar nele pelo nome popular ou científico, como alternativa a identificar pela foto.
+_Avoid_: Lista de plantas, banco de plantas, enciclopédia
 
 **Identificação**:
 O registro de uma tentativa de reconhecer uma planta pela foto: a foto, os candidatos sugeridos e a espécie que o usuário escolheu entre eles, se escolheu. Quem confirma a espécie é sempre o usuário; se ele marca "nenhuma destas", a planta fica só com o nome popular.
