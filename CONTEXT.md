@@ -19,11 +19,15 @@ Um tipo de planta, identificado pelo nome científico, com um ou mais nomes popu
 _Avoid_: Tipo, variedade
 
 **Identificação**:
-O registro de uma tentativa de reconhecer uma planta pela foto: a foto, os candidatos sugeridos e a espécie confirmada, se houver.
+O registro de uma tentativa de reconhecer uma planta pela foto: a foto, os candidatos sugeridos e a espécie que o usuário escolheu entre eles, se escolheu. Quem confirma a espécie é sempre o usuário; se ele marca "nenhuma destas", a planta fica só com o nome popular.
 _Avoid_: Scan, consulta, reconhecimento
 
+**Candidato**:
+Uma espécie sugerida para a foto de uma identificação, mostrada com fotos de referência, nome popular e nome científico, para o usuário comparar com a planta dele.
+_Avoid_: Resultado, palpite, sugestão
+
 **Dicas de cuidado**:
-Orientações sobre rega, luz e como fazer muda de uma espécie, geradas por IA e reaproveitadas entre usuários.
+Orientações sobre rega, luz e como fazer muda de uma espécie, junto com o nome popular brasileiro dela. São geradas por IA uma única vez por espécie e as mesmas valem para todos os usuários.
 _Avoid_: Plano de cuidados, guia
 
 **Planta**:
