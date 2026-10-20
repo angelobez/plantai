@@ -34,26 +34,49 @@ Completo quando: todo ticket de grilling da frontier tem perguntas no arquivo, t
 
 ### Formato do questionário
 
-```markdown
+O Ângelo lê o arquivo renderizado no GitHub, muitas vezes pelo celular. No Markdown, linhas seguidas sem linha em branco viram um parágrafo só, então cada opção é um item de lista, a recomendação fica num bloco de citação e há linha em branco entre os blocos. Escreva para quem não lembra dos termos técnicos da pesquisa: diga o que a coisa faz ("a API dorme e a primeira chamada demora") em vez de só nomeá-la ("cold start").
+
+````markdown
 ---
 status: aguardando
 mapa: 1
 ---
 # Rodada <data>
 
-Responda na linha "Resposta:". `ok` aceita a recomendação. Pode editar direto no GitHub, até pelo celular.
+## Como responder
+
+1. Leia as perguntas aqui, na visualização normal do GitHub.
+2. Para responder, clique no **lápis** (✏️ "Edit this file") no canto de cima à direita do arquivo. No celular, ele fica no menu `⋯`.
+3. Procure as linhas `**✏️ Resposta:**` e escreva logo depois dos dois-pontos, na mesma linha.
+   - `ok` aceita a recomendação.
+   - Para escolher outra opção, escreva a letra, por exemplo `c`.
+   - Se tiver pergunta de seguimento, responda na mesma linha, por exemplo `b, 1 km`.
+   - Se quiser deixar para depois, não escreva nada.
+4. No fim, clique em **Commit changes**.
+
+Se preferir, mande as respostas no chat que eu preencho o arquivo.
 
 ## Precisa de sessão ao vivo
+
 - [Título do ticket](link): por quê
+
+---
 
 ## [Título do ticket](link)
 
-**Q1. <título>**
-<contexto curto e opções (a), (b), (c)>
-Recomendação: <opção> — <motivo>
-Se (b): <pergunta de seguimento>
-Resposta:
-```
+### Q1. <título>
+
+<contexto curto>
+
+- **(a)** <opção>
+- **(b)** <opção>
+
+> 💡 **Recomendação: (b).** <motivo>
+>
+> **Se (b):** <pergunta de seguimento, já com a recomendação>
+
+**✏️ Resposta:**
+````
 
 ## Processar
 
