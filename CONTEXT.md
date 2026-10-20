@@ -51,3 +51,21 @@ _Avoid_: Pedido, reserva, match
 **Situação do anúncio**:
 Um anúncio está **Ativo** (visível e com mudas disponíveis), **Doado** (quantidade chegou a zero) ou **Encerrado** (o doador desistiu, ou o anúncio expirou após 30 dias sem renovação).
 _Avoid_: Status (no texto para pessoas), pausado, vendido
+
+## Localização
+
+**Localização de doação**:
+O lugar aproximado de onde um usuário doa, definido uma vez no perfil. Cada anúncio guarda uma cópia da localização de doação do momento em que foi criado. Nunca é o endereço exato: o endereço só é combinado no WhatsApp.
+_Avoid_: Endereço, localização do anúncio, ponto
+
+**Bairro**:
+O nome do bairro da localização de doação, mostrado em cada anúncio. O app sugere e o doador pode corrigir.
+_Avoid_: Região, área, endereço
+
+**Distância aproximada**:
+A distância arredondada entre quem procura e um anúncio, como "menos de 1 km" ou "a cerca de 2 km". É a única noção de distância que um usuário vê.
+_Avoid_: Distância exata, raio
+
+**Mudas por perto**:
+A lista de anúncios ativos de até 30 km de quem procura, do mais perto para o mais longe. A localização de quem procura não fica guardada.
+_Avoid_: Feed, vitrine, busca por raio
