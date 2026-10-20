@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A4 · Meu jardim</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{sage}}; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column; overflow: hidden">
+  <div style="margin: 48px 14px 0; flex: 1; background: #FFFFFF; border-radius: 28px 28px 0 0; box-shadow: 0 8px 30px rgba(31,42,34,0.10); display: flex; flex-direction: column; overflow: hidden">
+    <header style="padding: 18px 18px 14px; display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; align-items: center">
+      <span></span>
+      <h1 style="margin: 0; text-align: center; font-size: 17px; font-weight: 800">Meu jardim</h1>
+      <span style="font-size: 12px; font-weight: 600; color: #5B665E; text-align: right">4 plantas</span>
+    </header>
+
+    <main style="flex: 1; padding: 8px 18px 0 28px; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+      <sc-for list="{{plants}}" as="p" hint-placeholder-count="4">
+        <a href="F-especie.dc.html" style="display: flex; gap: 14px; align-items: center; padding: 10px 12px 10px 0; background: #EEF4EF; border-radius: 14px; text-decoration: none; color: inherit">
+          <div style="width: 84px; height: 84px; flex-shrink: 0; margin-left: -10px; border-radius: 14px; background: #C9DECD; box-shadow: 0 6px 14px rgba(31,42,34,0.15); display: flex; align-items: center; justify-content: center; color: #3F6B4A">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+          </div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+            <div style="font-size: 15px; font-weight: 700">{{p.name}}</div>
+            <div style="font-size: 12px; color: #5B665E">{{p.species}}</div>
+            <div style="display: flex; align-items: center; gap: 5px; font-size: 12px; color: #5B665E; margin-top: 4px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3F6B4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>
+              <span>{{p.water}}</span>
+            </div>
+          </div>
+        </a>
+      </sc-for>
+    </main>
+
+    <nav aria-label="Navegação principal" style="height: 80px; flex-shrink: 0; border-top: 1px solid #EDF2EE; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; padding-top: 10px; box-sizing: border-box">
+      <a href="#" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 800; color: #3F6B4A; text-decoration: none; min-height: 44px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+        Jardim
+      </a>
+      <a href="F-perto.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: #5B665E; text-decoration: none; min-height: 44px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        Por perto
+      </a>
+      <a href="#" style="display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: #5B665E; text-decoration: none; min-height: 44px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
+        Perfil
+      </a>
+      <a href="#" aria-label="Identificar uma planta pela foto" style="justify-self: center; width: 52px; height: 52px; border-radius: 16px; background: #3F6B4A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; margin-top: -4px">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      </a>
+    </nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"sage":{"editor":"color","default":"#A9C9AE","options":["#A9C9AE","#C4DCC0","#9FC3B8"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+sage: this.props.sage ?? '#A9C9AE',
+plants: [
+{ name: 'Monstera da sala', species: 'Costela-de-adão', water: 'Rega 1x por semana' },
+{ name: 'Jiboia', species: 'Jiboia', water: 'Rega 1x por semana' },
+{ name: 'Espada da varanda', species: 'Espada-de-são-jorge', water: 'Rega a cada 15 dias' },
+{ name: 'Pimenta da vó', species: 'Sem espécie', water: 'Sem dicas: defina a espécie' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Entrar com e-mail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column; padding: 24px 20px 40px">
+  <header style="height: 56px; display: flex; align-items: center">
+    <a href="M-login.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; border-radius: 999px; background: #EEF4EF; color: #1F2A22; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+  </header>
+  <main style="flex: 1; display: flex; flex-direction: column; gap: 18px; padding-top: 16px">
+    <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.6px">Entrar com e-mail</h1>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="email" style="font-size: 14px; font-weight: 700">E-mail</label>
+      <input id="email" type="email" value="marina@email.com" style="height: 52px; padding: 0 16px; border: 1.5px solid #D3DED6; border-radius: 14px; font-size: 16px; color: #1F2A22">
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label for="senha" style="font-size: 14px; font-weight: 700">Senha</label>
+      <input id="senha" type="password" value="12345678" style="height: 52px; padding: 0 16px; border: 1.5px solid #3F6B4A; border-radius: 14px; font-size: 16px; color: #1F2A22">
+      <a href="#" style="align-self: flex-end; min-height: 44px; display: flex; align-items: center; font-size: 14px; font-weight: 700">Esqueci a senha</a>
+    </div>
+  </main>
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <a href="M-perto.dc.html" style="height: 54px; border-radius: 999px; background: #3F6B4A; color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Entrar</a>
+    <a href="M-cadastro.dc.html" style="height: 48px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #1F2A22; text-decoration: none">Ainda não tem conta? <span style="margin-left: 4px; color: #3F6B4A; font-weight: 800">Criar conta</span></a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

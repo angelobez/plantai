@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Tela da planta</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column; overflow: hidden">
+  <div style="height: 270px; flex-shrink: 0; background: #7FA886; position: relative; display: flex; align-items: center; justify-content: center; color: #E3EEE5">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+    <span style="position: absolute; right: 18px; top: 44px; font-size: 12px; font-weight: 600; color: #FFFFFF">[foto do usuário]</span>
+    <a href="M-jardim.dc.html" aria-label="Voltar" style="position: absolute; left: 14px; top: 32px; width: 44px; height: 44px; border-radius: 999px; background: rgba(255,255,255,0.92); color: #1F2A22; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <button aria-label="Mais ações" style="position: absolute; right: 14px; top: 32px; width: 44px; height: 44px; border: none; border-radius: 999px; background: rgba(255,255,255,0.92); color: #1F2A22; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+    </button>
+  </div>
+
+  <main style="flex: 1; margin-top: -26px; background: #FFFFFF; border-radius: 26px 26px 0 0; padding: 22px 20px 0; display: flex; flex-direction: column; gap: 14px; position: relative">
+    <div style="display: flex; align-items: flex-start; gap: 10px">
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.4px">Monstera da sala</h1>      </div>
+      <a href="#" aria-label="Editar nome" style="width: 44px; height: 44px; border-radius: 999px; background: #EEF4EF; color: #3F6B4A; display: flex; align-items: center; justify-content: center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+      </a>
+    </div>
+
+    <a href="M-especie.dc.html" style="display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 16px; background: #F5F8F5; text-decoration: none; color: inherit">
+      <div style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 12px; background: #C9DECD"></div>
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <span style="font-size: 15px; font-weight: 700">Costela-de-adão</span>
+        <span style="font-size: 13px; font-style: italic; color: #5B665E">Monstera deliciosa</span>
+        <span style="font-size: 11px; color: #5B665E">Foto: [autor] · CC BY-SA 4.0</span>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B665E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </a>
+
+    <section aria-label="Resumo dos cuidados" style="display: flex; flex-direction: column; border-top: 1px solid #EDF2EE">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 46px; border-bottom: 1px solid #EDF2EE; font-size: 14px">
+          <span style="width: 32px; height: 32px; border-radius: 10px; background: #EEF4EF; color: #3F6B4A; display: flex; align-items: center; justify-content: center">
+            <sc-if value="{{r.water}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg></sc-if>
+            <sc-if value="{{r.sun}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg></sc-if>
+            <sc-if value="{{r.cut}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 8L20 18M8.5 16L20 6"/></svg></sc-if>
+          </span>
+          <span style="flex: 1; font-weight: 700">{{r.label}}</span>
+          <span style="color: #5B665E; font-weight: 500">{{r.value}}</span>
+        </div>
+      </sc-for>
+    </section>
+    <a href="M-especie.dc.html" style="font-size: 14px; font-weight: 700; min-height: 32px; display: flex; align-items: center">Ver todas as dicas de cuidado</a>
+  </main>
+
+  <div style="padding: 12px 20px 28px; display: flex; flex-direction: column; gap: 6px">
+    <a href="M-novo-anuncio.dc.html" style="height: 54px; border-radius: 999px; background: #3F6B4A; color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Doar mudas</a>
+    <a href="#" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #A3361F; text-decoration: none">Remover do jardim</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+rows: [
+{ water: true, label: 'Rega', value: '1x por semana' },
+{ sun: true, label: 'Luz', value: 'Meia-sombra' },
+{ cut: true, label: 'Como fazer muda', value: 'Estaca' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

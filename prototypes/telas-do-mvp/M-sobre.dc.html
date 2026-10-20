@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sobre e créditos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column; padding-top: 24px; overflow: hidden">
+  <header style="height: 56px; padding: 0 16px; display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; border-bottom: 1px solid #EDF2EE">
+    <a href="M-perfil.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; border-radius: 999px; background: #EEF4EF; color: #1F2A22; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <h1 style="margin: 0; text-align: center; font-size: 17px; font-weight: 800">Sobre e créditos</h1>
+    <span></span>
+  </header>
+
+  <main style="flex: 1; padding: 20px 18px; display: flex; flex-direction: column; gap: 18px; overflow: hidden">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 22px; font-weight: 800; letter-spacing: -0.8px">Plant<span style="display: inline-block; margin-left: 2px; padding: 0 7px; border-radius: 9px; background: #3F6B4A; color: #FFFFFF">Aí</span></span>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #3A453D">Um projeto de portfólio para identificar plantas, cuidar delas e doar mudas entre vizinhos.</p>
+    </div>
+
+    <section style="display: flex; flex-direction: column">
+      <h2 style="margin: 0 0 4px; font-size: 13px; font-weight: 800; color: #5B665E">QUEM AJUDA</h2>
+      <sc-for list="{{credits}}" as="c" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 1px; padding: 10px 0; border-bottom: 1px solid #EDF2EE">
+          <span style="font-size: 15px; font-weight: 700">{{c.title}}</span>
+          <span style="font-size: 13px; color: #5B665E">{{c.text}}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="display: flex; flex-direction: column">
+      <h2 style="margin: 0 0 4px; font-size: 13px; font-weight: 800; color: #5B665E">FOTOS DE REFERÊNCIA</h2>
+      <sc-for list="{{photos}}" as="p" hint-placeholder-count="3">
+        <div style="display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid #EDF2EE">
+          <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #C9DECD"></div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-size: 14px; font-weight: 700">{{p.name}}</span>
+            <span style="font-size: 12px; color: #5B665E">{{p.credit}}</span>
+          </div>
+        </div>
+      </sc-for>
+      <a href="#" style="min-height: 44px; display: flex; align-items: center; font-size: 14px; font-weight: 700">Ver todas as fotos</a>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+credits: [
+{ title: 'Pl@ntNet', text: 'Identificação das plantas pela foto' },
+{ title: 'Claude, da Anthropic', text: 'Dicas de cuidado de cada espécie' },
+{ title: 'Flora e Funga do Brasil e GBIF', text: 'Nomes científicos e populares' }
+],
+photos: [
+{ name: 'Costela-de-adão', credit: '[autor] · CC BY-SA 4.0 · Wikimedia Commons' },
+{ name: 'Espada-de-são-jorge', credit: '[autor] · CC BY 2.0 · Wikimedia Commons' },
+{ name: 'Jiboia', credit: '[autor] · CC0 · Wikimedia Commons' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>C · Tela da espécie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#111111}a:hover{color:#444444}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Bricolage Grotesque', sans-serif; color: #111111; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <header style="padding: 52px 20px 12px; display: flex; align-items: center; gap: 12px">
+    <a href="C-perto.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; border: 2px solid #111111; border-radius: 10px; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+  </header>
+
+  <main style="flex: 1; padding: 0 20px 110px; display: flex; flex-direction: column; gap: 16px">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+      <div style="height: 170px; border: 2px solid #111111; border-radius: 14px; background: #E8F5E0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+        <span style="font-size: 12px; font-weight: 600">sua foto</span>
+      </div>
+      <div style="height: 170px; border: 2px solid #111111; border-radius: 14px; background: #F2F2F2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+        <span style="font-size: 12px; font-weight: 600">referência</span>
+      </div>
+    </div>
+    <div style="font-size: 12px; margin-top: -8px">Referência: [autor] · CC BY-SA 4.0 · Wikimedia Commons</div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h1 style="margin: 0; font-size: 38px; font-weight: 800; line-height: 1; letter-spacing: -1.2px">Costela-de-adão</h1>
+      <div style="font-size: 16px; font-style: italic">Monstera deliciosa</div>
+    </div>
+
+    <section aria-label="Dicas de cuidado" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+        <div style="border: 2px solid #111111; border-radius: 12px; padding: 10px; background: {{c.bg}}; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 12px; font-weight: 600">{{c.label}}</span>
+          <span style="font-size: 18px; font-weight: 800; letter-spacing: -0.4px">{{c.value}}</span>
+        </div>
+      </sc-for>
+    </section>
+    <div style="display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.45">
+      <p style="margin: 0"><strong>Rega:</strong> quando os 2 a 3 cm de cima da terra estiverem secos.</p>
+      <p style="margin: 0"><strong>Luz:</strong> muita claridade, sem sol direto; o sol forte queima as folhas.</p>
+      <p style="margin: 0"><strong>Muda:</strong> corte um pedaço do caule com um nó e uma raiz aérea e deixe na água até enraizar.</p>
+    </div>
+  </main>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-top: 2px solid #111111; padding: 14px 20px 24px">
+    <button style="width: 100%; height: 56px; border: 2px solid #111111; border-radius: 12px; background: {{sun}}; box-shadow: 4px 4px 0 #111111; color: #111111; font-size: 17px; font-weight: 800">Salvar no meu jardim</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"sun":{"editor":"color","default":"#FFD23F","options":["#FFD23F","#9BE3B0","#FFB38A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const sun = this.props.sun ?? '#FFD23F';
+return {
+sun,
+chips: [
+{ label: 'Rega', value: '1x/sem.', bg: '#FFFFFF' },
+{ label: 'Luz', value: 'Meia-sombra', bg: sun },
+{ label: 'Muda', value: 'Estaca', bg: '#FFFFFF' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>C · Mudas por perto</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#111111}a:hover{color:#444444}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Bricolage Grotesque', sans-serif; color: #111111; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <header style="background: {{sun}}; padding: 52px 20px 18px; border-bottom: 2px solid #111111; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="font-size: 16px; font-weight: 800; letter-spacing: -0.3px">plantaí</span>
+      <span style="font-size: 13px; font-weight: 600">até 30 km</span>
+    </div>
+    <h1 style="margin: 0; font-size: 46px; font-weight: 800; line-height: 0.95; letter-spacing: -1.5px">Mudas<br>por perto</h1>
+    <div role="tablist" style="display: flex; gap: 8px">
+      <button role="tab" aria-selected="true" style="height: 44px; padding: 0 18px; border: 2px solid #111111; border-radius: 10px; background: #111111; color: #FFFFFF; font-size: 15px; font-weight: 800">Por perto</button>
+      <button role="tab" aria-selected="false" style="height: 44px; padding: 0 18px; border: 2px solid #111111; border-radius: 10px; background: #FFFFFF; color: #111111; font-size: 15px; font-weight: 600">Meus anúncios</button>
+    </div>
+  </header>
+
+  <main style="flex: 1; display: flex; flex-direction: column; padding-bottom: 150px">
+    <sc-for list="{{items}}" as="item" hint-placeholder-count="5">
+      <a href="C-especie.dc.html" style="display: grid; grid-template-columns: 84px minmax(0, 1fr) 64px; gap: 12px; align-items: center; padding: 14px 20px; border-bottom: 2px solid #111111; text-decoration: none; color: inherit">
+        <div style="display: flex; flex-direction: column; line-height: 1">
+          <span style="font-size: 32px; font-weight: 800; letter-spacing: -1px">{{item.km}}</span>
+          <span style="font-size: 12px; font-weight: 600">{{item.unit}}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <div style="font-size: 18px; font-weight: 800; letter-spacing: -0.3px">{{item.name}}</div>
+          <div style="font-size: 14px">{{item.qty}} · {{item.bairro}}</div>
+        </div>
+        <div style="width: 64px; height: 64px; border: 2px solid #111111; border-radius: 10px; background: #E8F5E0; display: flex; align-items: center; justify-content: center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+        </div>
+      </a>
+    </sc-for>
+  </main>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-top: 2px solid #111111; padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 10px">
+    <a href="#" style="height: 52px; border: 2px solid #111111; border-radius: 12px; background: {{sun}}; box-shadow: 4px 4px 0 #111111; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 17px; font-weight: 800; text-decoration: none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      Fotografar uma planta
+    </a>
+    <nav aria-label="Navegação principal" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))">
+      <a href="C-jardim.dc.html" style="min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; text-decoration: none">Meu jardim</a>
+      <a href="#" aria-current="page" style="min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px">Por perto</a>
+      <a href="#" style="min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; text-decoration: none">Perfil</a>
+    </nav>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"sun":{"editor":"color","default":"#FFD23F","options":["#FFD23F","#9BE3B0","#FFB38A"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+sun: this.props.sun ?? '#FFD23F',
+items: [
+{ km: '<1', unit: 'km', name: 'Costela-de-adão', qty: '3 mudas', bairro: 'Vila Mariana' },
+{ km: '~2', unit: 'km', name: 'Espada-de-são-jorge', qty: '5 mudas', bairro: 'Saúde' },
+{ km: '~4', unit: 'km', name: 'Jiboia', qty: '2 mudas', bairro: 'Ipiranga' },
+{ km: '~7', unit: 'km', name: 'Babosa', qty: '8 mudas', bairro: 'Mooca' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

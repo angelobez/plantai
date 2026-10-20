@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A1 · Tela da espécie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <div style="height: 300px; flex-shrink: 0; background: #7FA886; position: relative; display: flex; align-items: center; justify-content: center; color: #E3EEE5">
+    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+    <span style="position: absolute; right: 20px; top: 64px; font-size: 12px; font-weight: 600; color: #FFFFFF">[foto do usuário]</span>
+    <a href="P-perto.dc.html" aria-label="Voltar" style="position: absolute; left: 16px; top: 52px; width: 44px; height: 44px; border-radius: 999px; background: rgba(255,255,255,0.9); color: #1F2A22; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+  </div>
+
+  <main style="flex: 1; margin-top: -32px; background: #FFFFFF; border-radius: 28px 28px 0 0; padding: 24px 20px 110px; display: flex; flex-direction: column; gap: 14px; position: relative">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.4px">Costela-de-adão</h1>
+      <div style="font-size: 14px; color: #5B665E">Monstera deliciosa · também chamada de banana-de-macaco</div>
+    </div>
+
+    <section aria-label="Resumo dos cuidados" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+        <div style="display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1.5px solid #D3E3D6; border-radius: 12px; color: #3F6B4A">
+          <sc-if value="{{c.water}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg></sc-if>
+          <sc-if value="{{c.sun}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg></sc-if>
+          <sc-if value="{{c.cut}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 8L20 18M8.5 16L20 6"/></svg></sc-if>
+          <sc-if value="{{c.easy}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg></sc-if>
+          <span style="font-size: 13px; font-weight: 600; color: #1F2A22; line-height: 1.25">{{c.text}}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #3A453D">Gosta de muita claridade, mas sem sol direto, que queima as folhas. Regue quando os 2 a 3 cm de cima da terra estiverem secos. Para fazer muda, corte um pedaço do caule com um nó e uma raiz aérea e deixe na água até enraizar.</p>
+    <div style="font-size: 12px; color: #5B665E">Foto de referência: [autor] · CC BY-SA 4.0 · Wikimedia Commons</div>
+  </main>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 28px">
+    <button style="width: 100%; height: 54px; border: none; border-radius: 999px; background: #3F6B4A; color: #FFFFFF; font-size: 16px; font-weight: 700">Salvar no meu jardim</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+chips: [
+{ water: true, text: 'Rega 1x por semana' },
+{ sun: true, text: 'Luz difusa' },
+{ cut: true, text: 'Muda por estaca' },
+{ easy: true, text: 'Boa para iniciantes' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

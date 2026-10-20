@@ -1,0 +1,625 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "A-especie.dc.html": {
+      "h": 844,
+      "title": "A · Tela da espécie",
+      "w": 390,
+      "x": 470,
+      "y": 300,
+      "page": "exploracao"
+    },
+    "A-jardim.dc.html": {
+      "h": 844,
+      "title": "A · Meu jardim",
+      "w": 390,
+      "x": 940,
+      "y": 300,
+      "page": "exploracao"
+    },
+    "B-especie.dc.html": {
+      "h": 844,
+      "title": "B · Tela da espécie",
+      "w": 390,
+      "x": 470,
+      "y": 1500,
+      "page": "exploracao"
+    },
+    "B-jardim.dc.html": {
+      "h": 844,
+      "title": "B · Meu jardim",
+      "w": 390,
+      "x": 940,
+      "y": 1500,
+      "page": "exploracao"
+    },
+    "B-perto.dc.html": {
+      "h": 844,
+      "title": "B · Mudas por perto",
+      "w": 390,
+      "x": 0,
+      "y": 1500,
+      "page": "exploracao"
+    },
+    "C-especie.dc.html": {
+      "h": 844,
+      "title": "C · Tela da espécie",
+      "w": 390,
+      "x": 470,
+      "y": 2700,
+      "page": "exploracao"
+    },
+    "C-jardim.dc.html": {
+      "h": 844,
+      "title": "C · Meu jardim",
+      "w": 390,
+      "x": 940,
+      "y": 2700,
+      "page": "exploracao"
+    },
+    "C-perto.dc.html": {
+      "h": 844,
+      "title": "C · Mudas por perto",
+      "w": 390,
+      "x": 0,
+      "y": 2700,
+      "page": "exploracao"
+    },
+    "G-especie.dc.html": {
+      "h": 844,
+      "title": "A2 · Menta · Tela da espécie",
+      "w": 390,
+      "x": 470,
+      "y": 5100,
+      "page": "exploracao"
+    },
+    "G-jardim.dc.html": {
+      "h": 844,
+      "title": "A2 · Menta · Meu jardim",
+      "w": 390,
+      "x": 940,
+      "y": 5100,
+      "page": "exploracao"
+    },
+    "G-perto.dc.html": {
+      "h": 844,
+      "title": "A2 · Menta · Mudas por perto",
+      "w": 390,
+      "x": 0,
+      "y": 5100,
+      "page": "exploracao"
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "title": "A · Mudas por perto",
+      "w": 390,
+      "x": 0,
+      "y": 300,
+      "page": "exploracao"
+    },
+    "N-especie.dc.html": {
+      "h": 844,
+      "title": "A3 · Folha viva · Tela da espécie",
+      "w": 390,
+      "x": 470,
+      "y": 6300,
+      "page": "exploracao"
+    },
+    "N-jardim.dc.html": {
+      "h": 844,
+      "title": "A3 · Folha viva · Meu jardim",
+      "w": 390,
+      "x": 940,
+      "y": 6300,
+      "page": "exploracao"
+    },
+    "N-perto.dc.html": {
+      "h": 844,
+      "title": "A3 · Folha viva · Mudas por perto",
+      "w": 390,
+      "x": 0,
+      "y": 6300,
+      "page": "exploracao"
+    },
+    "P-especie.dc.html": {
+      "h": 844,
+      "title": "A1 · Sálvia · Tela da espécie",
+      "w": 390,
+      "x": 470,
+      "y": 3900,
+      "page": "exploracao"
+    },
+    "P-jardim.dc.html": {
+      "h": 844,
+      "title": "A1 · Sálvia · Meu jardim",
+      "w": 390,
+      "x": 940,
+      "y": 3900,
+      "page": "exploracao"
+    },
+    "P-perto.dc.html": {
+      "h": 844,
+      "title": "A1 · Sálvia · Mudas por perto",
+      "w": 390,
+      "x": 0,
+      "y": 3900,
+      "page": "exploracao"
+    },
+    "F-perto.dc.html": {
+      "x": 0,
+      "y": 7500,
+      "w": 390,
+      "h": 844,
+      "title": "A4 · Combinação · Mudas por perto",
+      "page": "exploracao"
+    },
+    "F-especie.dc.html": {
+      "x": 470,
+      "y": 7500,
+      "w": 390,
+      "h": 844,
+      "title": "A4 · Combinação · Tela da espécie",
+      "page": "exploracao"
+    },
+    "F-jardim.dc.html": {
+      "x": 940,
+      "y": 7500,
+      "w": 390,
+      "h": 844,
+      "title": "A4 · Combinação · Meu jardim",
+      "page": "exploracao"
+    },
+    "H-perto.dc.html": {
+      "x": 0,
+      "y": 8700,
+      "w": 390,
+      "h": 844,
+      "title": "A5 · Logo no topo · Mudas por perto",
+      "page": "exploracao"
+    },
+    "H-especie.dc.html": {
+      "x": 470,
+      "y": 8700,
+      "w": 390,
+      "h": 844,
+      "title": "A5 · Logo no topo · Tela da espécie",
+      "page": "exploracao"
+    },
+    "H-jardim.dc.html": {
+      "x": 940,
+      "y": 8700,
+      "w": 390,
+      "h": 844,
+      "title": "A5 · Logo no topo · Meu jardim",
+      "page": "exploracao"
+    },
+    "H-logos.dc.html": {
+      "x": 1410,
+      "y": 8700,
+      "w": 390,
+      "h": 844,
+      "title": "A5 · Opções de logotipo no topo",
+      "page": "exploracao"
+    },
+    "I1-perto.dc.html": {
+      "x": 0,
+      "y": 9900,
+      "w": 390,
+      "h": 844,
+      "title": "A6 · Opção 1 (branco) · Mudas por perto",
+      "page": "exploracao"
+    },
+    "I1-especie.dc.html": {
+      "x": 470,
+      "y": 9900,
+      "w": 390,
+      "h": 844,
+      "title": "A6 · Tela da espécie",
+      "page": "exploracao"
+    },
+    "I1-jardim.dc.html": {
+      "x": 940,
+      "y": 9900,
+      "w": 390,
+      "h": 844,
+      "title": "A6 · Opção 1 (branco) · Meu jardim",
+      "page": "exploracao"
+    },
+    "I2-perto.dc.html": {
+      "x": 1410,
+      "y": 9900,
+      "w": 390,
+      "h": 844,
+      "title": "A6 · Opção 2 (faixa reta) · Mudas por perto",
+      "page": "exploracao"
+    },
+    "I2-jardim.dc.html": {
+      "x": 1880,
+      "y": 9900,
+      "w": 390,
+      "h": 844,
+      "title": "A6 · Opção 2 (faixa reta) · Meu jardim",
+      "page": "exploracao"
+    },
+    "I-logos.dc.html": {
+      "x": 2350,
+      "y": 9900,
+      "w": 390,
+      "h": 844,
+      "title": "A6 · Alternativas de logotipo",
+      "page": "exploracao"
+    },
+    "M-login.dc.html": {
+      "x": 0,
+      "y": 300,
+      "w": 390,
+      "h": 844,
+      "title": "Login",
+      "page": "mvp"
+    },
+    "M-cadastro.dc.html": {
+      "x": 940,
+      "y": 300,
+      "w": 390,
+      "h": 844,
+      "title": "Criar conta",
+      "page": "mvp"
+    },
+    "M-codigo.dc.html": {
+      "x": 1410,
+      "y": 300,
+      "w": 390,
+      "h": 844,
+      "title": "Código por e-mail",
+      "page": "mvp"
+    },
+    "M-foto.dc.html": {
+      "x": 0,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Foto: identificar ou buscar",
+      "page": "mvp"
+    },
+    "M-candidatos.dc.html": {
+      "x": 470,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Candidatos",
+      "page": "mvp"
+    },
+    "M-busca.dc.html": {
+      "x": 940,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Busca no Catálogo",
+      "page": "mvp"
+    },
+    "M-especie.dc.html": {
+      "x": 1410,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Tela da espécie",
+      "page": "mvp"
+    },
+    "M-nao-reconhecida.dc.html": {
+      "x": 1880,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Foto não reconhecida",
+      "page": "mvp"
+    },
+    "M-limite.dc.html": {
+      "x": 2350,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Limite diário",
+      "page": "mvp"
+    },
+    "M-jardim.dc.html": {
+      "x": 0,
+      "y": 2700,
+      "w": 390,
+      "h": 844,
+      "title": "Meu jardim",
+      "page": "mvp"
+    },
+    "M-planta.dc.html": {
+      "x": 470,
+      "y": 2700,
+      "w": 390,
+      "h": 844,
+      "title": "Tela da planta",
+      "page": "mvp"
+    },
+    "M-jardim-vazio.dc.html": {
+      "x": 940,
+      "y": 2700,
+      "w": 390,
+      "h": 844,
+      "title": "Jardim vazio",
+      "page": "mvp"
+    },
+    "M-perto.dc.html": {
+      "x": 0,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "Mudas por perto",
+      "page": "mvp"
+    },
+    "M-anuncio.dc.html": {
+      "x": 470,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "Detalhe do anúncio",
+      "page": "mvp"
+    },
+    "M-primeiro-anuncio.dc.html": {
+      "x": 940,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "Primeiro anúncio",
+      "page": "mvp"
+    },
+    "M-novo-anuncio.dc.html": {
+      "x": 1410,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "Novo anúncio",
+      "page": "mvp"
+    },
+    "M-meus-anuncios.dc.html": {
+      "x": 1880,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "Meus anúncios",
+      "page": "mvp"
+    },
+    "M-perto-vazio.dc.html": {
+      "x": 2350,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "Mudas por perto vazia",
+      "page": "mvp"
+    },
+    "M-localizacao.dc.html": {
+      "x": 2820,
+      "y": 3900,
+      "w": 390,
+      "h": 844,
+      "title": "Localização negada",
+      "page": "mvp"
+    },
+    "M-perfil.dc.html": {
+      "x": 0,
+      "y": 5100,
+      "w": 390,
+      "h": 844,
+      "title": "Perfil",
+      "page": "mvp"
+    },
+    "M-sobre.dc.html": {
+      "x": 470,
+      "y": 5100,
+      "w": 390,
+      "h": 844,
+      "title": "Sobre e créditos",
+      "page": "mvp"
+    },
+    "M-entrar.dc.html": {
+      "x": 470,
+      "y": 300,
+      "w": 390,
+      "h": 844,
+      "title": "Entrar com e-mail",
+      "page": "mvp"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-20T12:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas",
+    "page": "mvp"
+  },
+  "notes": {
+    "tA": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "A · Folha: amigável, claro e arredondado",
+      "w": 240,
+      "x": 0,
+      "y": 40,
+      "page": "exploracao"
+    },
+    "tB": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "B · Herbário: escuro, foto em primeiro plano",
+      "w": 240,
+      "x": 0,
+      "y": 1240,
+      "page": "exploracao"
+    },
+    "tC": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "C · Feira: gráfico, direto e de bairro",
+      "w": 240,
+      "x": 0,
+      "y": 2440,
+      "page": "exploracao"
+    },
+    "tG": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "A2 · Menta: inspirada no My Garden Collection",
+      "w": 240,
+      "x": 0,
+      "y": 4840,
+      "page": "exploracao"
+    },
+    "tN": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "A3 · Folha viva: inspirada no NZ Trees",
+      "w": 240,
+      "x": 0,
+      "y": 6040,
+      "page": "exploracao"
+    },
+    "tP": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "A1 · Sálvia: inspirada no Plantarium",
+      "w": 240,
+      "x": 0,
+      "y": 3640,
+      "page": "exploracao"
+    },
+    "tF": {
+      "x": 0,
+      "y": 7240,
+      "text": "A4 · Combinação: A1 com cabeçalho e linhas da A2",
+      "kind": "title1",
+      "maxW": 1330,
+      "page": "exploracao"
+    },
+    "tH": {
+      "x": 0,
+      "y": 8440,
+      "text": "A5 · Logo no topo, como no Instagram",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "exploracao"
+    },
+    "tI": {
+      "x": 0,
+      "y": 9640,
+      "text": "A6 · Sem curva no topo + logo com folha e \"Aí\"",
+      "kind": "title1",
+      "maxW": 2740,
+      "page": "exploracao"
+    },
+    "m0": {
+      "x": 0,
+      "y": 40,
+      "text": "Entrada",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "mvp"
+    },
+    "m1": {
+      "x": 0,
+      "y": 1240,
+      "text": "Identificar uma planta",
+      "kind": "title1",
+      "maxW": 2740,
+      "page": "mvp"
+    },
+    "m2": {
+      "x": 0,
+      "y": 2440,
+      "text": "Meu jardim",
+      "kind": "title1",
+      "maxW": 1330,
+      "page": "mvp"
+    },
+    "m3": {
+      "x": 0,
+      "y": 3640,
+      "text": "Doação de mudas",
+      "kind": "title1",
+      "maxW": 3210,
+      "page": "mvp"
+    },
+    "m4": {
+      "x": 0,
+      "y": 4840,
+      "text": "Perfil",
+      "kind": "title1",
+      "maxW": 860,
+      "page": "mvp"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "A-especie.dc.html",
+    "A-jardim.dc.html",
+    "B-perto.dc.html",
+    "B-especie.dc.html",
+    "B-jardim.dc.html",
+    "C-perto.dc.html",
+    "C-especie.dc.html",
+    "C-jardim.dc.html",
+    "P-perto.dc.html",
+    "P-especie.dc.html",
+    "P-jardim.dc.html",
+    "G-perto.dc.html",
+    "G-especie.dc.html",
+    "G-jardim.dc.html",
+    "N-perto.dc.html",
+    "N-especie.dc.html",
+    "N-jardim.dc.html",
+    "F-perto.dc.html",
+    "F-especie.dc.html",
+    "F-jardim.dc.html",
+    "H-perto.dc.html",
+    "H-especie.dc.html",
+    "H-jardim.dc.html",
+    "H-logos.dc.html",
+    "I1-perto.dc.html",
+    "I1-especie.dc.html",
+    "I1-jardim.dc.html",
+    "I2-perto.dc.html",
+    "I2-jardim.dc.html",
+    "I-logos.dc.html",
+    "M-login.dc.html",
+    "M-entrar.dc.html",
+    "M-cadastro.dc.html",
+    "M-codigo.dc.html",
+    "M-foto.dc.html",
+    "M-candidatos.dc.html",
+    "M-busca.dc.html",
+    "M-especie.dc.html",
+    "M-nao-reconhecida.dc.html",
+    "M-limite.dc.html",
+    "M-jardim.dc.html",
+    "M-planta.dc.html",
+    "M-jardim-vazio.dc.html",
+    "M-perto.dc.html",
+    "M-anuncio.dc.html",
+    "M-primeiro-anuncio.dc.html",
+    "M-novo-anuncio.dc.html",
+    "M-meus-anuncios.dc.html",
+    "M-perto-vazio.dc.html",
+    "M-localizacao.dc.html",
+    "M-perfil.dc.html",
+    "M-sobre.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "exploracao",
+      "name": "Exploração"
+    },
+    {
+      "id": "mvp",
+      "name": "Telas do MVP"
+    }
+  ],
+  "title": "PlantAí — telas do MVP"
+}

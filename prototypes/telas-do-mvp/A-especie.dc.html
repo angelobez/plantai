@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A · Tela da espécie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F6B45}a:hover{color:#15523A}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F4F7F2; font-family: 'Nunito', sans-serif; color: #17231B; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <div style="height: 300px; background: #DCEFD9; position: relative; display: flex; align-items: center; justify-content: center; color: #3C8A5E; flex-shrink: 0">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+    <span style="position: absolute; left: 20px; bottom: 44px; font-size: 12px; color: #2F5E43">[foto do usuário]</span>
+    <a href="Main.dc.html" aria-label="Voltar" style="position: absolute; left: 16px; top: 52px; width: 44px; height: 44px; border-radius: 999px; background: #FFFFFF; color: #17231B; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+  </div>
+
+  <main style="flex: 1; margin-top: -28px; background: #F4F7F2; border-radius: 28px 28px 0 0; padding: 24px 20px 120px; display: flex; flex-direction: column; gap: 16px; position: relative">
+    <div style="display: flex; gap: 14px; align-items: center">
+      <div style="width: 56px; height: 56px; border-radius: 14px; background: #C9E4C4; flex-shrink: 0"></div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.4px">Costela-de-adão</h1>
+        <div style="font-size: 15px; font-style: italic; color: #4A5C50">Monstera deliciosa</div>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: #5A6B5F">Foto de referência: [autor] · CC BY-SA 4.0 · Wikimedia Commons</div>
+
+    <section aria-label="Dicas de cuidado" style="display: flex; flex-direction: column; gap: 10px">
+      <sc-for list="{{tips}}" as="tip" hint-placeholder-count="3">
+        <div style="display: flex; gap: 14px; padding: 14px; background: #FFFFFF; border-radius: 18px">
+          <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: #E6F2E3; color: {{primary}}; display: flex; align-items: center; justify-content: center">
+            <sc-if value="{{tip.isWater}}" hint-placeholder-val="{{ true }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg></sc-if>
+            <sc-if value="{{tip.isSun}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></svg></sc-if>
+            <sc-if value="{{tip.isCut}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 8L20 18M8.5 16L20 6"/></svg></sc-if>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <div style="font-size: 16px; font-weight: 800">{{tip.title}}</div>
+            <div style="font-size: 14px; line-height: 1.45; color: #34433A">{{tip.text}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 20px 28px; background: #F4F7F2; border-top: 1px solid #E3EBE0">
+    <button style="width: 100%; height: 56px; border: none; border-radius: 999px; background: {{primary}}; color: #FFFFFF; font-size: 17px; font-weight: 800">Salvar no meu jardim</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#1F6B45","options":["#1F6B45","#2E6E8E","#7A4E9C"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+primary: this.props.primary ?? '#1F6B45',
+tips: [
+{ isWater: true, title: 'Rega', text: 'Quando os 2 a 3 cm de cima da terra estiverem secos, cerca de uma vez por semana no verão.' },
+{ isSun: true, title: 'Luz', text: 'Muita claridade, sem sol direto: o sol forte queima as folhas.' },
+{ isCut: true, title: 'Como fazer muda', text: 'Corte um pedaço do caule com um nó e uma raiz aérea e deixe na água até enraizar.' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

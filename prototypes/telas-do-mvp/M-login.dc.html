@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Login</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column; padding: 24px 24px 40px">
+  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center">
+    <div style="width: 96px; height: 96px; border-radius: 26px; background: #3F6B4A; display: flex; align-items: center; justify-content: center">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+    </div>
+    <h1 style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -1.4px">Plant<span style="display: inline-block; margin-left: 3px; padding: 0 9px; border-radius: 11px; background: #3F6B4A; color: #FFFFFF">Aí</span></h1>
+    <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #5B665E; max-width: 290px">Descubra que planta é essa, aprenda a cuidar dela e doe mudas para os vizinhos.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 12px">
+    <button style="height: 54px; border: 1.5px solid #D3DED6; border-radius: 999px; background: #FFFFFF; color: #1F2A22; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px">
+      <span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 999px; border: 1.5px solid #5B665E; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center">G</span>
+      Entrar com Google
+    </button>
+    <a href="M-entrar.dc.html" style="height: 54px; border-radius: 999px; background: #3F6B4A; color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+      Entrar com e-mail
+    </a>
+    <p style="margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: #5B665E; text-align: center">Ao entrar, você concorda com os <a href="#">termos de uso</a> e o <a href="#">aviso de privacidade</a>.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

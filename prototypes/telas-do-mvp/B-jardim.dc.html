@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>B · Meu jardim</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=DM+Sans:wght@400;500;700&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#C8F26A}a:hover{color:#E0FFA0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0F1F17; font-family: 'DM Sans', sans-serif; color: #EEF3E8; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <header style="padding: 56px 20px 20px; display: flex; flex-direction: column; gap: 16px">
+    <div style="font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 2px; color: #A9B8AA">4 PLANTAS</div>
+    <h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 44px; line-height: 1">Meu jardim</h1>
+  </header>
+
+  <main style="flex: 1; padding: 0 20px 120px; display: flex; flex-direction: column">
+    <sc-for list="{{plants}}" as="p" hint-placeholder-count="4">
+      <a href="B-especie.dc.html" style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 88px; gap: 12px; align-items: center; padding: 16px 0; border-top: 1px solid #2A4234; text-decoration: none; color: inherit">
+        <div style="font-family: 'DM Mono', monospace; font-size: 12px; color: {{accent}}">{{p.n}}</div>
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 26px; line-height: 1.05">{{p.name}}</div>
+          <div style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 16px; color: #A9B8AA">{{p.species}}</div>
+        </div>
+        <div style="width: 88px; height: 88px; border-radius: 2px; background: #1E3A28; display: flex; align-items: center; justify-content: center; color: #4F7A5C">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+        </div>
+      </a>
+    </sc-for>
+  </main>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 28px; display: flex; gap: 12px; align-items: center">
+    <nav aria-label="Navegação principal" style="flex: 1; height: 64px; border-radius: 999px; background: #1E3A28; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center">
+      <a href="#" aria-label="Meu jardim" aria-current="page" style="height: 64px; display: flex; align-items: center; justify-content: center; color: {{accent}}">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+      </a>
+      <a href="B-perto.dc.html" aria-label="Mudas por perto" style="height: 64px; display: flex; align-items: center; justify-content: center; color: #A9B8AA">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      </a>
+      <a href="#" aria-label="Perfil" style="height: 64px; display: flex; align-items: center; justify-content: center; color: #A9B8AA">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
+      </a>
+    </nav>
+    <a href="#" aria-label="Identificar uma planta pela foto" style="width: 64px; height: 64px; flex-shrink: 0; border-radius: 999px; background: {{accent}}; color: #0F1F17; display: flex; align-items: center; justify-content: center">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    </a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8F26A","options":["#C8F26A","#F2C46A","#8FE3D0"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+accent: this.props.accent ?? '#C8F26A',
+plants: [
+{ n: 'Nº 01', name: 'Monstera da sala', species: 'Monstera deliciosa' },
+{ n: 'Nº 02', name: 'Jiboia', species: 'Epipremnum aureum' },
+{ n: 'Nº 03', name: 'Espada da varanda', species: 'Dracaena trifasciata' },
+{ n: 'Nº 04', name: 'Pimenta da vó', species: 'sem espécie' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

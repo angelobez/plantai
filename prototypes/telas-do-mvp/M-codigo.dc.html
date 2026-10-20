@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Código por e-mail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column; padding: 24px 20px 40px">
+  <header style="height: 56px; display: flex; align-items: center">
+    <a href="M-cadastro.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; border-radius: 999px; background: #EEF4EF; color: #1F2A22; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+  </header>
+  <main style="flex: 1; display: flex; flex-direction: column; gap: 22px; padding-top: 16px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.6px">Confirme seu e-mail</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #5B665E">Mandamos um código de 6 dígitos para <strong style="color: #1F2A22">marina@email.com</strong>. Ele vale por 15 minutos.</p>
+    </div>
+    <fieldset style="border: none; margin: 0; padding: 0">
+      <legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Código de 6 dígitos</legend>
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{digits}}" as="d" hint-placeholder-count="6">
+          <input aria-label="{{d.label}}" inputmode="numeric" maxlength="1" value="{{d.v}}" style="height: 60px; min-width: 0; border: 1.5px solid {{d.border}}; border-radius: 14px; text-align: center; font-size: 24px; font-weight: 800; color: #1F2A22">
+        </sc-for>
+      </div>
+    </fieldset>
+    <p style="margin: 0; font-size: 14px; color: #5B665E">Não chegou? Veja o spam ou <span style="color: #5B665E; font-weight: 700">reenvie em 0:45</span></p>
+  </main>
+  <a href="M-perto.dc.html" style="height: 54px; border-radius: 999px; background: #3F6B4A; color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; text-decoration: none">Confirmar</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const vals = ['4', '8', '2', '', '', ''];
+return { digits: vals.map((v, i) => ({ v, label: 'Dígito ' + (i + 1), border: i === 3 ? '#3F6B4A' : '#D3DED6' })) };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>B · Tela da espécie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=DM+Sans:wght@400;500;700&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#C8F26A}a:hover{color:#E0FFA0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0F1F17; font-family: 'DM Sans', sans-serif; color: #EEF3E8; display: flex; flex-direction: column; position: relative; overflow: hidden">
+  <div style="height: 380px; flex-shrink: 0; background: #1E3A28; position: relative; display: flex; align-items: center; justify-content: center; color: #4F7A5C">
+    <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+    <span style="position: absolute; right: 16px; bottom: 16px; font-family: 'DM Mono', monospace; font-size: 11px; color: #A9B8AA">[FOTO DO USUÁRIO]</span>
+    <a href="B-perto.dc.html" aria-label="Voltar" style="position: absolute; left: 16px; top: 52px; width: 44px; height: 44px; border-radius: 999px; background: #0F1F17; color: #EEF3E8; display: flex; align-items: center; justify-content: center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+  </div>
+
+  <main style="flex: 1; padding: 20px 20px 120px; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 40px; line-height: 1">Costela-de-adão</h1>
+      <div style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 20px; color: #A9B8AA">Monstera deliciosa</div>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid #2A4234; border-radius: 4px">
+      <div style="width: 48px; height: 48px; flex-shrink: 0; background: #1E3A28; border-radius: 2px"></div>
+      <div style="font-family: 'DM Mono', monospace; font-size: 11px; line-height: 1.5; color: #A9B8AA">REFERÊNCIA · [AUTOR]<br>CC BY-SA 4.0 · WIKIMEDIA COMMONS</div>
+    </div>
+
+    <section aria-label="Dicas de cuidado" style="display: flex; flex-direction: column">
+      <sc-for list="{{tips}}" as="tip" hint-placeholder-count="3">
+        <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; padding: 12px 0; border-top: 1px solid #2A4234">
+          <div style="font-family: 'DM Mono', monospace; font-size: 12px; color: {{accent}}; padding-top: 2px">{{tip.n}}</div>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 1.5px">{{tip.title}}</div>
+            <div style="font-size: 14px; line-height: 1.5; color: #CFDACB">{{tip.text}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 28px">
+    <button style="width: 100%; height: 56px; border: none; border-radius: 999px; background: {{accent}}; color: #0F1F17; font-size: 16px; font-weight: 700">Salvar no meu jardim</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8F26A","options":["#C8F26A","#F2C46A","#8FE3D0"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+accent: this.props.accent ?? '#C8F26A',
+tips: [
+{ n: '01', title: 'REGA', text: 'Quando os 2 a 3 cm de cima da terra estiverem secos, cerca de uma vez por semana no verão.' },
+{ n: '02', title: 'LUZ', text: 'Muita claridade, sem sol direto: o sol forte queima as folhas.' },
+{ n: '03', title: 'COMO FAZER MUDA', text: 'Corte um pedaço do caule com um nó e uma raiz aérea e deixe na água até enraizar.' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Foto: identificar ou buscar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3F6B4A}a:hover{color:#2E5237}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: 'Manrope', sans-serif; color: #1F2A22; display: flex; flex-direction: column">
+  <div style="height: 470px; flex-shrink: 0; background: #7FA886; position: relative; display: flex; align-items: center; justify-content: center; color: #E3EEE5">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z"/><path d="M5 19l8-8"/></svg>
+    <span style="position: absolute; right: 18px; top: 44px; font-size: 12px; font-weight: 600; color: #FFFFFF">[foto que você tirou]</span>
+    <a href="M-jardim.dc.html" aria-label="Fechar" style="position: absolute; left: 16px; top: 32px; width: 44px; height: 44px; border-radius: 999px; background: rgba(255,255,255,0.92); color: #1F2A22; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </a>
+    <a href="#" style="position: absolute; right: 16px; bottom: 44px; height: 40px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,0.92); color: #1F2A22; display: flex; align-items: center; font-size: 13px; font-weight: 700; text-decoration: none">Tirar outra</a>
+  </div>
+  <main style="flex: 1; margin-top: -26px; background: #FFFFFF; border-radius: 26px 26px 0 0; padding: 26px 20px 32px; display: flex; flex-direction: column; gap: 12px; position: relative">
+    <h1 style="margin: 0 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.4px">Que planta é essa?</h1>
+    <a href="M-candidatos.dc.html" style="min-height: 64px; padding: 0 18px; border-radius: 18px; background: #3F6B4A; color: #FFFFFF; display: flex; align-items: center; gap: 14px; text-decoration: none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <span style="display: flex; flex-direction: column">
+        <span style="font-size: 16px; font-weight: 700">Identificar pela foto</span>
+        <span style="font-size: 12px; font-weight: 500; color: #DCE9DF">Restam 7 de 10 identificações hoje</span>
+      </span>
+    </a>
+    <a href="M-busca.dc.html" style="min-height: 64px; padding: 0 18px; border-radius: 18px; background: #EEF4EF; color: #1F2A22; display: flex; align-items: center; gap: 14px; text-decoration: none">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3F6B4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <span style="display: flex; flex-direction: column">
+        <span style="font-size: 16px; font-weight: 700">Buscar pelo nome</span>
+        <span style="font-size: 12px; font-weight: 500; color: #5B665E">Se você já sabe o nome popular ou científico</span>
+      </span>
+    </a>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
