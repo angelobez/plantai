@@ -21,7 +21,8 @@ Comece pelo modo certo: se existe em `docs/rodadas/` um questionário com `statu
 
 1. `git pull`. Carregue o mapa e calcule a frontier (tickets abertos, desbloqueados e sem assignee).
 2. Separe a frontier por tipo:
-   - `research`: dispare um subagente por ticket, em paralelo e com `isolation: "worktree"`, que chama a skill `research`, salva em `docs/research/<nome>.md` numa branch `research/<nome>`, faz push e comenta o resumo no ticket.
+   - `research` sem resultado ainda: dispare um subagente por ticket, em paralelo e com `isolation: "worktree"`, que chama a skill `research`, salva em `docs/research/<nome>.md` numa branch `research/<nome>`, faz push e comenta o resumo no ticket.
+   - `research` que já tem resultado comentado: as perguntas que a pesquisa deixou para o humano entram no questionário, como um ticket de grilling.
    - `grilling`: entram no questionário.
    - `prototype` e `task` com humano: liste no topo do questionário como "precisa de sessão ao vivo" ou como checklist para o Ângelo.
 3. Atribua a `@me` cada ticket de grilling que entrar no questionário.
