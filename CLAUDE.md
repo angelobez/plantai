@@ -21,3 +21,17 @@ App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mud
 - App em Flutter; API própria em NestJS + PostgreSQL/PostGIS
 - MVP: login, identificação por foto, dicas de cuidado geradas pelo Claude, anúncio de doação de muda, lista de mudas por perto, botão "tenho interesse" que abre o WhatsApp
 - Repositório público; segredos só em `.env`
+
+## Agent skills
+
+### Issue tracker
+
+Issues no GitHub (`angelobez/plantai`), via `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Os cinco labels padrão: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` e `docs/adr/` na raiz. See `docs/agents/domain.md`.
