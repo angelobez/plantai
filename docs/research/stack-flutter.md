@@ -109,7 +109,7 @@ O método de login é decidido no ticket #3. Do lado do app, as peças são esta
 
 Em qualquer caso, **guarde bem a chave de assinatura**: "If you lose your signing key you won't be able to register your packages." Defina o `applicationId` definitivo (ex.: `dev.angelobez.plantai`) logo no começo, porque é ele que fica registrado.
 
-Não confirmei na prática como cada caminho se comporta. A página principal fala em "participating stores", e a de limited distribution fala em qualquer pacote não registrado. Vale testar instalando um APK de teste num celular real antes de depender de um caminho.
+> **Correção (22/10/2026, ver [Conta Limited distribution e APK de teste num celular real](https://github.com/angelobez/plantai/issues/15)).** A frase acima sobre o recrutador brasileiro estava errada para esta fase. A [página de guias](https://developer.android.com/developer-verification/guides#locations) diz que, no Brasil, o sistema por enquanto só verifica instalações feitas por sete lojas: Google Play, Galaxy Store, GetApps (Xiaomi), OPPO App Market, HONOR App Market, V-Appstore (vivo) e Palm Store. APK baixado pelo navegador ainda não é verificado. A expansão para todos os apps está prevista para 2027. No teste, o APK do GitHub Release instalou num Galaxy M52 com Android 13, não autorizado na conta Limited, só com um aviso do Play Protect. O `adb install` instalou sem aviso. A chave ficou em `~/.config/plantai/` (PKCS12, RSA 4096), não em `~/`.
 
 ---
 
