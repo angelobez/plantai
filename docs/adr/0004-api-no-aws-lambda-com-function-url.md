@@ -13,3 +13,4 @@ A API NestJS roda no AWS Lambda, exposta por uma Function URL (sem API Gateway),
 - Limites do Lambda moldam o contrato da API: o corpo da requisição síncrona tem teto de 6 MB, e cada instância abre a própria conexão com o Postgres, então a conexão com o Neon passa pelo pooler dele.
 - A conta AWS é Paid, e o Budgets só alerta (US$ 1 e US$ 5). A trava de gasto é a reserved concurrency de 5 execuções simultâneas no Lambda. Não remova essa trava sem pôr outra no lugar.
 - O projeto no Google Cloud continua existindo só para a credencial OAuth do login com Google ([ADR 0001](0001-autenticacao-propria-uma-conta-por-email.md)), sem faturamento.
+- A Function URL não aceita domínio próprio. Para servir em `api.plantai.ia.br` ([Domínio do PlantAí](https://github.com/angelobez/plantai/issues/16)), um CloudFront fica na frente dela, com certificado do ACM em `us-east-1`. Assim, recriar a função não muda a URL gravada nos APKs.
