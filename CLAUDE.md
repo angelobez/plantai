@@ -1,6 +1,6 @@
 # PlantAí
 
-App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mudas entre vizinhos. Projeto de portfólio do Ângelo, com MVP no ar até 15/11/2026.
+App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mudas entre vizinhos. Projeto de portfólio do Ângelo, com o MVP funcionando no celular dele até 15/11/2026.
 
 ## Idioma
 - Conversa, issues, glossário e ADRs: português do Brasil
@@ -19,7 +19,7 @@ Vale depois que o mapa terminar.
 - API: TypeScript `strict`, Zod nas fronteiras (requests, `.env`, resposta do Claude), ESLint + Prettier, Jest, integração com PostGIS real via Testcontainers.
 - App: `flutter_lints` com `strict-casts`, `strict-inference` e `strict-raw-types`, `dart format`, testes de unidade nos ViewModels e de widget nas telas principais.
 - Pre-commit (Husky + lint-staged): só format e lint nos arquivos alterados. Typecheck e testes rodam no CI, em todo PR, só na parte cuja pasta mudou.
-- Deploy: merge na `main` publica a API no Lambda (GitHub Actions com OIDC, sem chave da AWS no GitHub); tag `v*` gera o APK assinado no GitHub Release.
+- Deploy: merge na `main` publica a API no Lambda (GitHub Actions com OIDC, sem chave da AWS no GitHub); tag `v*` gera o APK assinado no GitHub Release. Fica para a fase 2; até 15/11 a API roda no notebook e a tag `v0.N` só marca o fim da entrega.
 - `git push` comum é liberado; `push --force`, `reset --hard`, `clean` e `branch -D` ficam bloqueados (`git-guardrails`).
 
 ## Onde as coisas ficam
@@ -28,7 +28,7 @@ Vale depois que o mapa terminar.
 - `docs/research/`: resultados das pesquisas, um arquivo por ticket
 
 ## Decisões já tomadas
-- Objetivo: portfólio primeiro, MVP enxuto até 15/11/2026
+- Objetivo: portfólio primeiro, MVP enxuto funcionando no celular do Ângelo até 15/11/2026; abrir para outras pessoas é a fase 2, sem data (ver [Plano de entregas até 15/11](https://github.com/angelobez/plantai/issues/11))
 - App em Flutter; API própria em NestJS + PostgreSQL/PostGIS
 - MVP: login, identificação por foto, dicas de cuidado geradas pelo Claude, Meu jardim simples, anúncio de doação de muda, lista de mudas por perto, botão "tenho interesse" que abre o WhatsApp
 - Repositório público; segredos só em `.env`
