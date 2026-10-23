@@ -19,3 +19,10 @@ PlantAí is a neighborhood plant app: snap a photo to identify a plant, get AI-g
 | `docs/adr/` | Architecture decision records |
 | `docs/research/` | Research notes behind decisions |
 | `.claude/skills/` | Project-specific Claude Code skills |
+| `.claude/hooks/` | Claude Code hooks (`git-guardrails` blocks destructive git commands) |
+| `package.json`, `.husky/` | Repo-wide pre-commit only (Husky + lint-staged); each part keeps its own `.lintstagedrc` |
+
+## Development setup
+Run `npm install` at the repo root once. It enables the pre-commit hook, which formats and lints only the staged files in `api/` and `app/`.
+
+The Claude Code `git-guardrails` hook needs `jq`; without it, every shell command is blocked. Its tests run with `.claude/hooks/block-dangerous-git.test.sh`.
