@@ -5,8 +5,14 @@
 # Blocked: force push (--force, -f, --force-with-lease, --force-if-includes,
 # +refspec), reset --hard, clean (any flags) and branch -D.
 #
-# This is a guardrail, not a sandbox: it reads each git invocation in the
-# command (split on ; && || | $( and newlines) and ignores the rest.
+# This is a guardrail, not a sandbox: it splits the command into simple
+# commands (on ; & | ( ) ` and newlines outside quotes, skipping heredoc
+# bodies), unwraps sudo/env/bash -c, and checks each git invocation.
+
+if ! command -v jq >/dev/null; then
+  echo "BLOCKED by git-guardrails: jq is not installed, so commands can't be checked. Install jq." >&2
+  exit 2
+fi
 
 command=$(jq -r '.tool_input.command // empty')
 
@@ -68,15 +74,58 @@ check_git() {
   esac
 }
 
-segments=$(printf '%s\n' "$command" | sed -E 's/&&|\|\||;|\||\$\(|`/\n/g')
+# Prints one simple command per line. Quote marks are dropped but quoted text
+# stays inside its command, so `git commit -m "a; git clean"` is one commit.
+split_commands() {
+  local line c next i quote="" heredoc=""
+  while IFS= read -r line || [[ -n $line ]]; do
+    if [[ -n $heredoc ]]; then
+      [[ ${line#"${line%%[![:space:]]*}"} == "$heredoc" ]] && heredoc=""
+      continue
+    fi
+    if [[ -z $quote && $line =~ (^|[^<])\<\<-?[[:space:]]*[\'\"]?([A-Za-z_][A-Za-z0-9_]*) ]]; then
+      heredoc=${BASH_REMATCH[2]}
+    fi
+    for ((i = 0; i < ${#line}; i++)); do
+      c=${line:i:1}
+      next=${line:i+1:1}
+      if [[ $quote == "'" ]]; then
+        [[ $c == "'" ]] && quote="" || printf '%s' "$c"
+        continue
+      fi
+      case $c in
+        \\) printf '%s' "$next" && i=$((i + 1)) ;;
+        \") [[ $quote == '"' ]] && quote="" || quote='"' ;;
+        \') [[ -n $quote ]] && printf '%s' "$c" || quote="'" ;;
+        '$') [[ $next == "(" ]] && printf '\n' && i=$((i + 1)) || printf '%s' "$c" ;;
+        '`' | '(' | ')') printf '\n' ;;
+        ';' | '&' | '|') [[ -n $quote ]] && printf '%s' "$c" || printf '\n' ;;
+        *) printf '%s' "$c" ;;
+      esac
+    done
+    [[ -n $quote ]] && printf ' ' || printf '\n'
+  done <<<"$1"
+}
 
 while IFS= read -r segment; do
-  # Quotes and closing parens around a git call aren't part of its arguments
-  segment=${segment//[\"\')]/ }
   read -ra tokens <<<"$segment"
-  [[ ${tokens[0]:-} == "(" || ${tokens[0]:-} == "{" ]] && tokens=("${tokens[@]:1}")
-  tokens[0]=${tokens[0]#(}
-  [[ ${tokens[0]:-} == git ]] && check_git "${tokens[@]:1}"
-done <<<"$segments"
+  [[ ${tokens[0]:-} == "{" ]] && tokens=("${tokens[@]:1}")
+
+  # Skip wrappers that still run git: sudo, env, VAR=value, bash -c "..."
+  while [[ ${#tokens[@]} -gt 0 ]]; do
+    case ${tokens[0]} in
+      sudo | env | command | exec | nohup | time) tokens=("${tokens[@]:1}") ;;
+      bash | sh | zsh)
+        [[ ${tokens[1]:-} == -c ]] || break
+        tokens=("${tokens[@]:2}")
+        ;;
+      -*) break ;;
+      *=*) tokens=("${tokens[@]:1}") ;;
+      *) break ;;
+    esac
+  done
+
+  [[ ${tokens[0]:-} == git || ${tokens[0]:-} == */git ]] && check_git "${tokens[@]:1}"
+done < <(split_commands "$command")
 
 exit 0

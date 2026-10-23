@@ -53,6 +53,13 @@ expect_blocked 'git fetch || git push -f'
 expect_blocked 'echo "$(git reset --hard)"'
 expect_blocked $'git add .\ngit push --force'
 
+# Wrappers in front of git don't hide it either
+expect_blocked 'sudo git reset --hard'
+expect_blocked 'env GIT_TRACE=1 git clean -f'
+expect_blocked 'GIT_TRACE=1 git push --force'
+expect_blocked 'bash -c "git clean -fd"'
+expect_blocked '/usr/bin/git branch -D feature'
+
 # Plain push and everyday commands
 expect_allowed 'git push'
 expect_allowed 'git push -u origin feature-fix'
@@ -66,6 +73,20 @@ expect_allowed ''
 
 # Words inside a commit message are not commands
 expect_allowed 'git commit -m "block git clean and reset --hard"'
+expect_allowed 'git commit -m "fix; git clean docs && git reset --hard"'
+expect_allowed "git commit -m 'one | git push --force'"
+expect_allowed $'git commit -F - <<\'EOF\'\nchore: tidy\n\ngit clean -fd is now blocked\nEOF'
+expect_allowed $'cat <<EOF > notes.md\ngit reset --hard\nEOF\ngit status'
+
+# ...but a command after the heredoc still counts
+expect_blocked $'cat <<EOF > notes.md\nhello\nEOF\ngit reset --hard'
+
+# Without jq nothing can be checked, so everything is blocked
+echo '{"tool_input":{"command":"ls"}}' | PATH=/nonexistent "$BASH" "$hook" 2>/dev/null
+if [[ $? -ne 2 ]]; then
+  echo "FAIL (expected blocked without jq)"
+  failures=$((failures + 1))
+fi
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures test(s) failed"
