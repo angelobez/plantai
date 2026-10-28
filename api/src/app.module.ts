@@ -9,6 +9,7 @@ import type { Env } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { AppVersionMiddleware } from './http/app-version.middleware';
+import { RequestLoggerMiddleware } from './http/request-logger.middleware';
 
 @Module({})
 export class AppModule implements NestModule {
@@ -20,6 +21,9 @@ export class AppModule implements NestModule {
   }
 
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AppVersionMiddleware).forRoutes('*path');
+    // The logger goes first, so rejected requests are logged too.
+    consumer
+      .apply(RequestLoggerMiddleware, AppVersionMiddleware)
+      .forRoutes('*path');
   }
 }
