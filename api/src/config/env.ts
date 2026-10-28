@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -29,4 +30,13 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
   throw new InvalidEnvError(
     `Invalid environment variables:\n  ${problems.join('\n  ')}`,
   );
+}
+
+/**
+ * Reads `.env` from the working directory when there is one (local runs and
+ * drizzle-kit), then validates the whole process environment.
+ */
+export function loadEnv(): Env {
+  if (existsSync('.env')) process.loadEnvFile('.env');
+  return parseEnv(process.env);
 }

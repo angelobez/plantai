@@ -42,4 +42,4 @@ curl localhost:3000/v1/health
 
 `npm run db:down` stops the database and keeps its data. After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
 
-Checks, the same ones CI runs: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS with Testcontainers, so Docker must be running; they do not touch the database from `compose.yaml`.
+Checks, the same ones CI will run: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS with Testcontainers, so Docker must be running; they do not touch the database from `compose.yaml`.

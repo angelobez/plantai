@@ -1,17 +1,17 @@
 import { NestFactory } from '@nestjs/core';
-import { existsSync } from 'node:fs';
 import { AppModule } from './app.module';
 import { configureApp } from './bootstrap';
-import { parseEnv } from './config/env';
+import { loadEnv } from './config/env';
 
 /** Local HTTP server. Deployed environments use the Lambda handler instead. */
-async function bootstrap(): Promise<void> {
-  if (existsSync('.env')) process.loadEnvFile('.env');
-  const env = parseEnv(process.env);
+async function startHttpServer(): Promise<void> {
+  const env = loadEnv();
 
   const app = await NestFactory.create(AppModule.forRoot(env));
   configureApp(app);
+  // Closes the database pool on Ctrl+C or when `nest start --watch` reloads.
+  app.enableShutdownHooks();
   await app.listen(env.PORT);
 }
 
-void bootstrap();
+void startHttpServer();

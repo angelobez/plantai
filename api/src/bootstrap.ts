@@ -8,5 +8,4 @@ import { ProblemDetailsFilter } from './errors/problem-details.filter';
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('v1');
   app.useGlobalFilters(new ProblemDetailsFilter());
-  app.enableShutdownHooks();
 }
