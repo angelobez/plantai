@@ -8,7 +8,7 @@ async function startHttpServer(): Promise<void> {
   const env = loadEnv();
 
   const app = await NestFactory.create(AppModule.forRoot(env));
-  configureApp(app);
+  await configureApp(app);
   // Closes the database pool on Ctrl+C or when `nest start --watch` reloads.
   app.enableShutdownHooks();
   await app.listen(env.PORT);
