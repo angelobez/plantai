@@ -1,0 +1,23 @@
+# Local database for development. Keep the image in sync with POSTGIS_IMAGE in
+# test/support/postgis.ts, so tests run against the same PostGIS major version.
+name: plantai
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: plantai
+      POSTGRES_PASSWORD: plantai
+      POSTGRES_DB: plantai
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U plantai -d plantai']
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  db-data:

@@ -14,6 +14,7 @@ PlantAí is a neighborhood plant app: snap a photo to identify a plant, get AI-g
 ## Repository layout
 | Path | What lives there |
 | --- | --- |
+| `api/` | NestJS API (see [Running the API locally](#running-the-api-locally)) |
 | `CLAUDE.md` | Working agreement for Claude Code sessions |
 | `CONTEXT.md` | Domain glossary (created as terms are settled) |
 | `docs/adr/` | Architecture decision records |
@@ -26,3 +27,19 @@ PlantAí is a neighborhood plant app: snap a photo to identify a plant, get AI-g
 Run `npm install` at the repo root once. It enables the pre-commit hook, which formats and lints only the staged files in `api/` and `app/`.
 
 The Claude Code `git-guardrails` hook needs `jq`; without it, every shell command is blocked. Its tests run with `.claude/hooks/block-dangerous-git.test.sh`.
+
+## Running the API locally
+Needs Node 24 and Docker. From `api/`:
+
+```sh
+npm install
+cp .env.example .env   # then fill in the values; the API refuses to start if one is invalid
+npm run db:up          # PostGIS in Docker (compose.yaml), waits until it is healthy
+npm run db:migrate     # applies the Drizzle migrations in drizzle/
+npm run start:dev      # http://localhost:3000, with reload on change
+curl localhost:3000/v1/health
+```
+
+`npm run db:down` stops the database and keeps its data. After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
+
+Checks, the same ones CI will run: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS with Testcontainers, so Docker must be running; they do not touch the database from `compose.yaml`.
