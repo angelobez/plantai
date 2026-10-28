@@ -1,5 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
+import { AppModule } from './app.module';
+import type { Env } from './config/env';
 import { DomainError } from './errors/domain-error';
 import {
   ProblemDetailsFilter,
@@ -22,4 +26,13 @@ export async function configureApp(app: INestApplication): Promise<void> {
   app.use((_request: Request, response: Response) => {
     sendProblem(response, new DomainError('NOT_FOUND'));
   });
+}
+
+/** Creates the configured app; used by the local server and the Lambda handler. */
+export async function createApp(env: Env): Promise<NestExpressApplication> {
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule.forRoot(env),
+  );
+  await configureApp(app);
+  return app;
 }
