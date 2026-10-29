@@ -134,6 +134,93 @@ void main() {
     expect(adapter.requests.last.headers['Authorization'], 'Bearer access-1');
   });
 
+  group('logIn', () {
+    Future<void> logIn() =>
+        repository.logIn(email: 'marina@email.com', password: 'senha-boa-123');
+
+    test('posts e-mail and password, saves the tokens and notifies', () async {
+      adapter.respond = (_) async => jsonResponse(200, tokensJson());
+      var notified = 0;
+      repository.addListener(() => notified++);
+
+      await logIn();
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/v1/auth/login');
+      expect(request.data, {
+        'email': 'marina@email.com',
+        'password': 'senha-boa-123',
+      });
+      expect(repository.isSignedIn, isTrue);
+      expect(notified, 1);
+      final reloaded = await SessionStore.load();
+      expect(
+        reloaded.session,
+        const Session(accessToken: 'access-1', refreshToken: 'refresh-1'),
+      );
+    });
+
+    test('wrong credentials stay signed out, with no e-mail waiting', () async {
+      adapter.respond = (_) async =>
+          problemResponse(401, 'INVALID_CREDENTIALS');
+
+      await expectLater(logIn(), throwsA(AuthFailure.invalidCredentials));
+      expect(repository.isSignedIn, isFalse);
+      expect(repository.pendingEmail, isNull);
+    });
+
+    test('an unconfirmed e-mail waits for the code the API sent', () async {
+      adapter.respond = (_) async => problemResponse(403, 'EMAIL_NOT_VERIFIED');
+
+      await expectLater(logIn(), throwsA(AuthFailure.emailNotVerified));
+      expect(repository.isSignedIn, isFalse);
+      expect(repository.pendingEmail, 'marina@email.com');
+    });
+
+    test(
+      'resendCode after EMAIL_NOT_VERIFIED logs in again for a new code',
+      () async {
+        adapter.respond = (_) async =>
+            problemResponse(403, 'EMAIL_NOT_VERIFIED');
+        await expectLater(logIn(), throwsA(AuthFailure.emailNotVerified));
+
+        await repository.resendCode();
+
+        expect(adapter.requests, hasLength(2));
+        expect(adapter.requests.last.path, '/v1/auth/login');
+        expect(adapter.requests.last.data, adapter.requests.first.data);
+        expect(repository.pendingEmail, 'marina@email.com');
+      },
+    );
+
+    test('resendCode still fails for any other answer', () async {
+      adapter.respond = (_) async => problemResponse(403, 'EMAIL_NOT_VERIFIED');
+      await expectLater(logIn(), throwsA(AuthFailure.emailNotVerified));
+      adapter.respond = (_) async => problemResponse(429, 'TOO_MANY_REQUESTS');
+
+      await expectLater(
+        repository.resendCode(),
+        throwsA(AuthFailure.tooManyRequests),
+      );
+    });
+
+    test('the code after EMAIL_NOT_VERIFIED signs in', () async {
+      adapter.respond = (_) async => problemResponse(403, 'EMAIL_NOT_VERIFIED');
+      await expectLater(logIn(), throwsA(AuthFailure.emailNotVerified));
+      adapter.respond = (_) async => jsonResponse(200, tokensJson());
+
+      await repository.verifyEmail('123456');
+
+      expect(adapter.requests.last.path, '/v1/auth/verify-email');
+      expect(adapter.requests.last.data, {
+        'email': 'marina@email.com',
+        'code': '123456',
+      });
+      expect(repository.isSignedIn, isTrue);
+    });
+  });
+
   group('turns the API answer into an AuthFailure', () {
     for (final (code, failure) in [
       ('INVALID_CODE', AuthFailure.invalidCode),

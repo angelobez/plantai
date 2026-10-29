@@ -26,4 +26,9 @@ abstract class AuthRepository extends ChangeNotifier {
 
   /// Confirms [pendingEmail] with [code] and signs the User in.
   Future<void> verifyEmail(String code);
+
+  /// Signs in with e-mail and password. When the e-mail was never confirmed
+  /// it throws `AuthFailure.emailNotVerified`: the API has sent a new code,
+  /// and [email] becomes [pendingEmail].
+  Future<void> logIn({required String email, required String password});
 }

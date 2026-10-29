@@ -61,4 +61,17 @@ class FakeAuthRepository extends AuthRepository {
     _pendingEmail = null;
     setSignedIn(true);
   }
+
+  /// Fails with [failure]; `emailNotVerified` leaves [email] waiting for the
+  /// code, as the real one does.
+  @override
+  Future<void> logIn({required String email, required String password}) async {
+    try {
+      await _answer('logIn($email, $password)');
+    } on AuthFailure catch (failure) {
+      if (failure == AuthFailure.emailNotVerified) _pendingEmail = email;
+      rethrow;
+    }
+    setSignedIn(true);
+  }
 }
