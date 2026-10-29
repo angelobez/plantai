@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { emailCodeField, emailField, passwordField } from '../auth-tokens.dto';
+import { emailCodeField, emailField, passwordField } from '../auth-fields';
 
 export class PasswordResetRequest extends createZodDto(
   z.object({ email: emailField }),
