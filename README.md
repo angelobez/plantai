@@ -101,3 +101,5 @@ Changing the workflow itself runs both parts. A docs-only PR runs neither, and `
 scripts/protect-main.sh            # current repo, needs gh with admin rights
 scripts/protect-main.sh owner/repo # or an explicit one
 ```
+
+It is already applied to this repository (2026-10-29). Run it again only to restore the rules. Since they bind admins too, nothing reaches `main` by direct push: docs, research and `/rodada` changes also go through a branch and a PR.
