@@ -11,6 +11,7 @@ import 'package:plantai/ui/core/widgets/plantai_logo.dart';
 
 import '../testing/fake_auth_repository.dart';
 import '../testing/fake_catalog_repository.dart';
+import '../testing/fake_garden_repository.dart';
 import '../testing/fake_identification_repository.dart';
 import '../testing/fake_photo_picker.dart';
 import '../testing/fake_photo_repository.dart';
@@ -23,6 +24,7 @@ void main() {
   late FakePhotoPicker photoPicker;
   late FakeCatalogRepository catalogRepository;
   late FakeIdentificationRepository identificationRepository;
+  late FakeGardenRepository gardenRepository;
   late List<Uri> openedUrls;
 
   setUp(() {
@@ -32,6 +34,7 @@ void main() {
     photoPicker = FakePhotoPicker();
     catalogRepository = FakeCatalogRepository();
     identificationRepository = FakeIdentificationRepository();
+    gardenRepository = FakeGardenRepository();
     openedUrls = [];
   });
 
@@ -45,6 +48,7 @@ void main() {
         photoPicker: photoPicker,
         catalogRepository: catalogRepository,
         identificationRepository: identificationRepository,
+        gardenRepository: gardenRepository,
         openUrl: (url) async {
           openedUrls.add(url);
           return true;
@@ -89,18 +93,71 @@ void main() {
 
     await tester.tap(tab('Jardim'));
     await tester.pumpAndSettle();
-    expect(find.text('Meu jardim'), findsOneWidget);
+    expect(find.text('Monstera da sala'), findsOneWidget);
     expect(find.text('Mudas por perto'), findsNothing);
 
     await tester.tap(tab('Perfil'));
     await tester.pumpAndSettle();
     expect(find.text('marina@email.com'), findsOneWidget);
-    expect(find.text('Meu jardim'), findsNothing);
+    expect(find.text('Monstera da sala'), findsNothing);
 
     await tester.tap(tab('Por perto'));
     await tester.pumpAndSettle();
     expect(find.text('Mudas por perto'), findsOneWidget);
     expect(find.text('marina@email.com'), findsNothing);
+  });
+
+  group('Meu jardim', () {
+    Future<void> openGarden(WidgetTester tester) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Jardim'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the Jardim tab lists the plants, no longer "em breve"', (
+      tester,
+    ) async {
+      await openGarden(tester);
+
+      expect(find.text('Em breve'), findsNothing);
+      expect(find.text('2 plantas'), findsOneWidget);
+      expect(find.text('Monstera da sala'), findsOneWidget);
+      expect(find.text('Pimenta da vó'), findsOneWidget);
+    });
+
+    testWidgets('a plant opens its Tela da planta, and back is the list', (
+      tester,
+    ) async {
+      await openGarden(tester);
+
+      await tester.tap(find.text('Monstera da sala'));
+      await tester.pumpAndSettle();
+
+      expect(gardenRepository.plantsAsked, [monsteraDaSala.id]);
+      expect(find.text('Monstera deliciosa'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsNothing);
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 plantas'), findsOneWidget);
+      expect(tab('Jardim'), findsOneWidget);
+    });
+
+    testWidgets('an empty garden invites to identify, opening the camera', (
+      tester,
+    ) async {
+      gardenRepository.garden = [];
+      await openGarden(tester);
+
+      await tester.tap(find.text('Identificar minha primeira planta'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tirar foto'));
+      await tester.pumpAndSettle();
+
+      expect(photoPicker.asked, [PhotoSource.camera]);
+      expect(find.text('Que planta é essa?'), findsOneWidget);
+    });
   });
 
   group('the camera button', () {
@@ -159,7 +216,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Que planta é essa?'), findsNothing);
-      expect(find.text('Meu jardim'), findsOneWidget);
+      expect(find.text('2 plantas'), findsOneWidget);
       expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
     });
 
@@ -283,6 +340,30 @@ void main() {
       expect(photoRepository.uploads, hasLength(2));
     });
 
+    testWidgets(
+      'Foto não reconhecida: "Salvar só com o nome" asks the name, saves and opens the plant',
+      (tester) async {
+        identificationRepository.identification = notRecognized;
+        await openCandidates(tester);
+
+        await tester.tap(button('Salvar só com o nome'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'Pimenta da vó');
+        await tester.tap(find.text('Salvar'));
+        await tester.pumpAndSettle();
+
+        final saved = gardenRepository.created.single;
+        expect(saved.photoId, 'photo-1');
+        expect(saved.commonName, 'Pimenta da vó');
+        expect(saved.speciesId, isNull);
+        expect(find.text('Pimenta da vó'), findsOneWidget);
+
+        await tester.tap(find.byTooltip('Voltar'));
+        await tester.pumpAndSettle();
+        expect(find.text('3 plantas'), findsOneWidget);
+      },
+    );
+
     testWidgets('Limite diário: the search is still there', (tester) async {
       identificationRepository.failure = IdentificationFailure.dailyLimit;
       await openCandidates(tester);
@@ -361,6 +442,52 @@ void main() {
       expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
       expect(find.text('Costela-de-adão'), findsOneWidget);
       expect(catalogRepository.searches, ['costela']);
+    });
+
+    testWidgets(
+      '"Salvar no meu jardim" saves the species with the photo, and back is the Jardim tab',
+      (tester) async {
+        await openSearch(tester);
+        await search(tester, 'costela');
+        await tester.tap(find.text('Costela-de-adão'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Salvar no meu jardim'));
+        await tester.pumpAndSettle();
+
+        final saved = gardenRepository.created.single;
+        expect(saved.photoId, 'photo-1');
+        expect(saved.commonName, 'Costela-de-adão');
+        expect(saved.speciesId, monstera.id);
+        // The Tela da planta, with the species and its guide.
+        expect(gardenRepository.plantsAsked, ['plant-1']);
+        expect(find.text('Monstera deliciosa'), findsOneWidget);
+        expect(find.text('Salvar no meu jardim'), findsNothing);
+
+        await tester.tap(find.byTooltip('Voltar'));
+        await tester.pumpAndSettle();
+
+        expect(tab('Jardim'), findsOneWidget);
+        expect(find.text('3 plantas'), findsOneWidget);
+        expect(find.text('Que planta é essa?'), findsNothing);
+      },
+    );
+
+    testWidgets('"Salvar só com o nome" saves the term and opens the plant', (
+      tester,
+    ) async {
+      catalogRepository.results = [];
+      await openSearch(tester);
+      await search(tester, 'pimenta da vó');
+
+      await tester.tap(find.text('Salvar só com o nome “pimenta da vó”'));
+      await tester.pumpAndSettle();
+
+      final saved = gardenRepository.created.single;
+      expect(saved.commonName, 'pimenta da vó');
+      expect(saved.speciesId, isNull);
+      expect(find.text('pimenta da vó'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
     });
   });
 
