@@ -1,5 +1,15 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiNoContentResponse } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
   type AuthenticatedUser,
@@ -13,6 +23,7 @@ import {
   PlantItem,
   type PlantItemResponse,
   type PlantResponse,
+  UpdatePlantRequest,
 } from './plant.dto';
 import { PlantsService } from './plants.service';
 
@@ -58,5 +69,32 @@ export class PlantsController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<PlantResponse> {
     return this.plantsService.get(user.id, id);
+  }
+
+  /** Renames the plant; answers it as a list item. */
+  @Patch(':id')
+  @ZodResponse({ status: 200, type: PlantItem })
+  @ApiProblems('UNAUTHENTICATED', 'NOT_FOUND')
+  update(
+    @Param() { id }: IdParam,
+    @Body() body: UpdatePlantRequest,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<PlantItemResponse> {
+    return this.plantsService.update(user.id, id, body);
+  }
+
+  /**
+   * Removes the plant and its photo, from the database and then the storage.
+   * A photo that fails to leave the storage is logged, not answered.
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNoContentResponse({ description: 'The plant is gone' })
+  @ApiProblems('UNAUTHENTICATED', 'NOT_FOUND')
+  async remove(
+    @Param() { id }: IdParam,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.plantsService.remove(user.id, id);
   }
 }
