@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../data/repositories/auth/auth_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/update_required.dart';
+import '../ui/about/widgets/about_screen.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
 import '../ui/auth/email_login/widgets/email_login_screen.dart';
 import '../ui/auth/login/view_models/login_view_model.dart';
@@ -29,6 +30,7 @@ abstract final class Routes {
   static const nearby = '/perto';
   static const profile = '/perfil';
   static const identify = '/identificar';
+  static const about = '/sobre';
   static const updateRequired = '/atualize';
 
   /// The entry screens all live under [login], so one prefix tells them apart.
@@ -175,7 +177,10 @@ GoRouter router({
                     profileRepository: profileRepository,
                     authRepository: authRepository,
                   )..load(),
-                  builder: (viewModel) => ProfileScreen(viewModel: viewModel),
+                  builder: (viewModel) => ProfileScreen(
+                    viewModel: viewModel,
+                    onAbout: () => context.push(Routes.about),
+                  ),
                 ),
               ),
             ],
@@ -191,6 +196,10 @@ GoRouter router({
             title: 'Identificar pela foto',
           ),
         ),
+      ),
+      GoRoute(
+        path: Routes.about,
+        builder: (context, state) => AboutScreen(openUrl: openUrl),
       ),
       GoRoute(
         path: Routes.updateRequired,
