@@ -48,7 +48,8 @@ class CandidatesScreen extends StatelessWidget {
   /// "Buscar pelo nome".
   final VoidCallback onSearchByName;
 
-  /// "Salvar só com o nome"; the button shows, disabled, while this is null.
+  /// "Salvar só com o nome"; the button does not show while this is null
+  /// ("Definir espécie", where the plant has its name already).
   final VoidCallback? onSaveNameOnly;
 
   @override

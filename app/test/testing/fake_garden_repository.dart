@@ -6,6 +6,7 @@ import 'package:plantai/data/services/api/models/plant.dart';
 import 'package:plantai/domain/models/care_guide_generating.dart';
 import 'package:plantai/domain/models/garden_failure.dart';
 import 'package:plantai/domain/models/new_plant.dart';
+import 'package:plantai/domain/models/plant_changes.dart';
 
 import 'fake_catalog_repository.dart';
 
@@ -57,10 +58,13 @@ final pimentaDaVoItem = PlantSummary(
 );
 
 /// A [GardenRepository] the test drives: [plants] answers [garden],
-/// [plant] answers [plantsById], [create] puts a new plant at the top of
-/// [garden], [update] renames one and [remove] takes it out, each telling
-/// the listeners. Every call throws [failure] when set. It records the calls
-/// in [listed], [plantsAsked], [created], [updated] and [removed].
+/// [plant] answers [plantsById], and [create] puts a new plant at the top of
+/// [garden], telling the listeners. [update] changes the plant in
+/// [plantsById] and [garden] (a species becomes [monstera]; a plant that has
+/// one throws [GardenFailure.speciesAlreadySet]) and [remove] takes it out,
+/// telling the listeners too. Every call throws [failure] when set. It
+/// records the calls in [listed], [plantsAsked], [created], [updates] and
+/// [removed].
 ///
 /// Set [gate] to hold every call until the test completes it.
 class FakeGardenRepository extends GardenRepository {
@@ -96,8 +100,8 @@ class FakeGardenRepository extends GardenRepository {
   /// Every plant saved, in order.
   final created = <NewPlant>[];
 
-  /// Every update, in order: the id and the fields given.
-  final updated = <({String id, String? commonName, String? speciesId})>[];
+  /// Every change asked for, in order, with the plant's id.
+  final updates = <(String, PlantChanges)>[];
 
   /// The id of every plant removed, in order.
   final removed = <String>[];
@@ -149,32 +153,36 @@ class FakeGardenRepository extends GardenRepository {
   }
 
   @override
-  Future<PlantSummary> update(
-    String id, {
-    String? commonName,
-    String? speciesId,
-  }) async {
-    updated.add((id: id, commonName: commonName, speciesId: speciesId));
+  Future<PlantSummary> update(String id, PlantChanges changes) async {
+    updates.add((id, changes));
     await _answer();
-    final index = garden.indexWhere((plant) => plant.id == id);
     final plant = plantsById[id];
-    if (index < 0 || plant == null) throw GardenFailure.notFound;
-    final item = garden[index];
-    final renamed = PlantSummary(
+    if (plant == null) throw GardenFailure.notFound;
+    if (changes.speciesId != null && plant.species != null) {
+      throw GardenFailure.speciesAlreadySet;
+    }
+    final changed = Plant(
       id: id,
-      commonName: commonName ?? item.commonName,
-      photo: item.photo,
-      species: item.species,
-    );
-    garden = [...garden]..[index] = renamed;
-    plantsById[id] = Plant(
-      id: id,
-      commonName: renamed.commonName,
+      commonName: changes.commonName ?? plant.commonName,
       photo: plant.photo,
-      species: plant.species,
+      species: changes.speciesId != null ? monstera : plant.species,
     );
+    plantsById[id] = changed;
+    final item = PlantSummary(
+      id: id,
+      commonName: changed.commonName,
+      photo: changed.photo,
+      species: changed.species == null
+          ? null
+          : PlantSpeciesSummary(
+              id: changed.species!.id,
+              commonName: changed.species!.commonName,
+              scientificName: changed.species!.scientificName,
+            ),
+    );
+    garden = [for (final p in garden) p.id == id ? item : p];
     notifyListeners();
-    return renamed;
+    return item;
   }
 
   @override

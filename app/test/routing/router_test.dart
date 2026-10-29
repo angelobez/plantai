@@ -7,6 +7,7 @@ import 'package:plantai/domain/models/auth_failure.dart';
 import 'package:plantai/domain/models/identification_failure.dart';
 import 'package:plantai/main.dart';
 import 'package:plantai/routing/router.dart';
+import 'package:plantai/ui/core/widgets/photo_image.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
 
 import '../testing/fake_auth_repository.dart';
@@ -176,7 +177,10 @@ void main() {
       await tester.tap(find.text('Pimenta da vó'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Remover do jardim'));
+      // Below "Definir espécie", on a plant without species.
+      final remove = find.widgetWithText(TextButton, 'Remover do jardim');
+      await tester.ensureVisible(remove);
+      await tester.tap(remove);
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
       await tester.pumpAndSettle();
@@ -532,6 +536,186 @@ void main() {
       expect(find.text('pimenta da vó'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
     });
+  });
+
+  group('"Definir espécie"', () {
+    Finder button(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.bySubtype<ButtonStyleButton>(),
+    );
+
+    /// Jardim → the plant saved with only a name.
+    Future<void> openPlant(WidgetTester tester) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Jardim'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pimenta da vó'));
+      await tester.pumpAndSettle();
+      expect(find.text('Definir espécie'), findsOneWidget);
+    }
+
+    Future<void> tapInView(WidgetTester tester, Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> searchAndChoose(WidgetTester tester) async {
+      expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'costela');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Salvar só com o nome'), findsNothing);
+      await tester.tap(find.text('Costela-de-adão'));
+      await tester.pumpAndSettle();
+    }
+
+    /// Back on the Tela da planta, which now has the species and its guide,
+    /// with the plant's own photo; the new photo, if any, was never saved.
+    void expectSpeciesSet(String speciesId) {
+      final update = gardenRepository.updates.single;
+      expect(update.$1, pimentaDaVo.id);
+      expect(update.$2.speciesId, speciesId);
+      expect(gardenRepository.created, isEmpty);
+      expect(find.text('Pimenta da vó'), findsOneWidget);
+      expect(find.text('Monstera deliciosa'), findsOneWidget);
+      expect(find.text('Definir espécie'), findsNothing);
+      expect(find.text('Que planta é essa?'), findsNothing);
+      expect(find.text('Buscar espécie pelo nome'), findsNothing);
+    }
+
+    Future<void> openPhoto(WidgetTester tester) async {
+      await tapInView(tester, button('Identificar pela foto'));
+      await tester.tap(find.text('Escolher da galeria'));
+      await tester.pumpAndSettle();
+      expect(find.text('Que planta é essa?'), findsOneWidget);
+    }
+
+    testWidgets('"Buscar pelo nome" sets the species chosen in Busca', (
+      tester,
+    ) async {
+      await openPlant(tester);
+
+      await tapInView(tester, button('Buscar pelo nome'));
+      await searchAndChoose(tester);
+
+      expectSpeciesSet(monstera.id);
+      expect(catalogRepository.speciesAsked, isEmpty);
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      expect(find.text('2 plantas'), findsOneWidget);
+    });
+
+    testWidgets('leaving Busca without a species changes nothing', (
+      tester,
+    ) async {
+      await openPlant(tester);
+
+      await tapInView(tester, button('Buscar pelo nome'));
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      expect(gardenRepository.updates, isEmpty);
+      expect(find.text('Definir espécie'), findsOneWidget);
+    });
+
+    testWidgets(
+      '"Identificar pela foto" identifies a new photo and sets the chosen candidate',
+      (tester) async {
+        await openPlant(tester);
+
+        await openPhoto(tester);
+        await tester.tap(find.text('Identificar pela foto'));
+        await tester.pumpAndSettle();
+        await tester.tap(button('É esta').first);
+        await tester.pumpAndSettle();
+
+        expect(identificationRepository.identified, ['photo-1']);
+        expect(identificationRepository.choices, [(recognized.id, 0)]);
+        expectSpeciesSet(jiboiaSpecies.id);
+        final photo = tester.widget<PhotoImage>(find.byType(PhotoImage));
+        expect(photo.photo, same(pimentaPhoto));
+      },
+    );
+
+    testWidgets('closing Foto changes nothing', (tester) async {
+      await openPlant(tester);
+
+      await openPhoto(tester);
+      await tester.tap(find.byTooltip('Fechar'));
+      await tester.pumpAndSettle();
+
+      expect(gardenRepository.updates, isEmpty);
+      expect(find.text('Definir espécie'), findsOneWidget);
+    });
+
+    testWidgets('"Buscar pelo nome" on Foto sets the species too', (
+      tester,
+    ) async {
+      await openPlant(tester);
+
+      await openPhoto(tester);
+      await tester.tap(find.text('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+      await searchAndChoose(tester);
+
+      expectSpeciesSet(monstera.id);
+    });
+
+    testWidgets('"Nenhuma destas" opens Busca, and back is Foto', (
+      tester,
+    ) async {
+      await openPlant(tester);
+      await openPhoto(tester);
+      await tester.tap(find.text('Identificar pela foto'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(button('Nenhuma destas'));
+      await tester.pumpAndSettle();
+      expect(identificationRepository.choices, [(recognized.id, null)]);
+      expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Que planta é essa?'), findsOneWidget);
+      expect(gardenRepository.updates, isEmpty);
+    });
+
+    testWidgets('"Nenhuma destas", then a result, sets the species', (
+      tester,
+    ) async {
+      await openPlant(tester);
+      await openPhoto(tester);
+      await tester.tap(find.text('Identificar pela foto'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(button('Nenhuma destas'));
+      await tester.pumpAndSettle();
+      await searchAndChoose(tester);
+
+      expectSpeciesSet(monstera.id);
+    });
+
+    testWidgets(
+      'Foto não reconhecida has no "Salvar só com o nome", and its search sets the species',
+      (tester) async {
+        identificationRepository.identification = notRecognized;
+        await openPlant(tester);
+        await openPhoto(tester);
+        await tester.tap(find.text('Identificar pela foto'));
+        await tester.pumpAndSettle();
+        expect(find.text('Não consegui reconhecer'), findsOneWidget);
+        expect(find.text('Salvar só com o nome'), findsNothing);
+
+        await tester.tap(button('Buscar pelo nome'));
+        await tester.pumpAndSettle();
+        await searchAndChoose(tester);
+
+        expectSpeciesSet(monstera.id);
+      },
+    );
   });
 
   testWidgets('update required: shows "Atualize o PlantAí" with the link', (

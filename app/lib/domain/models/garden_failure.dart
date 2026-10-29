@@ -10,6 +10,10 @@ enum GardenFailure implements Exception {
   /// (`NOT_FOUND`).
   notFound,
 
+  /// The plant has a species already, which never changes
+  /// (`SPECIES_ALREADY_SET`).
+  speciesAlreadySet,
+
   /// Anything else.
   unknown,
 }

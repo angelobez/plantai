@@ -1,5 +1,6 @@
 import '../../../domain/models/garden_failure.dart';
 import '../../../domain/models/new_plant.dart';
+import '../../../domain/models/plant_changes.dart';
 import '../../services/api/api_client.dart';
 import '../../services/api/api_exception.dart';
 import '../../services/api/care_guide_call.dart';
@@ -42,19 +43,15 @@ class GardenRepositoryRemote extends GardenRepository {
   );
 
   @override
-  Future<PlantSummary> update(
-    String id, {
-    String? commonName,
-    String? speciesId,
-  }) async {
-    final updated = await _guard(
+  Future<PlantSummary> update(String id, PlantChanges changes) async {
+    final changed = await _guard(
       () => _apiClient.patch(_plantPath(id), {
-        'commonName': ?commonName,
-        'speciesId': ?speciesId,
+        'commonName': ?changes.commonName,
+        'speciesId': ?changes.speciesId,
       }, PlantSummary.fromJson),
     );
     notifyListeners();
-    return updated;
+    return changed;
   }
 
   @override
@@ -71,6 +68,7 @@ class GardenRepositoryRemote extends GardenRepository {
     noConnection: GardenFailure.noConnection,
     onError: (code) => switch (code) {
       ApiErrorCode.notFound => GardenFailure.notFound,
+      ApiErrorCode.speciesAlreadySet => GardenFailure.speciesAlreadySet,
       _ => GardenFailure.unknown,
     },
   );

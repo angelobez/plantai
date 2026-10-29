@@ -24,8 +24,9 @@ class SearchScreen extends StatefulWidget {
   /// A result was tapped.
   final ValueChanged<SpeciesSummary> onSpecies;
 
-  /// "Salvar só com o nome", with the term as typed (trimmed). The button
-  /// shows, disabled, while this is null.
+  /// "Salvar só com o nome", with the term as typed (trimmed). Without it
+  /// ("Definir espécie": the plant has its name already), the box with the
+  /// button does not show.
   final ValueChanged<String>? onSaveNameOnly;
 
   @override
@@ -208,11 +209,12 @@ class _Body extends StatelessWidget {
                       onTap: () => onSpecies(species),
                     ),
                 ],
-                _SaveNameOnly(
-                  term: term,
-                  nothingFound: results.isEmpty,
-                  onPressed: onSaveNameOnly,
-                ),
+                if (onSaveNameOnly case final onSaveNameOnly?)
+                  _SaveNameOnly(
+                    term: term,
+                    nothingFound: results.isEmpty,
+                    onPressed: onSaveNameOnly,
+                  ),
               ],
             ],
           ),
@@ -363,11 +365,10 @@ class _SaveNameOnly extends StatelessWidget {
 
   final String term;
   final bool nothingFound;
-  final ValueChanged<String>? onPressed;
+  final ValueChanged<String> onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final onPressed = this.onPressed;
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       padding: const EdgeInsets.all(16),
@@ -396,7 +397,7 @@ class _SaveNameOnly extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           OutlinedButton(
-            onPressed: onPressed == null ? null : () => onPressed(term),
+            onPressed: () => onPressed(term),
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(0, 46),
               foregroundColor: AppColors.forest,

@@ -71,10 +71,16 @@ export class PlantsController {
     return this.plantsService.get(user.id, id);
   }
 
-  /** Renames the plant; answers it as a list item. */
+  /**
+   * Changes the plant: a new name, the species of a plant saved with only a
+   * name, or both; answers it as a list item. The species is set once: a
+   * plant that has one answers `SPECIES_ALREADY_SET`, even for the same
+   * species, and nothing changes. A `speciesId` that does not exist is
+   * `VALIDATION_FAILED`.
+   */
   @Patch(':id')
   @ZodResponse({ status: 200, type: PlantItem })
-  @ApiProblems('UNAUTHENTICATED', 'NOT_FOUND')
+  @ApiProblems('UNAUTHENTICATED', 'NOT_FOUND', 'SPECIES_ALREADY_SET')
   update(
     @Param() { id }: IdParam,
     @Body() body: UpdatePlantRequest,

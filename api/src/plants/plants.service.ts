@@ -13,16 +13,18 @@ import {
 import { DomainError } from '../errors/domain-error';
 import { PhotoStorage } from '../photo-storage/photo-storage';
 import { PhotosService } from '../photos/photos.service';
-import type {
-  PlantItemResponse,
-  PlantResponse,
-  UpdatePlantRequestBody,
-} from './plant.dto';
+import type { PlantItemResponse, PlantResponse } from './plant.dto';
 
 /** What `POST /plants` takes, already validated. */
 export interface NewPlant {
   photoId: string;
   commonName: string;
+  speciesId?: string | undefined;
+}
+
+/** What `PATCH /plants/:id` takes, already validated: at least one field. */
+export interface PlantChanges {
+  commonName?: string | undefined;
   speciesId?: string | undefined;
 }
 
@@ -140,14 +142,22 @@ export class PlantsService {
 
   /**
    * Changes [userId]'s plant [plantId] and answers it as a list item.
-   * `NOT_FOUND` for another User's plant.
+   * `NOT_FOUND` for another User's plant. The species is set once: a plant
+   * that has one, even the same, answers `SPECIES_ALREADY_SET` (to fix a
+   * wrong species, the User removes the plant and saves it again). A species
+   * that does not exist is `VALIDATION_FAILED`. The species goes first, so a
+   * body with both changes nothing when it fails. Setting it never has Claude
+   * write the guide; the next `GET /plants/:id` does it.
    */
   async update(
     userId: string,
     plantId: string,
-    changes: UpdatePlantRequestBody,
+    changes: PlantChanges,
   ): Promise<PlantItemResponse> {
     const { plant } = await this.findOwned(userId, plantId);
+    if (changes.speciesId !== undefined) {
+      await this.setSpecies(plant, changes.speciesId);
+    }
     if (changes.commonName !== undefined) {
       await this.db
         .update(plants)
@@ -279,6 +289,23 @@ export class PlantsService {
     const [item] = await this.items(userId, eq(plants.id, plantId));
     if (!item) throw new Error(`The plant ${plantId} was not found`);
     return item;
+  }
+
+  private async setSpecies(
+    plant: OwnedPlant['plant'],
+    speciesId: string,
+  ): Promise<void> {
+    if (plant.speciesId) throw new DomainError('SPECIES_ALREADY_SET');
+    if (!(await this.speciesExists(speciesId))) {
+      throw invalid('speciesId', 'no such species');
+    }
+    // Only a plant with no species yet: of two requests at once, one wins.
+    const updated = await this.db
+      .update(plants)
+      .set({ speciesId })
+      .where(and(eq(plants.id, plant.id), isNull(plants.speciesId)))
+      .returning({ id: plants.id });
+    if (updated.length === 0) throw new DomainError('SPECIES_ALREADY_SET');
   }
 
   private async speciesExists(speciesId: string): Promise<boolean> {

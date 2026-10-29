@@ -11,6 +11,7 @@ import 'package:plantai/data/services/session/session_store.dart';
 import 'package:plantai/domain/models/care_guide_generating.dart';
 import 'package:plantai/domain/models/garden_failure.dart';
 import 'package:plantai/domain/models/new_plant.dart';
+import 'package:plantai/domain/models/plant_changes.dart';
 
 import '../../../testing/fake_http_client_adapter.dart';
 
@@ -170,12 +171,12 @@ void main() {
     expect(changes, 0);
   });
 
-  test('update patches only the fields it is given', () async {
+  test('update patches only the name when it is the only change', () async {
     adapter.respond = (_) async => jsonResponse(200, _itemJson);
 
     final plant = await repository.update(
       _plantId,
-      commonName: 'Jiboia da sala',
+      const PlantChanges(commonName: 'Jiboia da sala'),
     );
 
     final request = adapter.requests.single;
@@ -191,13 +192,16 @@ void main() {
     adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
 
     await expectLater(
-      repository.update(_plantId, commonName: 'J'),
+      repository.update(_plantId, const PlantChanges(commonName: 'J')),
       throwsA(GardenFailure.notFound),
     );
     expect(changes, 0);
 
     adapter.respond = (_) async => jsonResponse(200, _itemJson);
-    await repository.update(_plantId, commonName: 'Jiboia da sala');
+    await repository.update(
+      _plantId,
+      const PlantChanges(commonName: 'Jiboia da sala'),
+    );
     expect(changes, 1);
   });
 
@@ -222,6 +226,45 @@ void main() {
     await expectLater(
       repository.remove(_plantId),
       throwsA(GardenFailure.notFound),
+    );
+    expect(changes, 0);
+  });
+
+  test('update patches only the species when it is the only change', () async {
+    adapter.respond = (_) async => jsonResponse(200, _itemJson);
+    final plant = await repository.update(
+      _plantId,
+      const PlantChanges(speciesId: _speciesId),
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/v1/plants/$_plantId');
+    expect(await sentJson(), {'speciesId': _speciesId});
+    expect(plant.species?.id, _speciesId);
+  });
+
+  test('update tells its listeners the garden changed', () async {
+    adapter.respond = (_) async => jsonResponse(200, _itemJson);
+    var changes = 0;
+    repository.addListener(() => changes += 1);
+
+    await repository.update(
+      _plantId,
+      const PlantChanges(speciesId: _speciesId),
+    );
+
+    expect(changes, 1);
+  });
+
+  test('SPECIES_ALREADY_SET becomes GardenFailure.speciesAlreadySet', () async {
+    adapter.respond = (_) async => problemResponse(409, 'SPECIES_ALREADY_SET');
+    var changes = 0;
+    repository.addListener(() => changes += 1);
+
+    await expectLater(
+      repository.update(_plantId, const PlantChanges(speciesId: _speciesId)),
+      throwsA(GardenFailure.speciesAlreadySet),
     );
     expect(changes, 0);
   });

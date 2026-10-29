@@ -3227,6 +3227,31 @@
               }
             }
           },
+          "409": {
+            "description": "SPECIES_ALREADY_SET",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "SPECIES_ALREADY_SET"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
           "426": {
             "description": "APP_UPDATE_REQUIRED",
             "content": {
