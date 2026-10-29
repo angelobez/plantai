@@ -85,7 +85,7 @@ The app reads the API address from `--dart-define=API_BASE_URL`; release builds 
   flutter build apk --release --dart-define=API_BASE_URL=http://192.168.0.10:3000
   ```
 
-Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). The app opens on the Por perto tab; if the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
+Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). Without a session the app opens on Login; "Entrar com e-mail" creates the account, and without `RESEND_API_KEY` the 6-digit code shows up in the API log. With a session (kept in `flutter_secure_storage` between runs) it opens on the Por perto tab. If the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
 
 Plain HTTP is allowed only to `localhost`, `127.0.0.1`, `10.0.2.2` (emulator) and, when `API_BASE_URL` is a private IPv4 address (10/8, 172.16/12, 192.168/16), that address; the build generates the network security config from it. Change the Wi-Fi IP and you must rebuild.
 

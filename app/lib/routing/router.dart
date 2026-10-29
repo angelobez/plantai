@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/repositories/auth/auth_repository.dart';
 import '../data/services/api/update_required.dart';
+import '../ui/auth/login/widgets/login_screen.dart';
+import '../ui/auth/signup/view_models/signup_view_model.dart';
+import '../ui/auth/signup/widgets/signup_screen.dart';
+import '../ui/auth/verify_email/view_models/verify_email_view_model.dart';
+import '../ui/auth/verify_email/widgets/verify_email_screen.dart';
 import '../ui/core/url_opener.dart';
 import '../ui/core/widgets/coming_soon.dart';
 import '../ui/core/widgets/leaf_icon.dart';
 import '../ui/core/widgets/tab_page.dart';
+import '../ui/core/widgets/view_model_scope.dart';
 import '../ui/tabs/widgets/tabs_shell.dart';
 import '../ui/update_required/widgets/update_required_screen.dart';
 
@@ -15,25 +22,49 @@ abstract final class Routes {
   static const profile = '/perfil';
   static const identify = '/identificar';
   static const updateRequired = '/atualize';
+
+  /// The entry screens all live under [login], so one prefix tells them apart.
+  static const login = '/entrar';
+  static const signup = '$login/criar-conta';
+  static const verifyEmail = '$login/codigo';
+
+  static bool isEntry(String location) =>
+      location == login || location.startsWith('$login/');
 }
 
 /// The app's routes.
 ///
 /// [redirect] runs its rules in order; the first one that answers a location
-/// wins. New global rules (such as "no session goes to Login") go in that
+/// wins: "Atualize o PlantAí" first, then the session (Login without one,
+/// never back to the entry screens with one). New global rules go in that
 /// list, and their notifier in `refreshListenable`.
 GoRouter router({
   required UpdateRequired updateRequired,
+  required AuthRepository authRepository,
   UrlOpener openUrl = openExternally,
 }) {
   final rules = <String? Function(GoRouterState state)>[
     // A 426 on any call: everything goes to "Atualize o PlantAí".
     (state) => updateRequired.isRequired ? Routes.updateRequired : null,
+    // No session: only the entry screens. With one: never back to them.
+    (state) {
+      final location = state.matchedLocation;
+      if (authRepository.isSignedIn) {
+        return Routes.isEntry(location) ? Routes.nearby : null;
+      }
+      if (!Routes.isEntry(location)) return Routes.login;
+      // The code screen needs the e-mail that is waiting for it.
+      if (location == Routes.verifyEmail &&
+          authRepository.pendingEmail == null) {
+        return Routes.login;
+      }
+      return null;
+    },
   ];
 
   return GoRouter(
     initialLocation: Routes.nearby,
-    refreshListenable: updateRequired,
+    refreshListenable: Listenable.merge([updateRequired, authRepository]),
     redirect: (context, state) {
       for (final rule in rules) {
         final location = rule(state);
@@ -44,6 +75,33 @@ GoRouter router({
       return null;
     },
     routes: [
+      GoRoute(
+        path: Routes.login,
+        builder: (context, state) =>
+            // "Entrar com e-mail" goes to the e-mail and password screen once
+            // it exists; until then, straight to "Criar conta".
+            LoginScreen(onEmail: () => context.push(Routes.signup)),
+        routes: [
+          GoRoute(
+            path: _child(Routes.signup),
+            builder: (context, state) => ViewModelScope(
+              create: () => SignupViewModel(authRepository: authRepository),
+              builder: (viewModel) => SignupScreen(
+                viewModel: viewModel,
+                onCodeSent: () => context.push(Routes.verifyEmail),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: _child(Routes.verifyEmail),
+            builder: (context, state) => ViewModelScope(
+              create: () =>
+                  VerifyEmailViewModel(authRepository: authRepository),
+              builder: (viewModel) => VerifyEmailScreen(viewModel: viewModel),
+            ),
+          ),
+        ],
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => TabsShell(
           navigationShell: navigationShell,
@@ -106,3 +164,6 @@ GoRouter router({
     ],
   );
 }
+
+/// The path of an entry screen relative to [Routes.login], as a child route.
+String _child(String location) => location.substring(Routes.login.length + 1);
