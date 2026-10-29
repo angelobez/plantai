@@ -234,8 +234,10 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 | `POST /photos` | Multipart `file` (até 6 MB) → `201` com `{ id, url, expiresAt }`. Limite de 50 por dia (`PHOTO_DAILY_LIMIT`). Arquivo que não é imagem, campo ausente, corpo que não é multipart ou arquivo acima de 6 MB: `VALIDATION_FAILED`, com `path` `file` |
 | `POST /identifications` | `{ photoId }` → `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Se `result = not_recognized`, vem `candidates: []` |
 | `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }` → `{ species }` ou `204`. Faz o upsert da Espécie no Catálogo |
-| `GET /species?q=` | Busca sem diferenciar acento nem maiúscula (`ILIKE '%termo%'` em `name_normalized`), até 20 resultados. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }` |
-| `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide }` |
+| `GET /species?q=` | Busca sem diferenciar acento nem maiúscula: `lower(unaccent(q))` com `ILIKE '%termo%'` em `name_normalized` e no nome científico normalizado. `q` de 2 a 50 caracteres depois do trim (fora disso, `VALIDATION_FAILED`); `%` e `_` valem como letras. Responde uma lista com uma linha por espécie, até 20: primeiro as que têm um nome que começa pelo termo, depois as outras, cada grupo em ordem alfabética do nome principal. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }`; `matchedAlternativeName` é o nome alternativo que bateu, quando o termo não bateu no principal nem no científico |
+| `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide }`, com `otherNames` em ordem alfabética. Espécie inexistente: `NOT_FOUND`; `id` que não é UUID: `VALIDATION_FAILED` |
+
+**Espécie nas respostas do Catálogo:** a espécie sem nome principal usa o nome científico como `commonName`. A `referencePhoto` é `{ url, author, license, sourceUrl }`; a `url` é pré-assinada (1 h) quando a foto está no armazenamento (`reference_photo_s3_key`) e é a URL externa nos outros casos.
 
 **`careGuide` no `GET /species/:id`:**
 - **Já existe e está `ready`:** vem o conteúdo.

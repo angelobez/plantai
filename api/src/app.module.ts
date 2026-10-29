@@ -5,6 +5,7 @@ import {
   type NestModule,
 } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
+import { CatalogModule } from './catalog/catalog.module';
 import { ConfigModule } from './config/config.module';
 import type { Env } from './config/env';
 import { DatabaseModule } from './database/database.module';
@@ -34,6 +35,7 @@ export class AppModule implements NestModule {
         HealthModule,
         ProfileModule,
         PhotosModule,
+        CatalogModule,
       ],
     };
   }

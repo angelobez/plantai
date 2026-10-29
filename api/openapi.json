@@ -1828,6 +1828,327 @@
           "Photos"
         ]
       }
+    },
+    "/v1/species": {
+      "get": {
+        "operationId": "SpeciesController_search",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Part of a common or scientific name; accents and capitals do not matter",
+            "schema": {
+              "minLength": 2,
+              "maxLength": 50,
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-App-Version",
+            "in": "header",
+            "description": "Semantic version of the app; older than MIN_APP_VERSION answers 426",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpeciesItem_Output"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "UNAUTHENTICATED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "APP_UPDATE_REQUIRED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Species"
+        ]
+      }
+    },
+    "/v1/species/{id}": {
+      "get": {
+        "operationId": "SpeciesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-App-Version",
+            "in": "header",
+            "description": "Semantic version of the app; older than MIN_APP_VERSION answers 426",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Species_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "UNAUTHENTICATED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "NOT_FOUND"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "APP_UPDATE_REQUIRED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Species"
+        ]
+      }
     }
   },
   "info": {
@@ -2212,6 +2533,127 @@
           "id",
           "url",
           "expiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "SpeciesItem_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "commonName": {
+            "type": "string",
+            "description": "The primary common name; the scientific name while the species has none"
+          },
+          "scientificName": {
+            "type": "string",
+            "description": "Without author"
+          },
+          "referencePhoto": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "author": {
+                "type": "string"
+              },
+              "license": {
+                "type": "string",
+                "description": "Such as CC BY-SA 4.0"
+              },
+              "sourceUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "The page of the photo, for the credit link"
+              }
+            },
+            "required": [
+              "url",
+              "author",
+              "license",
+              "sourceUrl"
+            ],
+            "additionalProperties": false
+          },
+          "matchedAlternativeName": {
+            "type": "string",
+            "example": "banana-de-macaco",
+            "description": "The alternative name the term matched, when it matched neither the primary nor the scientific name",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "commonName",
+          "scientificName",
+          "referencePhoto",
+          "matchedAlternativeName"
+        ],
+        "additionalProperties": false
+      },
+      "Species_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "commonName": {
+            "type": "string",
+            "description": "The primary common name; the scientific name while the species has none"
+          },
+          "scientificName": {
+            "type": "string",
+            "description": "Without author"
+          },
+          "referencePhoto": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "author": {
+                "type": "string"
+              },
+              "license": {
+                "type": "string",
+                "description": "Such as CC BY-SA 4.0"
+              },
+              "sourceUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "The page of the photo, for the credit link"
+              }
+            },
+            "required": [
+              "url",
+              "author",
+              "license",
+              "sourceUrl"
+            ],
+            "additionalProperties": false
+          },
+          "otherNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The alternative common names, in alphabetical order"
+          }
+        },
+        "required": [
+          "id",
+          "commonName",
+          "scientificName",
+          "referencePhoto",
+          "otherNames"
         ],
         "additionalProperties": false
       }
