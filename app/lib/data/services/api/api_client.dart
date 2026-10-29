@@ -34,6 +34,7 @@ class ApiClient {
                ),
              )
              ..interceptors.addAll([
+               ProblemAnswerInterceptor(),
                AppVersionInterceptor(appVersion),
                BearerInterceptor(sessionStore),
                UpdateRequiredInterceptor(updateRequired),
@@ -45,16 +46,21 @@ class ApiClient {
   final Dio _dio;
 
   /// `GET` [path] (with [queryParameters]) and parse its JSON object body
-  /// with [fromJson].
+  /// with [fromJson]. [receiveTimeout] replaces the usual one for a call the
+  /// API may take long to answer (one that has Claude write a care guide).
   Future<T> get<T>(
     String path,
     T Function(Map<String, dynamic> json) fromJson, {
     Map<String, String>? queryParameters,
+    Duration? receiveTimeout,
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         path,
         queryParameters: queryParameters,
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
       );
       return fromJson(response.data ?? const {});
     } on DioException catch (error) {
@@ -170,7 +176,14 @@ class ApiClient {
     final response = error.response;
     if (response == null) return ApiConnectionException(error);
     final status = response.statusCode ?? 0;
-    return ApiException(status: status, code: problemCode(response.data));
+    final retryAfter = int.tryParse(
+      response.headers.value('retry-after') ?? '',
+    );
+    return ApiException(
+      status: status,
+      code: problemCode(response.data),
+      retryAfter: retryAfter == null ? null : Duration(seconds: retryAfter),
+    );
   }
 
   /// The `code` of an `application/problem+json` body, parsed once here;
@@ -182,6 +195,33 @@ class ApiClient {
     } on Object {
       return ApiErrorCode.unknown;
     }
+  }
+}
+
+/// Turns a success status that carries an `application/problem+json` body
+/// into an error, so callers get an [ApiException] for it like for any other
+/// problem. The API does that for `202 CARE_GUIDE_GENERATING`, which Dio
+/// would otherwise hand to the caller's parser as a normal answer.
+class ProblemAnswerInterceptor extends Interceptor {
+  @override
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
+    final contentType = response.headers.value(Headers.contentTypeHeader);
+    if (contentType != null &&
+        contentType.startsWith('application/problem+json')) {
+      handler.reject(
+        DioException.badResponse(
+          statusCode: response.statusCode ?? 0,
+          requestOptions: response.requestOptions,
+          response: response,
+        ),
+        true,
+      );
+      return;
+    }
+    handler.next(response);
   }
 }
 

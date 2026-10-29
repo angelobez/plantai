@@ -2014,6 +2014,31 @@
               }
             }
           },
+          "202": {
+            "description": "CARE_GUIDE_GENERATING",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "CARE_GUIDE_GENERATING"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
           "400": {
             "description": "VALIDATION_FAILED",
             "content": {
@@ -3076,6 +3101,103 @@
               "type": "string"
             },
             "description": "The alternative common names, in alphabetical order"
+          },
+          "careGuide": {
+            "type": "object",
+            "properties": {
+              "commonName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "The most used common name in Brazil"
+              },
+              "watering": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "description": "A short line, about 25 characters: \"1x por semana\""
+                  },
+                  "details": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1500,
+                    "description": "The full tip"
+                  }
+                },
+                "required": [
+                  "summary",
+                  "details"
+                ],
+                "additionalProperties": false,
+                "description": "Rega"
+              },
+              "light": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "description": "A short line, about 25 characters: \"1x por semana\""
+                  },
+                  "details": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1500,
+                    "description": "The full tip"
+                  }
+                },
+                "required": [
+                  "summary",
+                  "details"
+                ],
+                "additionalProperties": false,
+                "description": "Luz"
+              },
+              "propagation": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "description": "A short line, about 25 characters: \"1x por semana\""
+                  },
+                  "details": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1500,
+                    "description": "The full tip"
+                  }
+                },
+                "required": [
+                  "summary",
+                  "details"
+                ],
+                "additionalProperties": false,
+                "description": "Como fazer muda"
+              }
+            },
+            "required": [
+              "commonName",
+              "watering",
+              "light",
+              "propagation"
+            ],
+            "additionalProperties": false,
+            "description": "The care guide; null while it is unavailable",
+            "nullable": true
+          },
+          "careGuideStatus": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "unavailable"
+            ],
+            "description": "\"unavailable\" when Claude failed this time; the next request tries again"
           }
         },
         "required": [
@@ -3083,7 +3205,9 @@
           "commonName",
           "scientificName",
           "referencePhoto",
-          "otherNames"
+          "otherNames",
+          "careGuide",
+          "careGuideStatus"
         ],
         "additionalProperties": false
       },

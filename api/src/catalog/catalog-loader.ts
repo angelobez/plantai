@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import sharp from 'sharp';
+import { CareGuideService } from '../care-guides/care-guide.service';
 import { DATABASE, type Database } from '../database/database.module';
 import { species, speciesNames } from '../database/schema';
 import { PhotoStorage } from '../photo-storage/photo-storage';
@@ -11,7 +12,10 @@ import { ReferencePhotoDownloader } from './reference-photo-downloader';
 export const REFERENCE_PHOTO_MAX_SIZE = 1200;
 
 /** Which part of loading one species failed. */
-export type CatalogLoadStep = 'species' | 'photo';
+export type CatalogLoadStep = 'species' | 'photo' | 'careGuide';
+
+/** How many care guides the load asks Claude for at once. */
+export const CARE_GUIDE_CONCURRENCY = 3;
 
 export interface CatalogLoadFailure {
   scientificName: string;
@@ -26,6 +30,8 @@ export interface CatalogLoadSummary {
   newSpecies: number;
   /** Reference photos this run copied to the storage. */
   photosCopied: number;
+  /** Care guides this run had Claude write. */
+  careGuidesGenerated: number;
   failures: CatalogLoadFailure[];
 }
 
@@ -38,10 +44,32 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** Runs [task] on every item, at most [limit] at a time. */
+async function forEachLimited<T>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<void>,
+): Promise<void> {
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < items.length) {
+      const item = items[next] as T;
+      next += 1;
+      await task(item);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker),
+  );
+}
+
 /**
  * Loads the seed into the Catalog (`npm run catalog:load`). For each species
  * it upserts the row by `gbif_key`, syncs the names and, if the photo is not
- * in the storage yet, copies it there. Running it again duplicates nothing
+ * in the storage yet, copies it there. Then it has Claude write the care
+ * guides that are missing or failed, through the same
+ * {@link CareGuideService.ensure} as the API, {@link CARE_GUIDE_CONCURRENCY}
+ * at a time. Running it again duplicates nothing
  * and only completes what failed; a failure in one species never stops the
  * others.
  *
@@ -55,17 +83,21 @@ export class CatalogLoader {
     @Inject(PhotoStorage) private readonly storage: PhotoStorage,
     @Inject(ReferencePhotoDownloader)
     private readonly downloader: ReferencePhotoDownloader,
+    @Inject(CareGuideService) private readonly careGuides: CareGuideService,
   ) {}
 
   async load(
     seed: CatalogSeedSpecies[],
     onProgress: (item: CatalogSeedSpecies, index: number) => void = () =>
       undefined,
+    /** After each care guide, with how many of the [total] are done. */
+    onCareGuide: (done: number, total: number) => void = () => undefined,
   ): Promise<CatalogLoadSummary> {
     const summary: CatalogLoadSummary = {
       species: 0,
       newSpecies: 0,
       photosCopied: 0,
+      careGuidesGenerated: 0,
       failures: [],
     };
     const fail = (
@@ -80,6 +112,7 @@ export class CatalogLoader {
       });
     };
 
+    const loaded: { id: string; item: CatalogSeedSpecies }[] = [];
     for (const [index, item] of seed.entries()) {
       onProgress(item, index);
       let row: { id: string; isNew: boolean; hasOwnPhoto: boolean };
@@ -91,6 +124,7 @@ export class CatalogLoader {
       }
       summary.species += 1;
       if (row.isNew) summary.newSpecies += 1;
+      loaded.push({ id: row.id, item });
 
       if (!row.hasOwnPhoto) {
         try {
@@ -101,6 +135,28 @@ export class CatalogLoader {
         }
       }
     }
+
+    let careGuidesDone = 0;
+    await forEachLimited(
+      loaded,
+      CARE_GUIDE_CONCURRENCY,
+      async ({ id, item }) => {
+        try {
+          const outcome = await this.careGuides.ensure(id, null);
+          if (outcome.status === 'ready' && outcome.generated) {
+            summary.careGuidesGenerated += 1;
+          } else if (outcome.status === 'unavailable') {
+            fail(item, 'careGuide', outcome.reason);
+          } else if (outcome.status === 'generating') {
+            fail(item, 'careGuide', 'being written by another request');
+          }
+        } catch (error) {
+          fail(item, 'careGuide', error);
+        }
+        careGuidesDone += 1;
+        onCareGuide(careGuidesDone, loaded.length);
+      },
+    );
     return summary;
   }
 
@@ -225,6 +281,7 @@ export function formatCatalogLoadSummary(summary: CatalogLoadSummary): string {
   const lines = [
     `Species in the Catalog: ${String(summary.species)} (${String(summary.newSpecies)} new)`,
     `Reference photos copied: ${String(summary.photosCopied)}`,
+    `Care guides written: ${String(summary.careGuidesGenerated)}`,
   ];
   if (summary.failures.length === 0) {
     lines.push('Failures: none');

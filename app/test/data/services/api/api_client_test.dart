@@ -59,6 +59,57 @@ void main() {
     expect(updateRequired.isRequired, isFalse);
   });
 
+  test('a 2xx problem answer (202 CARE_GUIDE_GENERATING) is an ApiException with its Retry-After', () async {
+    adapter.respond = (_) async => ResponseBody.fromString(
+      jsonEncode({
+        'type': 'about:blank',
+        'title': 'Accepted',
+        'status': 202,
+        'code': 'CARE_GUIDE_GENERATING',
+      }),
+      202,
+      headers: {
+        Headers.contentTypeHeader: ['application/problem+json; charset=utf-8'],
+        'retry-after': ['3'],
+      },
+    );
+
+    await expectLater(
+      client.get('/v1/species/1', (json) => json),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 202)
+            .having((e) => e.code, 'code', ApiErrorCode.careGuideGenerating)
+            .having(
+              (e) => e.retryAfter,
+              'retryAfter',
+              const Duration(seconds: 3),
+            ),
+      ),
+    );
+  });
+
+  test('an error without Retry-After has no retryAfter', () async {
+    adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
+
+    await expectLater(
+      client.get('/v1/species/1', (json) => json),
+      throwsA(
+        isA<ApiException>().having((e) => e.retryAfter, 'retryAfter', isNull),
+      ),
+    );
+  });
+
+  test('a call may wait longer than the usual receive timeout', () async {
+    await client.get(
+      '/v1/species/1',
+      (json) => json,
+      receiveTimeout: const Duration(seconds: 60),
+    );
+
+    expect(adapter.requests.single.receiveTimeout, const Duration(seconds: 60));
+  });
+
   test('a network failure becomes an ApiConnectionException', () async {
     adapter.respond = (options) async => throw DioException.connectionError(
       requestOptions: options,

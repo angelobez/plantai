@@ -23,6 +23,9 @@ export function testEnv(
     S3_REGION: 'us-east-1',
     // The plant identifier is a fake in the test app too.
     PLANTNET_API_KEY: 'test-plantnet-key',
+    // The care-guide writer is a fake in the test app; never a real key.
+    ANTHROPIC_API_KEY: 'test-anthropic-key',
+    CARE_GUIDE_MODEL: 'claude-sonnet-5-5',
     ...overrides,
   };
 }

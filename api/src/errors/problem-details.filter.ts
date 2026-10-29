@@ -31,6 +31,9 @@ export function sendProblem(response: Response, error: DomainError): void {
     code: error.code,
     ...(error.errors && { errors: error.errors }),
   };
+  if (error.retryAfterSeconds !== undefined) {
+    response.setHeader('Retry-After', String(error.retryAfterSeconds));
+  }
   response.status(error.status).type('application/problem+json').json(body);
 }
 

@@ -13,6 +13,8 @@ const env = {
   S3_BUCKET: 'unused',
   S3_REGION: 'us-east-1',
   PLANTNET_API_KEY: 'unused',
+  ANTHROPIC_API_KEY: 'unused',
+  CARE_GUIDE_MODEL: 'claude-sonnet-5-5',
 };
 
 describe('createEmailSender', () => {

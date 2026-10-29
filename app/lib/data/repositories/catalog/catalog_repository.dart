@@ -10,6 +10,8 @@ abstract class CatalogRepository {
   /// start with it first.
   Future<List<SpeciesSummary>> search(String term);
 
-  /// One species, with all its names.
+  /// One species, with all its names and its care guide. The first reading
+  /// of a species waits while Claude writes the guide; when another reading
+  /// is writing it, throws `CareGuideGenerating` instead.
   Future<Species> species(String id);
 }

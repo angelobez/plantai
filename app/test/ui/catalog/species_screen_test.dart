@@ -88,10 +88,15 @@ void main() {
 
   testWidgets('the credit opens the page of the photo', (tester) async {
     await pump(tester);
-
-    await tester.tap(
-      find.textContaining('Foto de referência', findRichText: true),
+    final credit = find.textContaining(
+      'Foto de referência',
+      findRichText: true,
     );
+
+    // Below the care guide.
+    await tester.ensureVisible(credit);
+    await tester.pumpAndSettle();
+    await tester.tap(credit);
 
     expect(openedUrls, [Uri.parse(monsteraPhoto.sourceUrl)]);
   });
@@ -141,5 +146,87 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Busca'), findsOneWidget);
+  });
+
+  group('care guide', () {
+    testWidgets('shows the care rows and the full text of each one', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      for (final (label, value) in [
+        ('Rega', '1x por semana'),
+        ('Luz', 'Meia-sombra'),
+        ('Como fazer muda', 'Estaca'),
+      ]) {
+        expect(find.text(label), findsWidgets);
+        expect(find.text(value), findsOneWidget);
+      }
+      for (final tip in [
+        monsteraCareGuide.watering,
+        monsteraCareGuide.light,
+        monsteraCareGuide.propagation,
+      ]) {
+        expect(find.text(tip.details), findsOneWidget);
+      }
+      expect(find.byIcon(Icons.water_drop_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.wb_sunny_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.content_cut), findsOneWidget);
+    });
+
+    testWidgets('an unavailable guide says so, with the species still there', (
+      tester,
+    ) async {
+      catalogRepository.speciesById = {
+        monsteraWithoutGuide.id: monsteraWithoutGuide,
+      };
+
+      await pump(tester);
+
+      expect(find.text('Costela-de-adão'), findsOneWidget);
+      expect(find.text('Dicas indisponíveis no momento.'), findsOneWidget);
+      expect(find.text('Rega'), findsNothing);
+      expect(
+        find.textContaining('Foto de referência', findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows "gerando dicas…" while another request writes them', (
+      tester,
+    ) async {
+      catalogRepository.generating = 1;
+      await pump(tester, settle: false);
+      await tester.pump();
+
+      expect(find.text('gerando dicas…'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+
+      expect(find.text('gerando dicas…'), findsNothing);
+      expect(find.text('1x por semana'), findsOneWidget);
+    });
+
+    testWidgets(
+      'after 60 s, says the tips are unavailable and offers a retry',
+      (tester) async {
+        catalogRepository.generating = 1000;
+        await pump(tester, settle: false);
+        for (var second = 0; second <= 60; second += 3) {
+          await tester.pump(const Duration(seconds: 3));
+        }
+
+        expect(find.text('gerando dicas…'), findsNothing);
+        expect(find.text('Dicas indisponíveis no momento.'), findsOneWidget);
+
+        catalogRepository.generating = 0;
+        await tester.tap(find.text('Tentar de novo'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('1x por semana'), findsOneWidget);
+      },
+    );
   });
 }

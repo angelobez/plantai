@@ -18,4 +18,19 @@ Species _$SpeciesFromJson(Map<String, dynamic> json) => Species(
           ?.map((e) => e as String)
           .toList() ??
       const [],
+  careGuide: json['careGuide'] == null
+      ? null
+      : CareGuide.fromJson(json['careGuide'] as Map<String, dynamic>),
+  careGuideStatus:
+      $enumDecodeNullable(
+        _$CareGuideStatusEnumMap,
+        json['careGuideStatus'],
+        unknownValue: CareGuideStatus.unavailable,
+      ) ??
+      CareGuideStatus.unavailable,
 );
+
+const _$CareGuideStatusEnumMap = {
+  CareGuideStatus.ready: 'ready',
+  CareGuideStatus.unavailable: 'unavailable',
+};

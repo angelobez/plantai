@@ -6,10 +6,12 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
 import type { Env } from '../../src/config/env';
 import { GoogleTokenVerifier } from '../../src/auth/google/google-token-verifier';
+import { CareGuideWriter } from '../../src/care-guides/care-guide-writer';
 import { EmailSender } from '../../src/email/email-sender';
 import { GbifNames } from '../../src/gbif/gbif-names';
 import { PlantIdentifier } from '../../src/identifications/plant-identifier';
 import { PhotoStorage } from '../../src/photo-storage/photo-storage';
+import { FakeCareGuideWriter } from './fake-care-guide-writer';
 import { FakeGbifNames } from './fake-gbif-names';
 import { FakeGoogleVerifier } from './fake-google-verifier';
 import { FakeOutbox } from './fake-outbox';
@@ -48,6 +50,12 @@ export interface TestAppOptions {
    */
   plantIdentifier?: FakePlantIdentifier;
   /**
+   * Writes the care guides instead of Claude. Pass one to teach answers, hold
+   * or fail the calls, or see what was asked; without it, a throwaway one
+   * writes a valid guide for every species.
+   */
+  careGuideWriter?: FakeCareGuideWriter;
+  /**
    * Keeps the real `/auth` rate limits. Without it no request is ever limited,
    * so a test may call `/auth` as often as it needs.
    */
@@ -67,9 +75,9 @@ const unlimitedStorage: ThrottlerStorage = {
 
 /**
  * The whole Nest app, configured exactly like the real entry points. Only the
- * ports to external services (e-mail, Google, photo storage, GBIF, Pl@ntNet)
- * are swapped for fakes, and the rate limits are off unless a test asks for
- * them.
+ * ports to external services (e-mail, Google, photo storage, GBIF, Pl@ntNet,
+ * Claude) are swapped for fakes, and the rate limits are off unless a test asks
+ * for them.
  */
 export async function createTestApp(
   env: Env,
@@ -81,6 +89,7 @@ export async function createTestApp(
     photoStorage = new FakePhotoStorage(),
     gbifNames = new FakeGbifNames(),
     plantIdentifier = new FakePlantIdentifier(),
+    careGuideWriter = new FakeCareGuideWriter(),
     realRateLimits = false,
   }: TestAppOptions = {},
 ): Promise<INestApplication<App>> {
@@ -97,7 +106,9 @@ export async function createTestApp(
     .overrideProvider(GbifNames)
     .useValue(gbifNames)
     .overrideProvider(PlantIdentifier)
-    .useValue(plantIdentifier);
+    .useValue(plantIdentifier)
+    .overrideProvider(CareGuideWriter)
+    .useValue(careGuideWriter);
   if (!realRateLimits) {
     builder = builder
       .overrideProvider(ThrottlerStorage)

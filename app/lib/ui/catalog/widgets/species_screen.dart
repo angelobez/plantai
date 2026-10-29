@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/services/api/models/species.dart';
 import '../../auth/widgets/form_message.dart';
+import '../../core/care_guide/care_guide_view.dart';
 import '../../core/themes/colors.dart';
 import '../../core/url_opener.dart';
 import '../../core/widgets/photo_image.dart';
@@ -10,11 +11,12 @@ import '../view_models/species_view_model.dart';
 
 /// Tela da espécie, as in the Claude Design screen (`M-especie`): the
 /// reference photo on top and a white panel over it with the common name,
-/// "científico · também chamada de …" and the photo's credit.
+/// "científico · também chamada de …", the care guide ([CareGuideView]) and
+/// the photo's credit. While Claude writes the guide, the loading state says
+/// "gerando dicas…".
 ///
-/// The care rows and texts ("Dicas de cuidado pelo Claude") go in the panel,
-/// between the names and the credit; "Salvar no meu jardim" goes at the
-/// bottom, in [Scaffold.bottomNavigationBar].
+/// "Salvar no meu jardim" goes at the bottom, in
+/// [Scaffold.bottomNavigationBar].
 class SpeciesScreen extends StatelessWidget {
   const SpeciesScreen({
     super.key,
@@ -44,7 +46,9 @@ class SpeciesScreen extends StatelessWidget {
               onRetry: viewModel.canRetry ? viewModel.load : null,
             );
           } else {
-            body = const Center(child: CircularProgressIndicator());
+            body = CareGuideLoading(
+              generating: viewModel.isGeneratingCareGuide,
+            );
           }
           return Stack(
             fit: StackFit.expand,
@@ -125,6 +129,8 @@ class _SpeciesView extends StatelessWidget {
                         color: AppColors.inkMuted,
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    CareGuideView(careGuide: species.careGuide),
                     const SizedBox(height: 14),
                     ReferencePhotoCredit(
                       photo: species.referencePhoto,

@@ -1,6 +1,7 @@
 import '../../../domain/models/catalog_failure.dart';
 import '../../services/api/api_client.dart';
 import '../../services/api/api_exception.dart';
+import '../../services/api/care_guide_call.dart';
 import '../../services/api/guard_api_call.dart';
 import '../../services/api/models/species.dart';
 import '../../services/api/models/species_summary.dart';
@@ -23,9 +24,12 @@ class CatalogRepositoryRemote implements CatalogRepository {
 
   @override
   Future<Species> species(String id) => _guard(
-    () => _apiClient.get(
-      '/v1/species/${Uri.encodeComponent(id)}',
-      Species.fromJson,
+    () => careGuideCall(
+      () => _apiClient.get(
+        '/v1/species/${Uri.encodeComponent(id)}',
+        Species.fromJson,
+        receiveTimeout: careGuideReceiveTimeout,
+      ),
     ),
   );
 
