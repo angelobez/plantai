@@ -237,4 +237,62 @@ void main() {
       ),
     );
   });
+
+  test('get sends the query parameters', () async {
+    await client.get(
+      '/v1/species/1',
+      (json) => json,
+      queryParameters: {'a': 'b'},
+    );
+
+    expect(adapter.requests.single.uri.query, 'a=b');
+  });
+
+  test('getList sends the query and parses each item of the array', () async {
+    adapter.respond = (_) async => jsonResponse(200, [
+      {'name': 'jiboia'},
+      {'name': 'costela-de-adão'},
+    ]);
+
+    final names = await client.getList(
+      '/v1/species',
+      (json) => json['name'],
+      queryParameters: {'q': 'costela de adão'},
+    );
+
+    expect(names, ['jiboia', 'costela-de-adão']);
+    final request = adapter.requests.single;
+    expect(request.path, '/v1/species');
+    expect(request.uri.queryParameters, {'q': 'costela de adão'});
+  });
+
+  test('getList turns an error answer into an ApiException', () async {
+    adapter.respond = (_) async => problemResponse(400, 'VALIDATION_FAILED');
+
+    await expectLater(
+      client.getList('/v1/species', (json) => json),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.code,
+          'code',
+          ApiErrorCode.validationFailed,
+        ),
+      ),
+    );
+  });
+
+  test(
+    'getList turns a network failure into an ApiConnectionException',
+    () async {
+      adapter.respond = (options) async => throw DioException.connectionError(
+        requestOptions: options,
+        reason: 'refused',
+      );
+
+      await expectLater(
+        client.getList('/v1/species', (json) => json),
+        throwsA(isA<ApiConnectionException>()),
+      );
+    },
+  );
 }

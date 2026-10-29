@@ -13,8 +13,8 @@ import 'update_required.dart';
 /// reached). A `426 APP_UPDATE_REQUIRED` on any call also raises
 /// [UpdateRequired].
 ///
-/// Repositories call [get], [post], [patch], [postWithoutBody] and
-/// [postMultipart];
+/// Repositories call [get], [getList], [post], [patch], [postWithoutBody]
+/// and [postMultipart];
 /// cross-cutting behavior goes in as another [Interceptor] (the session's
 /// `Authorization` header is [BearerInterceptor]).
 class ApiClient {
@@ -44,14 +44,40 @@ class ApiClient {
 
   final Dio _dio;
 
-  /// `GET` [path] and parse its JSON object body with [fromJson].
+  /// `GET` [path] (with [queryParameters]) and parse its JSON object body
+  /// with [fromJson].
   Future<T> get<T>(
     String path,
-    T Function(Map<String, dynamic> json) fromJson,
-  ) async {
+    T Function(Map<String, dynamic> json) fromJson, {
+    Map<String, String>? queryParameters,
+  }) async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>(path);
+      final response = await _dio.get<Map<String, dynamic>>(
+        path,
+        queryParameters: queryParameters,
+      );
       return fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw _toApiError(error);
+    }
+  }
+
+  /// `GET` [path] (with [queryParameters]) whose body is a JSON array of
+  /// objects, each parsed with [fromJson].
+  Future<List<T>> getList<T>(
+    String path,
+    T Function(Map<String, dynamic> json) fromJson, {
+    Map<String, String>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.get<List<dynamic>>(
+        path,
+        queryParameters: queryParameters,
+      );
+      return [
+        for (final item in response.data ?? const <dynamic>[])
+          fromJson(item as Map<String, dynamic>),
+      ];
     } on DioException catch (error) {
       throw _toApiError(error);
     }
