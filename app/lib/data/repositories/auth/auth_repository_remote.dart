@@ -190,6 +190,7 @@ class AuthRepositoryRemote extends AuthRepository {
       ApiErrorCode.internalError ||
       ApiErrorCode.healthCheckFailed ||
       ApiErrorCode.photoDailyLimit ||
+      ApiErrorCode.careGuideGenerating ||
       ApiErrorCode.unknown => AuthFailure.unknown,
     },
   );

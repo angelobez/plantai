@@ -1,10 +1,12 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'care_guide.dart';
 import 'reference_photo.dart';
 
 part 'species.g.dart';
 
-/// A Catalog species as `GET /v1/species/:id` answers it.
+/// A Catalog species as `GET /v1/species/:id` answers it, with its care
+/// guide.
 @JsonSerializable(createToJson: false)
 class Species {
   const Species({
@@ -13,6 +15,8 @@ class Species {
     required this.scientificName,
     required this.referencePhoto,
     this.otherNames = const [],
+    this.careGuide,
+    this.careGuideStatus = CareGuideStatus.unavailable,
   });
 
   factory Species.fromJson(Map<String, dynamic> json) =>
@@ -27,4 +31,10 @@ class Species {
 
   /// The other common names, in alphabetical order.
   final List<String> otherNames;
+
+  /// Null while [careGuideStatus] is [CareGuideStatus.unavailable].
+  final CareGuide? careGuide;
+
+  @JsonKey(unknownEnumValue: CareGuideStatus.unavailable)
+  final CareGuideStatus careGuideStatus;
 }

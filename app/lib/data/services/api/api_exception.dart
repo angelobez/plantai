@@ -12,6 +12,10 @@ enum ApiErrorCode {
   googleAccountLinkRefused('GOOGLE_ACCOUNT_LINK_REFUSED'),
   tooManyRequests('TOO_MANY_REQUESTS'),
   photoDailyLimit('PHOTO_DAILY_LIMIT'),
+
+  /// `202`: another request is writing the care guide; try again after
+  /// [ApiException.retryAfter].
+  careGuideGenerating('CARE_GUIDE_GENERATING'),
   internalError('INTERNAL_ERROR'),
   healthCheckFailed('HEALTH_CHECK_FAILED'),
 
@@ -40,10 +44,17 @@ enum ApiErrorCode {
 /// [ApiErrorCode.unknown] when the response was not a problem document (a
 /// proxy page, for example) or its code is not one the app knows.
 class ApiException implements Exception {
-  const ApiException({required this.status, this.code = ApiErrorCode.unknown});
+  const ApiException({
+    required this.status,
+    this.code = ApiErrorCode.unknown,
+    this.retryAfter,
+  });
 
   final int status;
   final ApiErrorCode code;
+
+  /// The answer's `Retry-After` (in seconds), when it had one.
+  final Duration? retryAfter;
 
   @override
   String toString() => 'ApiException($status, ${code.name})';

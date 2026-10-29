@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +7,8 @@ import 'package:plantai/data/repositories/catalog/catalog_repository_remote.dart
 import 'package:plantai/data/services/api/api_client.dart';
 import 'package:plantai/data/services/api/update_required.dart';
 import 'package:plantai/data/services/session/session_store.dart';
+import 'package:plantai/data/services/api/models/care_guide.dart';
+import 'package:plantai/domain/models/care_guide_generating.dart';
 import 'package:plantai/domain/models/catalog_failure.dart';
 
 import '../../../testing/fake_http_client_adapter.dart';
@@ -33,6 +37,16 @@ const _speciesJson = {
   'scientificName': 'Monstera deliciosa',
   'referencePhoto': _photoJson,
   'otherNames': ['banana-de-macaco', 'imbé'],
+  'careGuide': {
+    'commonName': 'costela-de-adão',
+    'watering': {
+      'summary': '1x por semana',
+      'details': 'Regue quando a terra secar.',
+    },
+    'light': {'summary': 'Meia-sombra', 'details': 'Sem sol direto.'},
+    'propagation': {'summary': 'Estaca', 'details': 'Corte um nó do caule.'},
+  },
+  'careGuideStatus': 'ready',
 };
 
 void main() {
@@ -94,7 +108,63 @@ void main() {
     expect(species.scientificName, 'Monstera deliciosa');
     expect(species.otherNames, ['banana-de-macaco', 'imbé']);
     expect(species.referencePhoto.sourceUrl, _photoJson['sourceUrl']);
+    expect(species.careGuideStatus, CareGuideStatus.ready);
+    expect(species.careGuide?.watering.summary, '1x por semana');
+    expect(species.careGuide?.light.details, 'Sem sol direto.');
+    expect(species.careGuide?.propagation.summary, 'Estaca');
   });
+
+  test(
+    'species waits up to a minute, while Claude may be writing the guide',
+    () async {
+      adapter.respond = (_) async => jsonResponse(200, _speciesJson);
+
+      await repository.species(_id);
+
+      expect(
+        adapter.requests.single.receiveTimeout,
+        const Duration(seconds: 60),
+      );
+    },
+  );
+
+  test('an unavailable care guide comes as null', () async {
+    adapter.respond = (_) async => jsonResponse(200, {
+      ..._speciesJson,
+      'careGuide': null,
+      'careGuideStatus': 'unavailable',
+    });
+
+    final species = await repository.species(_id);
+
+    expect(species.careGuide, isNull);
+    expect(species.careGuideStatus, CareGuideStatus.unavailable);
+  });
+
+  test(
+    'CARE_GUIDE_GENERATING becomes CareGuideGenerating with the Retry-After',
+    () async {
+      adapter.respond = (_) async => ResponseBody.fromString(
+        jsonEncode({'status': 202, 'code': 'CARE_GUIDE_GENERATING'}),
+        202,
+        headers: {
+          Headers.contentTypeHeader: ['application/problem+json'],
+          'retry-after': ['3'],
+        },
+      );
+
+      await expectLater(
+        repository.species(_id),
+        throwsA(
+          isA<CareGuideGenerating>().having(
+            (e) => e.retryAfter,
+            'retryAfter',
+            const Duration(seconds: 3),
+          ),
+        ),
+      );
+    },
+  );
 
   test('no connection becomes CatalogFailure.noConnection', () async {
     adapter.respond = (options) async => throw DioException.connectionError(
