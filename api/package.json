@@ -2,7 +2,10 @@
   "name": "plantai-api",
   "version": "0.0.0",
   "private": true,
-  "description": "PlantAí API (NestJS + PostgreSQL/PostGIS)",
+  "description": "PlantA\u00ed API (NestJS + PostgreSQL/PostGIS)",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "nest build",
     "start": "node dist/main",
