@@ -9,3 +9,6 @@ dist/
 build/
 .flutter-plugins*
 .claude/worktrees/
+
+# Catalog seed script: cached API responses
+api/catalog/.cache/

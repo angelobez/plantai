@@ -1,0 +1,1584 @@
+[
+  {
+    "gbifKey": 7155887,
+    "scientificName": "Adenium obesum",
+    "commonName": "rosa-do-deserto",
+    "otherNames": ["lírio-impala", "adênio"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Desert_Rose_(Adenium_obesum),_Ghana.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Desert_Rose_%28Adenium_obesum%29%2C_Ghana.jpg",
+      "author": "ZSM",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2651826,
+    "scientificName": "Adiantum raddianum",
+    "commonName": "Avenca",
+    "otherNames": ["avenca-de-folha-miúda"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Starr_030807-0143_Adiantum_raddianum.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/45/Starr_030807-0143_Adiantum_raddianum.jpg",
+      "author": "Forest & Kim Starr",
+      "license": "CC BY 3.0"
+    }
+  },
+  {
+    "gbifKey": 2854740,
+    "scientificName": "Agapanthus africanus",
+    "commonName": "agapanto",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Agapanthus_africanus_in_habitat_photo_Nick_Helme_CC_by_SA.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Agapanthus_africanus_in_habitat_photo_Nick_Helme_CC_by_SA.jpg",
+      "author": "Nick Helme",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2866467,
+    "scientificName": "Aglaonema commutatum",
+    "commonName": "aglaonema",
+    "otherNames": ["café-de-salão"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Aglaonema_commutatum2.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/07/Aglaonema_commutatum2.jpg",
+      "author": "Kurt Stüber [1]",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 3169836,
+    "scientificName": "Allamanda cathartica",
+    "commonName": "dedal-de-princesa",
+    "otherNames": ["dedal-de-rainha", "margarida"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bunga_Alamanda_chatartica_01.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Bunga_Alamanda_chatartica_01.jpg",
+      "author": "Muhamad Izzul Fiqih",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2855860,
+    "scientificName": "Allium schoenoprasum",
+    "commonName": "cebolinha-de-tempero",
+    "otherNames": ["cebolinha", "cebolinha fina", "cebolinha francesa"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Allium_schoenoprasum_J1.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/74/Allium_schoenoprasum_J1.JPG",
+      "author": "Jamain",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2777724,
+    "scientificName": "Aloe vera",
+    "commonName": "babosa",
+    "otherNames": ["babosa-medicinal", "erva-babosa", "babosa-comum"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Starr_011104-0040_Aloe_vera.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/56/Starr_011104-0040_Aloe_vera.jpg",
+      "author": "Forest & Kim Starr",
+      "license": "CC BY 3.0"
+    }
+  },
+  {
+    "gbifKey": 5288819,
+    "scientificName": "Ananas comosus",
+    "commonName": "abacaxi",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Nanas_variegata_cheche.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/12/Nanas_variegata_cheche.jpg",
+      "author": "VpuipV ,pemegang hak cipta",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 5407099,
+    "scientificName": "Annona squamosa",
+    "commonName": "pinha",
+    "otherNames": [
+      "ata",
+      "fruta-do-conde",
+      "ateira",
+      "fruta-de-condessa",
+      "fruteira-de-conde",
+      "pinha-da-bahia",
+      "fruto-de-condessa"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pomme_cannelle_ou_zato.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Pomme_cannelle_ou_zato.jpg",
+      "author": "Chirocca77",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2872695,
+    "scientificName": "Anthurium andraeanum",
+    "commonName": "Antúrio",
+    "otherNames": ["Flor-de-Jorge-Tadeu"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Anthurium_andraeanum_hatem_moushir.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/43/Anthurium_andraeanum_hatem_moushir.JPG",
+      "author": "Hatem Moushir",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2891641,
+    "scientificName": "Averrhoa carambola",
+    "commonName": "carambola",
+    "otherNames": ["caramboleira", "starfruit", "caramboleiro"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Averrhoa_carambola2.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/26/Averrhoa_carambola2.jpg",
+      "author": "Photo by Scott Bauer",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 2768035,
+    "scientificName": "Beaucarnea recurvata",
+    "commonName": "pata-de-elefante",
+    "otherNames": ["biucarnea", "nolina", "pé-de-elefante"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Beaucarnea_recurvata,_Ocampo,_Tamaulipas,_Mexico_1.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7e/Beaucarnea_recurvata%2C_Ocampo%2C_Tamaulipas%2C_Mexico_1.jpg",
+      "author": "juancruzado",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 4156721,
+    "scientificName": "Begonia rex",
+    "commonName": "begônia",
+    "otherNames": ["begônia-de-sombra"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Begonia_rex.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/06/Begonia_rex.jpg",
+      "author": "W.J. Hooker",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5384862,
+    "scientificName": "Bougainvillea glabra",
+    "commonName": "juvú",
+    "otherNames": ["três-marias", "primavera", "buganvilia"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Flor_de_Santa_Rita_(Bougainvillea_glabra)_una_especie_de_planta_trepadora_de_la_familia_de_las_Nyctaginaceae_(sobre_Ruta_Provincial_7,_municipio_de_Ruiz_de_Montoya,_Provincia_de_Misiones,_Rep%C3%BAblica_Argentina).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Flor_de_Santa_Rita_%28Bougainvillea_glabra%29_una_especie_de_planta_trepadora_de_la_familia_de_las_Nyctaginaceae_%28sobre_Ruta_Provincial_7%2C_municipio_de_Ruiz_de_Montoya%2C_Provincia_de_Misiones%2C_Rep%C3%BAblica_Argentina%29.jpg",
+      "author": "Horacio Cambeiro",
+      "license": "CC BY 4.0"
+    }
+  },
+  {
+    "gbifKey": 3042845,
+    "scientificName": "Brassica oleracea",
+    "commonName": "couve",
+    "otherNames": ["repolho"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Brassica_oleracea_-_Royal_Botanical_Garden,_Madrid.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Brassica_oleracea_-_Royal_Botanical_Garden%2C_Madrid.JPG",
+      "author": "Daderot",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 2932942,
+    "scientificName": "Capsicum chinense",
+    "commonName": "pimenta-habanero",
+    "otherNames": [
+      "pimenta-cumari-do-pará",
+      "pimenta-de-cheiro",
+      "pimenta",
+      "pimenta-de-bode",
+      "cumari-do-pará",
+      "murupi",
+      "pimenta-biquinho",
+      "biquinho"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Habanero_chile_-_fruits_(aka).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/da/Habanero_chile_-_fruits_%28aka%29.jpg",
+      "author": "André Karwath aka Aka",
+      "license": "CC BY-SA 2.5"
+    }
+  },
+  {
+    "gbifKey": 8403992,
+    "scientificName": "Capsicum frutescens",
+    "commonName": "malagueta",
+    "otherNames": [
+      "pimenta-malagueta",
+      "pimenta",
+      "pimentinha",
+      "pimenta-comari",
+      "tabasco"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tabasco_peppers.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/62/Tabasco_peppers.JPG",
+      "author": "Unknown author",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 2874484,
+    "scientificName": "Carica papaya",
+    "commonName": "mamão",
+    "otherNames": [
+      "papaia",
+      "mamoeiro",
+      "mamão-melão",
+      "mamão-macho",
+      "mamão-fêmea",
+      "abobaia",
+      "amabapaia",
+      "chamburi",
+      "chamburu",
+      "formoso",
+      "havaiano",
+      "mamão-de-corda"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/84/Carica_papaya_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-029.jpg",
+      "author": "Franz Eugen Köhler, Köhler's Medizinal-Pflanzen",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 3169830,
+    "scientificName": "Catharanthus roseus",
+    "commonName": "maria-sem-vergonha",
+    "otherNames": [
+      "vinca",
+      "vinca-de-madagascar",
+      "boa-noite",
+      "vinca-de-gato",
+      "boa-tarde",
+      "flor-de-todo-ano",
+      "lavadeira",
+      "vinca-rósea"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:2019-08-02_Catharanthus_roseus,_Ifaty,_Madagascar_2.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8f/2019-08-02_Catharanthus_roseus%2C_Ifaty%2C_Madagascar_2.jpg",
+      "author": "imbeaul",
+      "license": "CC BY 4.0"
+    }
+  },
+  {
+    "gbifKey": 7282182,
+    "scientificName": "Cereus jamacaru",
+    "commonName": "mandacaru",
+    "otherNames": [
+      "mandacaru-de-boi",
+      "mandacaru-facheiro",
+      "mandacaru-de-faixo",
+      "cardeiro",
+      "jamacaru",
+      "jamaracurú",
+      "jumucurú",
+      "jumarucú",
+      "cumbeba",
+      "urumbeba"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cereus_jamacaru_00.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Cereus_jamacaru_00.jpg",
+      "author": "Prince Molokomme",
+      "license": "CC0"
+    }
+  },
+  {
+    "gbifKey": 2734661,
+    "scientificName": "Chamaedorea elegans",
+    "commonName": "palmeira-bambu",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chamaedorea_elegans.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Chamaedorea_elegans.jpg",
+      "author": "Tequila 13:54, 24 June 2007 (UTC)",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2734708,
+    "scientificName": "Chamaedorea seifrizii",
+    "commonName": "camedórea-bambu",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chamaedorea_seifrizii7.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/df/Chamaedorea_seifrizii7.jpg",
+      "author": "KENPEI",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2774846,
+    "scientificName": "Chlorophytum comosum",
+    "commonName": "clorofito",
+    "otherNames": ["gravatinha"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Malamadre_(Chlorophytum_comosum).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Malamadre_%28Chlorophytum_comosum%29.jpg",
+      "author": "Juan Carlos Fonseca Mata",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 3150767,
+    "scientificName": "Chrysanthemum morifolium",
+    "commonName": "crisântemo",
+    "otherNames": ["crisântemo-da-china"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chrysanthemum_morifolium_08NOV.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Chrysanthemum_morifolium_08NOV.jpg",
+      "author": "池田正樹 (talk)masaki ikeda",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 3071476,
+    "scientificName": "Codiaeum variegatum",
+    "commonName": "cróton",
+    "otherNames": ["louro-variegado", "folha-imperial"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Colpfl05.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Colpfl05.jpg",
+      "author": "Louise Wolff --darina 23:22, 6 May 2005 (UTC)",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 8030165,
+    "scientificName": "Coleus barbatus",
+    "commonName": "tapete-de-oxalá",
+    "otherNames": ["boldo", "boldo-de-jardim"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Plectranthus_barbatus.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/86/Plectranthus_barbatus.jpg",
+      "author": "mauroguanandi",
+      "license": "CC BY 2.0"
+    }
+  },
+  {
+    "gbifKey": 5330776,
+    "scientificName": "Colocasia esculenta",
+    "commonName": "taioba",
+    "otherNames": [
+      "inhame-roxo",
+      "inhame",
+      "inhame-branco",
+      "inhame-da-índia",
+      "taioba-de-são-tomé",
+      "inhame-preto",
+      "inhame-imperial",
+      "tinhorão-preto"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:(MHNT)_Colocasia_esculenta_-_Les_Martels,_Giroussens_Tarn.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/15/%28MHNT%29_Colocasia_esculenta_-_Les_Martels%2C_Giroussens_Tarn.jpg",
+      "author": "Didier Descouens",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2766278,
+    "scientificName": "Cordyline fruticosa",
+    "commonName": "cordiline",
+    "otherNames": [
+      "dracena-vermelha",
+      "coqueiro-de-vênus",
+      "coqueirinho-de-vênus",
+      "raiz-de-chá"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ti_plant_(Cordyline_fruticosa).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/05/Ti_plant_%28Cordyline_fruticosa%29.jpg",
+      "author": "Cliff",
+      "license": "CC BY 2.0"
+    }
+  },
+  {
+    "gbifKey": 3034871,
+    "scientificName": "Coriandrum sativum",
+    "commonName": "coentro",
+    "otherNames": ["cuentro", "coendro", "coentro-das-hortas", "coriandro"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:A_scene_of_Coriander_leaves.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/51/A_scene_of_Coriander_leaves.JPG",
+      "author": "Thamizhpparithi Maari",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 5362063,
+    "scientificName": "Crassula ovata",
+    "commonName": "planta-de-jade",
+    "otherNames": ["crássula", "planta-jade", "planta-do-dinheiro", "bálsamo"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:2016-10-03_Crassula_ovata,_Camdeboo_NP,_Eastern_Cape_(31803933474).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f8/2016-10-03_Crassula_ovata%2C_Camdeboo_NP%2C_Eastern_Cape_%2831803933474%29.jpg",
+      "author": "Bernard DUPONT from FRANCE",
+      "license": "CC BY-SA 2.0"
+    }
+  },
+  {
+    "gbifKey": 2757624,
+    "scientificName": "Curcuma longa",
+    "commonName": "açafroeira",
+    "otherNames": ["açafrão-da-terra", "açafrão-da-Índia", "gengibre-dourada"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Curcuma_longa_(Haldi)_W_IMG_2440.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Curcuma_longa_%28Haldi%29_W_IMG_2440.jpg",
+      "author": "J.M.Garg",
+      "license": "CC BY 3.0"
+    }
+  },
+  {
+    "gbifKey": 5317489,
+    "scientificName": "Dendrobium nobile",
+    "commonName": "olho-de-boneca",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Dendrobium_nobile_(12863000234).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/20/Dendrobium_nobile_%2812863000234%29.jpg",
+      "author": "Maja Dumat from Deutschland (Germany)",
+      "license": "CC BY 2.0"
+    }
+  },
+  {
+    "gbifKey": 2869345,
+    "scientificName": "Dieffenbachia seguine",
+    "commonName": "comigo-ninguém-pode",
+    "otherNames": ["difembáquia"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Starr_061212-2331_Dieffenbachia_seguine.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e0/Starr_061212-2331_Dieffenbachia_seguine.jpg",
+      "author": "Forest & Kim Starr",
+      "license": "CC BY 3.0"
+    }
+  },
+  {
+    "gbifKey": 5304583,
+    "scientificName": "Dracaena fragrans",
+    "commonName": "dracena",
+    "otherNames": ["pau-d'água", "coqueiro-de-vênus"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Dracaena_fragrans_a1.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/64/Dracaena_fragrans_a1.jpg",
+      "author": "Jerzy Opioła",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 10818704,
+    "scientificName": "Dracaena marginata",
+    "commonName": "dracena-tricolor",
+    "otherNames": ["dracena-arco-íris", "dracena-de-madagascar"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Starr_061231-3032_Dracaena_marginata.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Starr_061231-3032_Dracaena_marginata.jpg",
+      "author": "Forest & Kim Starr",
+      "license": "CC BY 3.0"
+    }
+  },
+  {
+    "gbifKey": 5304436,
+    "scientificName": "Dracaena reflexa",
+    "commonName": "pleomele",
+    "otherNames": ["dracena-malaia", "pau-d'água"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Arya.dracanea.song_of_India.bulak_Lor.2019.0.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/96/Arya.dracanea.song_of_India.bulak_Lor.2019.0.jpg",
+      "author": "Aris riyanto",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 11041822,
+    "scientificName": "Dracaena trifasciata",
+    "commonName": "espada-de-são-jorge",
+    "otherNames": [
+      "língua-de-sogra",
+      "sanseviéria",
+      "rabo-de-lagarto",
+      "espadinha"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sansevieria_trifasciata_flower.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/07/Sansevieria_trifasciata_flower.jpg",
+      "author": "Mlogic",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2925655,
+    "scientificName": "Duranta erecta",
+    "commonName": "Pingo-de-Ouro",
+    "otherNames": ["Violeteira"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Golden_duranta_hedge_plant.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/20/Golden_duranta_hedge_plant.jpg",
+      "author": "Gowrivemban",
+      "license": "CC0"
+    }
+  },
+  {
+    "gbifKey": 2735935,
+    "scientificName": "Dypsis lutescens",
+    "commonName": "areca-bambu",
+    "otherNames": ["palmeira-areca"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Dypsis_lutescens1.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Dypsis_lutescens1.jpg",
+      "author": "KENPEI",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 8315197,
+    "scientificName": "Echeveria elegans",
+    "commonName": "rosa-de-pedra",
+    "otherNames": ["echevéria-dona-mery", "echevéria-orvalho"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rosa_de_alabastro_(Echeveria_elegans),_jard%C3%ADn_del_molino,_Sierra_de_San_Felipe,_Set%C3%BAbal,_Portugal,_2012-05-11,_DD_01.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/27/Rosa_de_alabastro_%28Echeveria_elegans%29%2C_jard%C3%ADn_del_molino%2C_Sierra_de_San_Felipe%2C_Set%C3%BAbal%2C_Portugal%2C_2012-05-11%2C_DD_01.JPG",
+      "author": "Diego Delso",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 5384031,
+    "scientificName": "Epiphyllum oxypetalum",
+    "commonName": "Cacto-dama-da-noite",
+    "otherNames": ["Dama-da-Noite", "Flor-da-lua", "Pitaya-dama-da-noite"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Nightblooming_cereum.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Nightblooming_cereum.JPG",
+      "author": "Bobjgalindo",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2868323,
+    "scientificName": "Epipremnum aureum",
+    "commonName": "jiboia-verde",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Epipremnum_aureum_31082012.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Epipremnum_aureum_31082012.jpg",
+      "author": "Joydeep",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 5416458,
+    "scientificName": "Eugenia uniflora",
+    "commonName": "pitangueira",
+    "otherNames": ["pitanga"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pitanga_(do_tupi_%27ybapytanga)_no_pampa_ga%C3%BAcho_02.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/68/Pitanga_%28do_tupi_%27ybapytanga%29_no_pampa_ga%C3%BAcho_02.jpg",
+      "author": "Bageense",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 3067157,
+    "scientificName": "Euphorbia milii",
+    "commonName": "coroa-de-cristo",
+    "otherNames": [
+      "coroa-de-espinho",
+      "colchão-de-noiva",
+      "dois-irmãos",
+      "bem-casado"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Euphorbia_Milii_flowers.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/77/Euphorbia_Milii_flowers.jpg",
+      "author": "Ezra Katz",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 3069353,
+    "scientificName": "Euphorbia tirucalli",
+    "commonName": "avelós",
+    "otherNames": [
+      "aveloz",
+      "avelóz-dourado",
+      "avelóz",
+      "palito-de-fogo",
+      "espinho-de-cristo",
+      "pau-sobre-pau",
+      "gaiolinha",
+      "cega-olho"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Euphorbia_tirucalli_in_the_wild_by_tonrulkens.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/22/Euphorbia_tirucalli_in_the_wild_by_tonrulkens.jpg",
+      "author": "Ton Rulkens",
+      "license": "CC BY-SA 2.0"
+    }
+  },
+  {
+    "gbifKey": 5361932,
+    "scientificName": "Ficus benjamina",
+    "commonName": "beringan",
+    "otherNames": ["ficus-benjamim", "figueira-benjamim"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ficus_benjamina2.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Ficus_benjamina2.jpg",
+      "author": "KENPEI",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 7835333,
+    "scientificName": "Ficus elastica",
+    "commonName": "seringueira",
+    "otherNames": ["falsa-seringueira"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Da_bup_do.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/74/Da_bup_do.jpg",
+      "author": "VuThiAnh",
+      "license": "CC0"
+    }
+  },
+  {
+    "gbifKey": 5361899,
+    "scientificName": "Ficus lyrata",
+    "commonName": "ficus-lira",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ficus_lyrata_(%C3%81rbol_lira)_(14394247887).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/60/Ficus_lyrata_%28%C3%81rbol_lira%29_%2814394247887%29.jpg",
+      "author": "Alejandro Bayer Tamayo from Armenia, Colombia",
+      "license": "CC BY-SA 2.0"
+    }
+  },
+  {
+    "gbifKey": 5361930,
+    "scientificName": "Ficus pumila",
+    "commonName": "unha-de-gato",
+    "otherNames": ["herinha", "falsa-hera"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:(Arya)_Ficus_pumila_in_front_of_hotel_citradream_Cirebon_2019_0.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fd/%28Arya%29_Ficus_pumila_in_front_of_hotel_citradream_Cirebon_2019_0.jpg",
+      "author": "Aris riyanto",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 5335125,
+    "scientificName": "Gardenia jasminoides",
+    "commonName": "jasmim-do-cabo",
+    "otherNames": ["flor-do-general", "gardênia"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Gardenia_jasminoides_in_Mount_Yagi_2008-06-13.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/83/Gardenia_jasminoides_in_Mount_Yagi_2008-06-13.jpg",
+      "author": "Alpsdake",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 7969761,
+    "scientificName": "Gerbera jamesonii",
+    "commonName": "gerbera",
+    "otherNames": [
+      "gérbera",
+      "gebra",
+      "margarida-da-áfrica",
+      "margarida-do-transvaal"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:BarbertonDaisy.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/48/BarbertonDaisy.jpg",
+      "author": "Rooivos",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 7708211,
+    "scientificName": "Goeppertia makoyana",
+    "commonName": "Maranta-Pavão",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:CalatheaMakoyana.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ae/CalatheaMakoyana.jpg",
+      "author": "Chhe (talk)",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5302914,
+    "scientificName": "Goeppertia zebrina",
+    "commonName": "Maranta-Zebrina",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:CalatheaZebrina.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0d/CalatheaZebrina.jpg",
+      "author": "Chhe (talk)",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 8351737,
+    "scientificName": "Hedera helix",
+    "commonName": "hera",
+    "otherNames": ["hedera-variegata", "hera-inglesa"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hedera_helix_Dover.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Hedera_helix_Dover.jpg",
+      "author": "kallerna",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 9206251,
+    "scientificName": "Helianthus annuus",
+    "commonName": "girassol",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Helianthus_annuus_exposed_2004-05-22.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Helianthus_annuus_exposed_2004-05-22.jpg",
+      "author": "Jon Sullivan",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 2760967,
+    "scientificName": "Heliconia rostrata",
+    "commonName": "Caetê",
+    "otherNames": ["Helicônia-rostrata"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Heliconia_rostrata_4.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Heliconia_rostrata_4.jpg",
+      "author": "User:4conrad",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 8658195,
+    "scientificName": "Hoya carnosa",
+    "commonName": "flor-de-cera",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:NKN-2007-06-13_114250_Hoya_Carnosa_(Yvan_Leduc_author_for_Wikipedia).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ea/NKN-2007-06-13_114250_Hoya_Carnosa_%28Yvan_Leduc_author_for_Wikipedia%29.jpg",
+      "author": "Yvan leduc",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2891772,
+    "scientificName": "Impatiens walleriana",
+    "commonName": "maria-sem-vergonha",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Impatienswalleriana.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/28/Impatienswalleriana.jpg",
+      "author": "Thegreenj",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 8793122,
+    "scientificName": "Ixora coccinea",
+    "commonName": "ixora",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:IxoraCoccineaMiami.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ec/IxoraCoccineaMiami.JPG",
+      "author": "UpstateNYer",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 3682631,
+    "scientificName": "Jasminum polyanthum",
+    "commonName": "jasmim-dos-poetas",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:(MHNT)_Jasminum_polyanthum_%E2%80%93_flowers_and_buds.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2d/%28MHNT%29_Jasminum_polyanthum_%E2%80%93_flowers_and_buds.jpg",
+      "author": "Didier Descouens",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2985944,
+    "scientificName": "Kalanchoe blossfeldiana",
+    "commonName": "kalanchoe",
+    "otherNames": [
+      "flor-da-fortuna",
+      "colher-de-prata",
+      "calancoê",
+      "calanchoê"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kalanchoe.blossfeldiana.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/67/Kalanchoe.blossfeldiana.jpg",
+      "author": "Cdpanic at English Wikipedia",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2985936,
+    "scientificName": "Kalanchoe daigremontiana",
+    "commonName": "Aranto-manchado",
+    "otherNames": [
+      "Calanchoê-manchada",
+      "Espinha-do-diabo",
+      "Mãe-de-milhares-manchada",
+      "Mãe-de-milhares-rajada",
+      "Planta-chapéu-mexicano",
+      "Planta-jacaré",
+      "Planta-maternidade",
+      "Planta-panda"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Zyworodka_-_Kalanchoe_daigremontiana.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/66/Zyworodka_-_Kalanchoe_daigremontiana.JPG",
+      "author": "Alina Zienowicz Ala z",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 7403263,
+    "scientificName": "Lactuca sativa",
+    "commonName": "alface",
+    "otherNames": [
+      "alface-comum",
+      "alface-lisa",
+      "lettuce",
+      "lechuga",
+      "laitue",
+      "lattuga",
+      "alface-crespa",
+      "alface-romana"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Iceberg_lettuce_in_SB.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/da/Iceberg_lettuce_in_SB.jpg",
+      "author": "en:User:Geographer",
+      "license": "CC BY 1.0"
+    }
+  },
+  {
+    "gbifKey": 2925303,
+    "scientificName": "Lantana camara",
+    "commonName": "camara",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:LantanaFlowerLeaves.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/52/LantanaFlowerLeaves.jpg",
+      "author": "Alvesgaspar",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2927305,
+    "scientificName": "Lavandula angustifolia",
+    "commonName": "alfazema",
+    "otherNames": ["lavanda"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lavandula_angustifolia_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-087.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/40/Lavandula_angustifolia_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-087.jpg",
+      "author": "Franz Eugen Köhler, Köhler's Medizinal-Pflanzen",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 2925385,
+    "scientificName": "Lippia alba",
+    "commonName": "carmelitana",
+    "otherNames": ["cidreira"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lippia_alba.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Lippia_alba.jpg",
+      "author": "João Medeiros",
+      "license": "CC BY 2.0"
+    }
+  },
+  {
+    "gbifKey": 9523461,
+    "scientificName": "Lutheria splendens",
+    "commonName": "bromélia",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Favourite_flowers_of_garden_and_greenhouse_(8344967571).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Favourite_flowers_of_garden_and_greenhouse_%288344967571%29.jpg",
+      "author": "Bois, D.; Frederick Warne (Firm); Herincq, B.; Step, Edward; Watson, William",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5421427,
+    "scientificName": "Malpighia emarginata",
+    "commonName": "acerola",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Malpighia_glabra_blossom_and_fruit.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/31/Malpighia_glabra_blossom_and_fruit.jpg",
+      "author": "Eric Gaba (Sting - fr:Sting)",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 3616287,
+    "scientificName": "Mandevilla sanderi",
+    "commonName": "dipladênia",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Flower-center142058.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Flower-center142058.jpg",
+      "author": "日:Jnn",
+      "license": "CC BY 2.1 jp"
+    }
+  },
+  {
+    "gbifKey": 3190638,
+    "scientificName": "Mangifera indica",
+    "commonName": "manga",
+    "otherNames": ["mangueira"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:The_Botanical_Magazine._Mango.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cc/The_Botanical_Magazine._Mango.jpg",
+      "author": "Walter Hood Fitch (1817-1892) del. et lith. Description by John Smith (1798 - 1888)",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 3060998,
+    "scientificName": "Manihot esculenta",
+    "commonName": "mandioca",
+    "otherNames": ["macaxeira", "aipim"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Manihot_esculenta_dsc07325.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Manihot_esculenta_dsc07325.jpg",
+      "author": "David Monniaux",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2761337,
+    "scientificName": "Maranta leuconeura",
+    "commonName": "Baratinha",
+    "otherNames": [
+      "Maranta-barriga-de-sapo",
+      "Maranta-bigode-de-gato",
+      "Maranta-tartaruga",
+      "Tartaruguinha"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Maranta_leuconeura3.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Maranta_leuconeura3.jpg",
+      "author": "Kurt Stüber [1]",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 8370958,
+    "scientificName": "Matricaria chamomilla",
+    "commonName": "camomila",
+    "otherNames": [
+      "camomila-dos-alemães",
+      "camomila-vulgar",
+      "camomila-romana",
+      "maçanilha",
+      "camomila-comum",
+      "camomila-verdadeira",
+      "camomila-legítima",
+      "matricária"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Matricaria_recutita_0.1_R.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Matricaria_recutita_0.1_R.jpg",
+      "author": "Rob Hille",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5341501,
+    "scientificName": "Melissa officinalis",
+    "commonName": "erva-cidreira",
+    "otherNames": [
+      "cidreira",
+      "cidreira-verdadeira",
+      "melissa",
+      "cidrilha",
+      "melitéia",
+      "melissa-romana",
+      "chá-da-frança",
+      "chá-de-tabuleiro",
+      "erva-luísa",
+      "erva-cidreira-verdadeira"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Melissa_officinalis_Bee_Balm,Lemon_Balm_%E1%83%91%E1%83%90%E1%83%A0%E1%83%90%E1%83%9B%E1%83%91%E1%83%9D.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/36/Melissa_officinalis_Bee_Balm%2CLemon_Balm_%E1%83%91%E1%83%90%E1%83%A0%E1%83%90%E1%83%9B%E1%83%91%E1%83%9D.JPG",
+      "author": "Lazaregagnidze",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2927175,
+    "scientificName": "Mentha spicata",
+    "commonName": "hortelã-comum",
+    "otherNames": [
+      "hortelã-crespa",
+      "hortelã-preta",
+      "hortelã-verde",
+      "hortelã-verde-dos-açores",
+      "hortelã-vulgar"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Minze.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/05/Minze.jpg",
+      "author": "Simon Eugster --Simon 13:07, 2 July 2006 (UTC)",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2868136,
+    "scientificName": "Monstera adansonii",
+    "commonName": "costela-de-adão",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Monstera_adansonii_CBM.png",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/34/Monstera_adansonii_CBM.png",
+      "author": "Walter Hood Fitch",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5361888,
+    "scientificName": "Morus nigra",
+    "commonName": "amora",
+    "otherNames": [
+      "amora-preta",
+      "black-mulberry",
+      "amoreira",
+      "amoreira-preta"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Morus-nigra.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/be/Morus-nigra.JPG",
+      "author": "Sten Porse",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 8190743,
+    "scientificName": "Murraya paniculata",
+    "commonName": "falsa-murta",
+    "otherNames": ["murta"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Starr_070906-8477_Murraya_paniculata.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Starr_070906-8477_Murraya_paniculata.jpg",
+      "author": "Forest & Kim Starr",
+      "license": "CC BY 3.0"
+    }
+  },
+  {
+    "gbifKey": 2762680,
+    "scientificName": "Musa acuminata",
+    "commonName": "banana",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bananapao.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Bananapao.JPG",
+      "author": "Jorgemach7",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 3169756,
+    "scientificName": "Nerium oleander",
+    "commonName": "espirradeira",
+    "otherNames": ["oleandro"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Nerium_oleander_flowers_leaves.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Nerium_oleander_flowers_leaves.jpg",
+      "author": "Alvesgaspar",
+      "license": "CC BY 2.5"
+    }
+  },
+  {
+    "gbifKey": 2927096,
+    "scientificName": "Ocimum basilicum",
+    "commonName": "alfavaca",
+    "otherNames": [
+      "basilicão",
+      "manjericão",
+      "alfavaca-cheirosa",
+      "basilicum-grande",
+      "erva-real",
+      "manjericão-de-molho",
+      "manjericão-grande",
+      "alfavacão"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Basil-Basilico-Ocimum_basilicum-albahaca.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/90/Basil-Basilico-Ocimum_basilicum-albahaca.jpg",
+      "author": "Castielli",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 5384064,
+    "scientificName": "Opuntia ficus-indica",
+    "commonName": "figueira-da-índia",
+    "otherNames": [
+      "palmatória",
+      "palma",
+      "palma-gigante",
+      "figo-da-índia",
+      "figo-da-espanha",
+      "jamaracá",
+      "jurumbeba"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Opuntia_ficus-indica,_Springbokvlakte.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/54/Opuntia_ficus-indica%2C_Springbokvlakte.jpg",
+      "author": "JMK",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2926612,
+    "scientificName": "Origanum vulgare",
+    "commonName": "orégano",
+    "otherNames": ["manjerona-selvagem"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Origanum_vulgare_inflorescence_-_Keila.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/17/Origanum_vulgare_inflorescence_-_Keila.jpg",
+      "author": "Ivar Leidus",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2874190,
+    "scientificName": "Passiflora edulis",
+    "commonName": "maracujá",
+    "otherNames": [
+      "maracujá-comum",
+      "maracujá-de-comer",
+      "maracujá-de-ponche",
+      "maracujá-do-mato",
+      "maracujá-doce",
+      "maracujá-mirim",
+      "maracujá-peroba",
+      "maracujá-preto",
+      "maracujá-redondo"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Markisa_madu_manis_seperti_kamu.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Markisa_madu_manis_seperti_kamu.jpg",
+      "author": "Rarani",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 7828157,
+    "scientificName": "Petroselinum crispum",
+    "commonName": "salsa",
+    "otherNames": ["salsinha", "cheiro-verde", "salsa-comum", "salsa-hortense"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Petroselinum_crispum_003.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Petroselinum_crispum_003.JPG",
+      "author": "H. Zell",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 5311007,
+    "scientificName": "Phalaenopsis amabilis",
+    "commonName": "orquídea-borboleta",
+    "otherNames": ["orquídea", "phalenopsis", "falenópsis"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Phalaenopsis_amabilis_Orchi_03.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/32/Phalaenopsis_amabilis_Orchi_03.jpg",
+      "author": "Orchi",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2871003,
+    "scientificName": "Philodendron hederaceum",
+    "commonName": "maria-mole",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Philodendron_scandens_subsp_oxycardium2.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Philodendron_scandens_subsp_oxycardium2.jpg",
+      "author": "KENPEI",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 5669632,
+    "scientificName": "Pilea peperomioides",
+    "commonName": "piléia",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pilea_peperomioides_Chinese_money_plant.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Pilea_peperomioides_Chinese_money_plant.jpg",
+      "author": "Husky",
+      "license": "CC0"
+    }
+  },
+  {
+    "gbifKey": 5415571,
+    "scientificName": "Plinia cauliflora",
+    "commonName": "jabuticaba",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Jabuticaba_fruto.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/6/63/Jabuticaba_fruto.jpg",
+      "author": "Alexandre CampolinaCampola",
+      "license": "CC BY 3.0"
+    }
+  },
+  {
+    "gbifKey": 3169674,
+    "scientificName": "Plumeria rubra",
+    "commonName": "jasmim-manga",
+    "otherNames": ["árvore-pagode", "frangipane"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Plumeria-wiki-Zachi-Evenor-001a.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/db/Plumeria-wiki-Zachi-Evenor-001a.jpg",
+      "author": "Zachi Evenor and MathKnight",
+      "license": "CC BY 2.0"
+    }
+  },
+  {
+    "gbifKey": 3084700,
+    "scientificName": "Portulaca grandiflora",
+    "commonName": "Meio-dia",
+    "otherNames": ["onze-horas"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Portulaca_grandiflora_flower.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Portulaca_grandiflora_flower.jpg",
+      "author": "Laogooli",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 3084777,
+    "scientificName": "Portulacaria afra",
+    "commonName": "arbusto-de-elefante",
+    "otherNames": ["pata-de-elefante", "planta-jade-miúda"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Yaiza_La_Hoya_-_LZ-2-LZ-703_-_Portulacaria_afra_10_ies.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Yaiza_La_Hoya_-_LZ-2-LZ-703_-_Portulacaria_afra_10_ies.jpg",
+      "author": "Frank Vincentz",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 5420380,
+    "scientificName": "Psidium guajava",
+    "commonName": "goiaba",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Apple_Guava.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/34/Apple_Guava.jpg",
+      "author": "Fuadsyazwan (talk)",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5420901,
+    "scientificName": "Punica granatum",
+    "commonName": "romã",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Punica_granatum_004.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Punica_granatum_004.JPG",
+      "author": "H. Zell",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2736747,
+    "scientificName": "Rhapis excelsa",
+    "commonName": "palmeira-ráfia",
+    "otherNames": ["palmeira-rápis"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Arya_-_Rhapis_excelsa_at_hotel_citradream_Cirebon_2019_0.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Arya_-_Rhapis_excelsa_at_hotel_citradream_Cirebon_2019_0.jpg",
+      "author": "Aris riyanto",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 3005039,
+    "scientificName": "Rosa chinensis",
+    "commonName": "roseira",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rosa_chinensis.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Rosa_chinensis.jpg",
+      "author": "Sakurai Midori",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 10902460,
+    "scientificName": "Salvia rosmarinus",
+    "commonName": "alecrim",
+    "otherNames": ["erva-da-graça", "rosmarininho"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:P1090247(4x3)-Rosmarinus_officinalis_(41960388224).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0a/P1090247%284x3%29-Rosmarinus_officinalis_%2841960388224%29.jpg",
+      "author": "Miguel Angel Masegosa Martínez",
+      "license": "CC BY 2.0"
+    }
+  },
+  {
+    "gbifKey": 5383983,
+    "scientificName": "Schlumbergera truncata",
+    "commonName": "flor-de-maio",
+    "otherNames": ["flor-de-seda"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Schlumbergera_Truncata.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Schlumbergera_Truncata.jpg",
+      "author": "JennTM",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 5690408,
+    "scientificName": "Sedum morganianum",
+    "commonName": "rabo-de-burro",
+    "otherNames": ["arroz-de-rato", "dedo-de-moça", "rabo-de-cavalo"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Donkey%27s_tail_in_bloom_March_06.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Donkey%27s_tail_in_bloom_March_06.jpg",
+      "author": "Morningdew51 at English Wikipedia",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2930137,
+    "scientificName": "Solanum lycopersicum",
+    "commonName": "tomateiro",
+    "otherNames": ["tomate"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pomodorini_sulla_pianta.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9a/Pomodorini_sulla_pianta.jpg",
+      "author": "User:Luigi Chiesa",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2869680,
+    "scientificName": "Spathiphyllum wallisii",
+    "commonName": "lírio-da-paz",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:SpathiphyllumWallisii.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/54/SpathiphyllumWallisii.jpg",
+      "author": "Peter Fiskerstrand",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 3172574,
+    "scientificName": "Spathodea campanulata",
+    "commonName": "espatódea",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Spathodea_campanulata_3.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/23/Spathodea_campanulata_3.jpg",
+      "author": "Steven Haw",
+      "license": "CC BY 2.0"
+    }
+  },
+  {
+    "gbifKey": 2763116,
+    "scientificName": "Strelitzia reginae",
+    "commonName": "bananeira-rainha",
+    "otherNames": ["ave-do-paraíso"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bird_of_Paradise_flower.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/55/Bird_of_Paradise_flower.JPG",
+      "author": "Brocken Inaglory",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 3088488,
+    "scientificName": "Tagetes erecta",
+    "commonName": "cravo-de-defunto",
+    "otherNames": ["cravo-africano"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Aztec_Marigold_Tagetes_erecta.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/4/46/Aztec_Marigold_Tagetes_erecta.jpg",
+      "author": "HitroMilanese",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 9689104,
+    "scientificName": "Thaumatophyllum bipinnatifidum",
+    "commonName": "membe",
+    "otherNames": [
+      "banana-do-brejo",
+      "banana-de-imbé",
+      "banana-de-macaco",
+      "banana-de-morcego",
+      "banana-timbó"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tree1.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Tree1.JPG",
+      "author": "VSA.bing",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5415456,
+    "scientificName": "Thunbergia grandiflora",
+    "commonName": "tumbérgia-azul",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Thunbergia_grandiflora_Blanco1.229-cropped.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/32/Thunbergia_grandiflora_Blanco1.229-cropped.jpg",
+      "author": "Francisco Manuel Blanco (O.S.A.)",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 5341442,
+    "scientificName": "Thymus vulgaris",
+    "commonName": "tomilho",
+    "otherNames": ["poejo"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:THYMUS_VULGARIS_-_AGUDA_-_IB-910_(Tim%C3%B3).JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7e/THYMUS_VULGARIS_-_AGUDA_-_IB-910_%28Tim%C3%B3%29.JPG",
+      "author": "Isidre blanc",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2695149,
+    "scientificName": "Tillandsia usneoides",
+    "commonName": "barba-de-velho",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tillandsia_usneoides_(Bromeliaceae)_(25004066956).jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/74/Tillandsia_usneoides_%28Bromeliaceae%29_%2825004066956%29.jpg",
+      "author": "yakovlev.alexey from Moscow, Russia",
+      "license": "CC BY-SA 2.0"
+    }
+  },
+  {
+    "gbifKey": 2765221,
+    "scientificName": "Tradescantia pallida",
+    "commonName": "trapoeraba-roxa",
+    "otherNames": ["coração-roxo"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tradescantia_pallida-IMG_20180707_120135.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/93/Tradescantia_pallida-IMG_20180707_120135.jpg",
+      "author": "Sun Jiao (Interaccoonale)",
+      "license": "CC BY 4.0"
+    }
+  },
+  {
+    "gbifKey": 2765230,
+    "scientificName": "Tradescantia spathacea",
+    "commonName": "abacaxi-roxo",
+    "otherNames": [
+      "moisés-no-berço",
+      "trapoeraba-babosa",
+      "trapoderaba-abacaxi",
+      "trapoeraba-asseí"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Tradescantia_spathacea-Yucatan.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Tradescantia_spathacea-Yucatan.jpg",
+      "author": "Jim Conrad",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 2765359,
+    "scientificName": "Tradescantia zebrina",
+    "commonName": "lambari",
+    "otherNames": [
+      "lambari-roxo",
+      "trapoeraba-zebra",
+      "judeu-errante",
+      "onda-do-mar"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Zebrina_pendula_20060521_2_closer.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Zebrina_pendula_20060521_2_closer.jpg",
+      "author": "Ruestz (upload 13:54, 11 January 2008)",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2775716,
+    "scientificName": "Yucca gigantea",
+    "commonName": "iuca-elefante",
+    "otherNames": [
+      "vela-de-pureza",
+      "iuca-sem-espinho",
+      "iuca-mansa",
+      "pita",
+      "iuca"
+    ],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Yucca_elephantipes_HRM2.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Yucca_elephantipes_HRM2.JPG",
+      "author": "Cillas",
+      "license": "CC BY-SA 4.0"
+    }
+  },
+  {
+    "gbifKey": 2869014,
+    "scientificName": "Zamioculcas zamiifolia",
+    "commonName": "zamioculcas",
+    "otherNames": ["zamioculca", "brilhante"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Zamioculcas_zamiifolia_1.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Zamioculcas_zamiifolia_1.jpg",
+      "author": "User:WeFt",
+      "license": "CC BY-SA 3.0"
+    }
+  },
+  {
+    "gbifKey": 2757280,
+    "scientificName": "Zingiber officinale",
+    "commonName": "gengibre",
+    "otherNames": [],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Koeh-146-no_text.jpg",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/18/Koeh-146-no_text.jpg",
+      "author": "Franz Eugen Köhler, Köhler's Medizinal-Pflanzen",
+      "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 3111754,
+    "scientificName": "Zinnia elegans",
+    "commonName": "canela-de-velho",
+    "otherNames": ["zínia"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Zinnia_elegans_with_Bombus_01.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Zinnia_elegans_with_Bombus_01.JPG",
+      "author": "Simon Koopmann",
+      "license": "CC BY-SA 2.0 de"
+    }
+  }
+]
