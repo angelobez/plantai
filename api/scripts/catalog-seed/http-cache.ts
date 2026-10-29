@@ -47,7 +47,7 @@ export function cachedFetchJson(cacheDir: string): FetchJson {
         continue;
       }
       if (!response.ok) {
-        throw new Error(`HTTP ${String(response.status)} em ${url}`);
+        throw new Error(`HTTP ${String(response.status)} for ${url}`);
       }
       const body: unknown = await response.json();
       await mkdir(cacheDir, { recursive: true });

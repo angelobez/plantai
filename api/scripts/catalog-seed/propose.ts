@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 
 const MODEL = 'claude-sonnet-5-5';
@@ -30,36 +31,20 @@ export async function proposeSpecies(): Promise<string[]> {
     fallbacks: 'default',
     output_config: {
       effort: 'medium',
-      format: {
-        type: 'json_schema',
-        schema: {
-          type: 'object',
-          properties: {
-            species: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: { scientificName: { type: 'string' } },
-                required: ['scientificName'],
-                additionalProperties: false,
-              },
-            },
-          },
-          required: ['species'],
-          additionalProperties: false,
-        },
-      },
+      // The JSON schema comes from the Zod one, without the constraints
+      // structured outputs do not take; the parse below still checks them.
+      format: betaZodOutputFormat(proposalSchema),
     },
     messages: [{ role: 'user', content: PROMPT }],
   });
 
   if (response.stop_reason === 'refusal') {
     throw new Error(
-      `Claude recusou o pedido (${response.stop_details?.category ?? 'sem categoria'})`,
+      `Claude refused the request (${response.stop_details?.category ?? 'no category'})`,
     );
   }
   if (response.stop_reason === 'max_tokens') {
-    throw new Error('A resposta do Claude foi cortada (max_tokens)');
+    throw new Error('The Claude response was cut off (max_tokens)');
   }
   const text = response.content
     .flatMap((block) => (block.type === 'text' ? [block.text] : []))
