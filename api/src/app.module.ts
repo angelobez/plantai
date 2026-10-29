@@ -17,6 +17,7 @@ import { IdentificationsModule } from './identifications/identifications.module'
 import { RequestLoggerMiddleware } from './http/request-logger.middleware';
 import { PhotoStorageModule } from './photo-storage/photo-storage.module';
 import { PhotosModule } from './photos/photos.module';
+import { PlantsModule } from './plants/plants.module';
 import { ProfileModule } from './profile/profile.module';
 import { UsersModule } from './users/users';
 
@@ -38,6 +39,7 @@ export class AppModule implements NestModule {
         PhotosModule,
         CatalogModule,
         IdentificationsModule,
+        PlantsModule,
       ],
     };
   }

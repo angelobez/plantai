@@ -270,9 +270,9 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 
 | Método e caminho | O que faz |
 |---|---|
-| `GET /plants` | Lista: `{ id, commonName, photo, species: { id, scientificName, wateringSummary } \| null }` |
-| `POST /plants` | `{ photoId, commonName, speciesId? }` → planta. Anexa a foto |
-| `GET /plants/:id` | Planta com a espécie completa e o `careGuide` (mesma regra do `GET /species/:id`) |
+| `GET /plants` | Lista do mais novo para o mais antigo: `{ id, commonName, photo, species: { id, commonName, scientificName, wateringSummary } \| null }`. O `commonName` da espécie é o nome principal (ou o científico, se ela não tiver). `wateringSummary` é o `watering.summary` das dicas `ready`, ou `null`; a lista nunca gera dicas |
+| `POST /plants` | `{ photoId, commonName, speciesId? }` → `201` com a planta no formato da lista. `commonName` de 1 a 80 caracteres depois de tirar os espaços das pontas. Anexa a foto (`attached_at`, tira a tag) e grava `photos.plant_id`. Foto de outro Usuário: `NOT_FOUND`. Foto que já é de outra planta ou `speciesId` que não existe: `VALIDATION_FAILED`. Não gera as dicas |
+| `GET /plants/:id` | `{ id, commonName, photo, species }`, com `species` igual ao corpo do `GET /species/:id` (nomes, foto de referência, `careGuide` e `careGuideStatus`, pela mesma função de geração, inclusive o `202`), ou `null` na planta salva só com o nome. Planta de outro Usuário: `NOT_FOUND` |
 | `PATCH /plants/:id` | `{ commonName? , speciesId? }`. Só aceita `speciesId` se a planta ainda não tiver espécie (`SPECIES_ALREADY_SET`) |
 | `DELETE /plants/:id` | Remove a planta pelas regras acima |
 
