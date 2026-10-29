@@ -15,9 +15,10 @@ import '../garden_failure_message.dart';
 /// tried again after each `Retry-After`; after 60 s it gives up with
 /// "Dicas indisponíveis no momento." ([waitForCareGuide]).
 ///
-/// The actions on the plant (edit the name, remove it, set the species) go
-/// here as methods next to [load], each reading the plant again or leaving
-/// the screen when it is done.
+/// The actions on the plant ([rename], [remove]; setting the species goes
+/// next to them) answer whether they worked. While one runs, [isSaving] is
+/// true; when one fails, [actionError] says why and [canRetryAction] whether
+/// trying again makes sense. The repository tells the Jardim list itself.
 class PlantViewModel extends ChangeNotifier {
   PlantViewModel({required this._gardenRepository, required this.plantId});
 
@@ -41,6 +42,18 @@ class PlantViewModel extends ChangeNotifier {
   /// Whether loading again makes sense for [loadError].
   bool _canRetry = false;
   bool get canRetry => _canRetry;
+
+  /// Whether [rename] or [remove] is waiting for the API.
+  bool _isSaving = false;
+  bool get isSaving => _isSaving;
+
+  /// Why the last [rename] or [remove] failed.
+  String? _actionError;
+  String? get actionError => _actionError;
+
+  /// Whether trying [actionError]'s action again makes sense.
+  bool _canRetryAction = false;
+  bool get canRetryAction => _canRetryAction;
 
   bool _disposed = false;
 
@@ -67,6 +80,42 @@ class PlantViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       _isGeneratingCareGuide = false;
+      _notify();
+    }
+  }
+
+  /// Gives the plant the [name] the User typed (already trimmed and
+  /// checked by the dialog). Answers whether it worked.
+  Future<bool> rename(String name) => _act(() async {
+    final renamed = await _gardenRepository.update(plantId, commonName: name);
+    if (_plant case final plant?) {
+      _plant = Plant(
+        id: plant.id,
+        commonName: renamed.commonName,
+        photo: plant.photo,
+        species: plant.species,
+      );
+    }
+  });
+
+  /// Removes the plant and its photo from the garden. Answers whether it
+  /// worked; the screen then leaves.
+  Future<bool> remove() => _act(() => _gardenRepository.remove(plantId));
+
+  Future<bool> _act(Future<void> Function() action) async {
+    _isSaving = true;
+    _actionError = null;
+    _canRetryAction = false;
+    _notify();
+    try {
+      await action();
+      return true;
+    } on GardenFailure catch (failure) {
+      _actionError = gardenFailureMessage(failure);
+      _canRetryAction = failure != GardenFailure.notFound;
+      return false;
+    } finally {
+      _isSaving = false;
       _notify();
     }
   }

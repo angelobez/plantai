@@ -1,4 +1,4 @@
-import type { INestApplication } from '@nestjs/common';
+import type { INestApplication, LoggerService } from '@nestjs/common';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq, sql } from 'drizzle-orm';
 import sharp from 'sharp';
@@ -60,12 +60,28 @@ interface PlantBody {
 
 const UNKNOWN_ID = '01890000-0000-7000-8000-000000000000';
 
+/** Keeps every log line so a test can read what the API logged. */
+class CapturingLogger implements LoggerService {
+  readonly lines: string[] = [];
+
+  log(message: unknown): void {
+    this.lines.push(JSON.stringify(message));
+  }
+  error(message: unknown): void {
+    this.lines.push(JSON.stringify(message));
+  }
+  warn(message: unknown): void {
+    this.lines.push(JSON.stringify(message));
+  }
+}
+
 describe('plants (Meu jardim)', () => {
   let container: StartedPostgreSqlContainer;
   let app: INestApplication<App>;
   const outbox = new FakeOutbox();
   const photoStorage = new FakePhotoStorage();
   const careGuideWriter = new FakeCareGuideWriter();
+  const logger = new CapturingLogger();
   let gbifKeys = 7000;
 
   beforeAll(async () => {
@@ -74,6 +90,7 @@ describe('plants (Meu jardim)', () => {
       outbox,
       photoStorage,
       careGuideWriter,
+      logger,
     });
   });
 
@@ -88,6 +105,8 @@ describe('plants (Meu jardim)', () => {
     careGuideWriter.failing = false;
     careGuideWriter.gate = undefined;
     careGuideWriter.requests.length = 0;
+    photoStorage.failing = false;
+    logger.lines.length = 0;
   });
 
   /** A new User, so each test has its own garden. */
@@ -171,6 +190,23 @@ describe('plants (Meu jardim)', () => {
   function getPlant(session: AuthTokensBody, id: string): request.Test {
     return request(app.getHttpServer())
       .get(`/v1/plants/${id}`)
+      .set('Authorization', `Bearer ${session.accessToken}`);
+  }
+
+  function patchPlant(
+    session: AuthTokensBody,
+    id: string,
+    body: object,
+  ): request.Test {
+    return request(app.getHttpServer())
+      .patch(`/v1/plants/${id}`)
+      .set('Authorization', `Bearer ${session.accessToken}`)
+      .send(body);
+  }
+
+  function deletePlant(session: AuthTokensBody, id: string): request.Test {
+    return request(app.getHttpServer())
+      .delete(`/v1/plants/${id}`)
       .set('Authorization', `Bearer ${session.accessToken}`);
   }
 
@@ -616,6 +652,125 @@ describe('plants (Meu jardim)', () => {
         code: 'VALIDATION_FAILED',
         errors: [expect.objectContaining({ path: 'id' })],
       });
+    });
+  });
+
+  describe('PATCH /plants/:id', () => {
+    it('renames the plant, trimmed, and answers it as a list item', async () => {
+      const session = await newSession();
+      const speciesId = await addSpecies('Epipremnum aureum', 'Jiboia');
+      const saved = await savePlant(session, {
+        commonName: 'Jiboia',
+        speciesId,
+      });
+
+      const response = await patchPlant(session, saved.id, {
+        commonName: '  Jiboia da sala  ',
+      }).expect(200);
+
+      expect(response.body).toEqual({
+        ...saved,
+        commonName: 'Jiboia da sala',
+        photo: { ...saved.photo, expiresAt: expect.any(String) as unknown },
+      });
+      const list = await listPlants(session).expect(200);
+      expect(list.body).toEqual([
+        expect.objectContaining({ id: saved.id, commonName: 'Jiboia da sala' }),
+      ]);
+    });
+
+    it("answers NOT_FOUND for another User's plant, and keeps its name", async () => {
+      const owner = await newSession();
+      const saved = await savePlant(owner, { commonName: 'Jiboia' });
+      const session = await newSession();
+
+      const response = await patchPlant(session, saved.id, {
+        commonName: 'Minha',
+      }).expect(404);
+
+      expect(response.body).toMatchObject({ code: 'NOT_FOUND' });
+      const plant = await getPlant(owner, saved.id).expect(200);
+      expect(plant.body).toMatchObject({ commonName: 'Jiboia' });
+    });
+
+    it.each([
+      ['an empty name', { commonName: '   ' }, 'commonName'],
+      [
+        'a name over 80 characters',
+        { commonName: 'a'.repeat(81) },
+        'commonName',
+      ],
+      ['no field', {}, ''],
+    ])('answers VALIDATION_FAILED for %s', async (_case, body, path) => {
+      const session = await newSession();
+      const saved = await savePlant(session, { commonName: 'Jiboia' });
+
+      const response = await patchPlant(session, saved.id, body).expect(400);
+
+      expect(response.body).toMatchObject({
+        code: 'VALIDATION_FAILED',
+        errors: [expect.objectContaining({ path })],
+      });
+    });
+  });
+
+  describe('DELETE /plants/:id', () => {
+    it('removes the plant and its photo, from the database and the storage', async () => {
+      const session = await newSession();
+      const speciesId = await addSpecies('Epipremnum aureum', 'Jiboia');
+      const saved = await savePlant(session, {
+        commonName: 'Jiboia',
+        speciesId,
+      });
+      const key = keyOf(saved.photo);
+      expect(photoStorage.has(key)).toBe(true);
+
+      await deletePlant(session, saved.id).expect(204);
+
+      const response = await getPlant(session, saved.id).expect(404);
+      expect(response.body).toMatchObject({ code: 'NOT_FOUND' });
+      expect(photoStorage.has(key)).toBe(false);
+      const list = await listPlants(session).expect(200);
+      expect(list.body).toEqual([]);
+      const rows = await databaseOf(app)
+        .select({ id: photos.id })
+        .from(photos)
+        .where(eq(photos.id, saved.photo.id));
+      expect(rows).toEqual([]);
+    });
+
+    it('still removes the plant when the storage fails, and logs the photo left behind', async () => {
+      const session = await newSession();
+      const saved = await savePlant(session, { commonName: 'Jiboia' });
+      const key = keyOf(saved.photo);
+      photoStorage.failing = true;
+
+      await deletePlant(session, saved.id).expect(204);
+
+      photoStorage.failing = false;
+      await getPlant(session, saved.id).expect(404);
+      expect(photoStorage.has(key)).toBe(true);
+      expect(logger.lines.join('\n')).toContain(key);
+    });
+
+    it("answers NOT_FOUND for another User's plant, and keeps it", async () => {
+      const owner = await newSession();
+      const saved = await savePlant(owner, { commonName: 'Jiboia' });
+      const session = await newSession();
+
+      const response = await deletePlant(session, saved.id).expect(404);
+
+      expect(response.body).toMatchObject({ code: 'NOT_FOUND' });
+      await getPlant(owner, saved.id).expect(200);
+      expect(photoStorage.has(keyOf(saved.photo))).toBe(true);
+    });
+
+    it('answers NOT_FOUND for a plant that does not exist', async () => {
+      const session = await newSession();
+
+      const response = await deletePlant(session, UNKNOWN_ID).expect(404);
+
+      expect(response.body).toMatchObject({ code: 'NOT_FOUND' });
     });
   });
 });

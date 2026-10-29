@@ -301,8 +301,13 @@ GoRouter router({
                         gardenRepository: gardenRepository,
                         plantId: Routes.plantIdOf(state),
                       )..load(),
-                      builder: (viewModel) =>
-                          PlantScreen(viewModel: viewModel, openUrl: openUrl),
+                      builder: (viewModel) => PlantScreen(
+                        viewModel: viewModel,
+                        openUrl: openUrl,
+                        // The list already left out the plant (the
+                        // repository told it).
+                        onRemoved: () => context.go(Routes.garden),
+                      ),
                     ),
                   ),
                 ],

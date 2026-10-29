@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, desc, eq, isNull, type SQL, sql } from 'drizzle-orm';
 import { CareGuideService } from '../care-guides/care-guide.service';
 import { CatalogService } from '../catalog/catalog.service';
@@ -11,8 +11,13 @@ import {
   speciesNames,
 } from '../database/schema';
 import { DomainError } from '../errors/domain-error';
+import { PhotoStorage } from '../photo-storage/photo-storage';
 import { PhotosService } from '../photos/photos.service';
-import type { PlantItemResponse, PlantResponse } from './plant.dto';
+import type {
+  PlantItemResponse,
+  PlantResponse,
+  UpdatePlantRequestBody,
+} from './plant.dto';
 
 /** What `POST /plants` takes, already validated. */
 export interface NewPlant {
@@ -42,12 +47,15 @@ function invalid(path: string, message: string): DomainError {
  */
 @Injectable()
 export class PlantsService {
+  private readonly logger = new Logger(PlantsService.name);
+
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     @Inject(PhotosService) private readonly photosService: PhotosService,
     @Inject(CatalogService) private readonly catalogService: CatalogService,
     @Inject(CareGuideService)
     private readonly careGuideService: CareGuideService,
+    @Inject(PhotoStorage) private readonly storage: PhotoStorage,
   ) {}
 
   /**
@@ -90,9 +98,7 @@ export class PlantsService {
       return plant.id;
     });
 
-    const [item] = await this.items(userId, eq(plants.id, plantId));
-    if (!item) throw new Error('The new plant was not found');
-    return item;
+    return this.item(userId, plantId);
   }
 
   /**
@@ -130,6 +136,57 @@ export class PlantsService {
       photo: await this.photosService.present(photo),
       species: plantSpecies,
     };
+  }
+
+  /**
+   * Changes [userId]'s plant [plantId] and answers it as a list item.
+   * `NOT_FOUND` for another User's plant.
+   */
+  async update(
+    userId: string,
+    plantId: string,
+    changes: UpdatePlantRequestBody,
+  ): Promise<PlantItemResponse> {
+    const { plant } = await this.findOwned(userId, plantId);
+    if (changes.commonName !== undefined) {
+      await this.db
+        .update(plants)
+        .set({ commonName: changes.commonName })
+        .where(eq(plants.id, plant.id));
+    }
+    return this.item(userId, plant.id);
+  }
+
+  /**
+   * Removes [userId]'s plant [plantId] with its photos: the rows first, in
+   * one transaction, then the objects in the storage. An object that fails
+   * to go is logged and left for later; the plant is gone anyway.
+   * `NOT_FOUND` for another User's plant.
+   */
+  async remove(userId: string, plantId: string): Promise<void> {
+    const { plant } = await this.findOwned(userId, plantId);
+    const removed = await this.db.transaction(async (tx) => {
+      // `photos.plant_id` is SET NULL, so the photos go before the plant.
+      const plantPhotos = await tx
+        .delete(photos)
+        .where(eq(photos.plantId, plant.id))
+        .returning({ s3Key: photos.s3Key });
+      await tx.delete(plants).where(eq(plants.id, plant.id));
+      return plantPhotos;
+    });
+
+    await Promise.all(
+      removed.map(async ({ s3Key }) => {
+        try {
+          await this.storage.delete(s3Key);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          this.logger.warn(
+            `Photo ${s3Key} of removed plant ${plant.id} not deleted from the storage: ${reason}`,
+          );
+        }
+      }),
+    );
   }
 
   /**
@@ -212,6 +269,16 @@ export class PlantsService {
             : null,
       })),
     );
+  }
+
+  /** One of [userId]'s plants as a list item, right after a change. */
+  private async item(
+    userId: string,
+    plantId: string,
+  ): Promise<PlantItemResponse> {
+    const [item] = await this.items(userId, eq(plants.id, plantId));
+    if (!item) throw new Error(`The plant ${plantId} was not found`);
+    return item;
   }
 
   private async speciesExists(speciesId: string): Promise<boolean> {

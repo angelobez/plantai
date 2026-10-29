@@ -31,6 +31,31 @@ export class CreatePlantRequest extends createZodDto(
   }),
 ) {}
 
+/**
+ * `PATCH /plants/:id`: a new name, the species of a plant saved without one,
+ * or both. At least one of them.
+ */
+export const updatePlantRequestSchema = z
+  .object({
+    commonName: plantCommonNameSchema.optional(),
+    speciesId: z
+      .uuid()
+      .optional()
+      .describe(
+        'A Catalog species, only for a plant that has none yet (SPECIES_ALREADY_SET)',
+      ),
+  })
+  .refine(
+    (body) => body.commonName !== undefined || body.speciesId !== undefined,
+    { message: 'send commonName, speciesId or both' },
+  );
+
+export type UpdatePlantRequestBody = z.infer<typeof updatePlantRequestSchema>;
+
+export class UpdatePlantRequest extends createZodDto(
+  updatePlantRequestSchema,
+) {}
+
 /** One plant of `GET /plants`, and the answer of `POST /plants`. */
 export const plantItemSchema = z.object({
   id: z.uuid(),

@@ -16,10 +16,12 @@ import '../../testing/pump_screen.dart';
 void main() {
   late FakeGardenRepository gardenRepository;
   late List<Uri> openedUrls;
+  late int removedCalls;
 
   setUp(() {
     gardenRepository = FakeGardenRepository();
     openedUrls = [];
+    removedCalls = 0;
   });
 
   Future<PlantViewModel> pump(
@@ -38,6 +40,7 @@ void main() {
         openedUrls.add(url);
         return true;
       },
+      onRemoved: () => removedCalls += 1,
     );
     if (settle) {
       await pumpScreen(tester, screen, below: const Text('Jardim'));
@@ -173,5 +176,152 @@ void main() {
     gardenRepository.gate!.complete();
     await tester.pumpAndSettle();
     expect(find.text('Monstera da sala'), findsOneWidget);
+  });
+
+  group('"Editar nome"', () {
+    Future<void> openDialog(WidgetTester tester) async {
+      await tester.tap(find.byTooltip('Editar nome'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> typeAndSave(WidgetTester tester, String name) async {
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        name,
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Salvar'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('renames the plant with the name typed', (tester) async {
+      await pump(tester);
+
+      await openDialog(tester);
+      expect(find.text('Editar nome'), findsOneWidget);
+      final field = tester.widget<TextField>(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+      );
+      expect(field.controller?.text, 'Monstera da sala');
+      await typeAndSave(tester, '  Jiboia da sala ');
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Jiboia da sala'), findsOneWidget);
+      expect(gardenRepository.updated.single.commonName, 'Jiboia da sala');
+    });
+
+    testWidgets('an empty name is refused before any call', (tester) async {
+      await pump(tester);
+
+      await openDialog(tester);
+      await typeAndSave(tester, '   ');
+
+      expect(find.text('Dê um nome para a planta.'), findsOneWidget);
+      expect(gardenRepository.updated, isEmpty);
+    });
+
+    testWidgets('"Cancelar" keeps the name', (tester) async {
+      await pump(tester);
+
+      await openDialog(tester);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Monstera da sala'), findsOneWidget);
+      expect(gardenRepository.updated, isEmpty);
+    });
+
+    testWidgets('a failure says why and offers to try again', (tester) async {
+      await pump(tester);
+      gardenRepository.failure = GardenFailure.noConnection;
+
+      await openDialog(tester);
+      await typeAndSave(tester, 'Jiboia da sala');
+
+      expect(
+        find.text(
+          'Sem conexão com a internet. Confira a rede e tente de novo.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Monstera da sala'), findsOneWidget);
+      gardenRepository.failure = null;
+      await tester.tap(find.text('Tentar de novo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Jiboia da sala'), findsOneWidget);
+      expect(gardenRepository.updated, hasLength(2));
+    });
+  });
+
+  group('"Remover do jardim"', () {
+    Future<void> tapRemove(WidgetTester tester) async {
+      final button = find.widgetWithText(TextButton, 'Remover do jardim');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks first, then removes the plant and leaves', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await tapRemove(tester);
+      expect(find.text('Remover do jardim?'), findsOneWidget);
+      expect(gardenRepository.removed, isEmpty);
+      await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
+      await tester.pumpAndSettle();
+
+      expect(gardenRepository.removed, [monsteraDaSala.id]);
+      expect(removedCalls, 1);
+    });
+
+    testWidgets('"Cancelar" keeps the plant', (tester) async {
+      await pump(tester);
+
+      await tapRemove(tester);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(gardenRepository.removed, isEmpty);
+      expect(removedCalls, 0);
+    });
+
+    testWidgets('a plant without a species can be removed too', (tester) async {
+      await pump(tester, plant: pimentaDaVo);
+
+      await tapRemove(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
+      await tester.pumpAndSettle();
+
+      expect(gardenRepository.removed, [pimentaDaVo.id]);
+      expect(removedCalls, 1);
+    });
+
+    testWidgets('a failure stays on the plant and offers to try again', (
+      tester,
+    ) async {
+      await pump(tester);
+      gardenRepository.failure = GardenFailure.unknown;
+
+      await tapRemove(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Algo deu errado. Tente de novo.'), findsOneWidget);
+      expect(removedCalls, 0);
+      gardenRepository.failure = null;
+      await tester.tap(find.text('Tentar de novo'));
+      await tester.pumpAndSettle();
+
+      expect(removedCalls, 1);
+    });
   });
 }
