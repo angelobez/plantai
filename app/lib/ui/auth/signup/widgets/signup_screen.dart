@@ -37,12 +37,20 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    final sent = await widget.viewModel.submit(
-      name: _name.text,
-      email: _email.text,
-      password: _password.text,
+    await _follow(
+      widget.viewModel.submit(
+        name: _name.text,
+        email: _email.text,
+        password: _password.text,
+      ),
     );
-    if (sent && mounted) widget.onCodeSent();
+  }
+
+  /// "Tentar de novo", after a failure for lack of connection.
+  Future<void> _retry() => _follow(widget.viewModel.retry());
+
+  Future<void> _follow(Future<bool> attempt) async {
+    if (await attempt && mounted) widget.onCodeSent();
   }
 
   @override
@@ -85,7 +93,10 @@ class _SignupScreenState extends State<SignupScreen> {
               autofillHints: const [AutofillHints.newPassword],
               onSubmitted: (_) => _submit(),
             ),
-            FormMessage(error: viewModel.error),
+            FormMessage(
+              error: viewModel.error,
+              onRetry: viewModel.canRetry ? _retry : null,
+            ),
           ],
           actions: [
             SubmitButton(

@@ -104,4 +104,27 @@ void main() {
 
     expect(viewModel.error, isNull);
   });
+
+  test('without connection, retry sends the same sign-up again', () async {
+    repository.failure = AuthFailure.noConnection;
+    expect(await submit(), isFalse);
+    expect(viewModel.canRetry, isTrue);
+
+    repository.failure = null;
+    expect(await viewModel.retry(), isTrue);
+
+    expect(repository.calls, [
+      'signUp(Marina Souza, marina@email.com, senha-boa-123)',
+      'signUp(Marina Souza, marina@email.com, senha-boa-123)',
+    ]);
+    expect(viewModel.canRetry, isFalse);
+    expect(viewModel.error, isNull);
+  });
+
+  test('a failure other than the connection offers no retry', () async {
+    repository.failure = AuthFailure.tooManyRequests;
+    await submit();
+
+    expect(viewModel.canRetry, isFalse);
+  });
 }

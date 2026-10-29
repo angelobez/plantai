@@ -150,4 +150,25 @@ void main() {
       });
     });
   });
+
+  test('without connection, retry sends the same code again', () async {
+    final viewModel = create();
+    repository.failure = AuthFailure.noConnection;
+    await viewModel.submit('123456');
+    expect(viewModel.canRetry, isTrue);
+
+    repository.failure = null;
+    await viewModel.retry();
+
+    expect(repository.calls, ['verifyEmail(123456)', 'verifyEmail(123456)']);
+    expect(viewModel.canRetry, isFalse);
+  });
+
+  test('a wrong code offers no retry', () async {
+    final viewModel = create();
+    repository.failure = AuthFailure.invalidCode;
+    await viewModel.submit('123456');
+
+    expect(viewModel.canRetry, isFalse);
+  });
 }

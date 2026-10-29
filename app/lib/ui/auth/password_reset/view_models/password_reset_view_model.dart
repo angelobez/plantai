@@ -1,10 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 
 import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
+import '../../retry_when_offline.dart';
+import '../../resend_countdown.dart';
 import '../../validators.dart';
 
 /// The two steps of "Esqueci a senha".
@@ -19,7 +19,8 @@ enum PasswordResetStep {
 /// "Esqueci a senha": the e-mail, then the code and a new password, which
 /// signs the User in (the router then takes them to the tabs). Also how an
 /// account made with Google gets a password.
-class PasswordResetViewModel extends ChangeNotifier {
+class PasswordResetViewModel extends ChangeNotifier
+    with RetryWhenOffline<void> {
   PasswordResetViewModel({
     required this._authRepository,
     this.resendCooldown = const Duration(seconds: 45),
@@ -30,7 +31,10 @@ class PasswordResetViewModel extends ChangeNotifier {
   /// How long to wait between codes.
   final Duration resendCooldown;
 
-  Timer? _cooldown;
+  late final _countdown = ResendCountdown(
+    duration: resendCooldown,
+    onTick: _notify,
+  );
   bool _disposed = false;
 
   PasswordResetStep _step = PasswordResetStep.email;
@@ -45,13 +49,11 @@ class PasswordResetViewModel extends ChangeNotifier {
 
   bool _isResending = false;
 
-  int _resendSecondsLeft = 0;
-
   /// Seconds until "reenviar código" works again; 0 when it does.
-  int get resendSecondsLeft => _resendSecondsLeft;
+  int get resendSecondsLeft => _countdown.secondsLeft;
 
   bool get canResend =>
-      _resendSecondsLeft == 0 && !_isResending && !_isSubmitting;
+      resendSecondsLeft == 0 && !_isResending && !_isSubmitting;
 
   String? _emailError;
   String? get emailError => _emailError;
@@ -86,8 +88,9 @@ class PasswordResetViewModel extends ChangeNotifier {
       await _authRepository.requestPasswordReset(trimmed);
       _email = trimmed;
       _step = PasswordResetStep.code;
-      _startCooldown();
+      _countdown.restart();
     } on AuthFailure catch (failure) {
+      offerRetry(failure, () => requestCode(email));
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
@@ -117,6 +120,7 @@ class PasswordResetViewModel extends ChangeNotifier {
         newPassword: newPassword,
       );
     } on AuthFailure catch (failure) {
+      offerRetry(failure, () => confirm(code: code, newPassword: newPassword));
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
@@ -133,8 +137,9 @@ class PasswordResetViewModel extends ChangeNotifier {
     try {
       await _authRepository.requestPasswordReset(_email);
       _notice = 'Enviamos um código novo.';
-      _startCooldown();
+      _countdown.restart();
     } on AuthFailure catch (failure) {
+      offerRetry(failure, resend);
       _error = authFailureMessage(failure);
     } finally {
       _isResending = false;
@@ -155,19 +160,7 @@ class PasswordResetViewModel extends ChangeNotifier {
     _passwordError = null;
     _error = null;
     _notice = null;
-  }
-
-  void _startCooldown() {
-    _cooldown?.cancel();
-    _resendSecondsLeft = resendCooldown.inSeconds;
-    _cooldown = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _resendSecondsLeft -= 1;
-      if (_resendSecondsLeft <= 0) {
-        _resendSecondsLeft = 0;
-        timer.cancel();
-      }
-      _notify();
-    });
+    clearRetry();
   }
 
   void _notify() {
@@ -177,7 +170,7 @@ class PasswordResetViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _cooldown?.cancel();
+    _countdown.dispose();
     super.dispose();
   }
 }

@@ -130,4 +130,23 @@ void main() {
     expect(find.text('Criar conta'), findsOneWidget);
     expect(find.text('Confirme seu e-mail'), findsNothing);
   });
+
+  testWidgets('without connection, "Tentar de novo" sends the code again', (
+    tester,
+  ) async {
+    repository.failure = AuthFailure.noConnection;
+    await pump(tester);
+    await tester.enterText(find.byType(TextField), '042137');
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Sem conexão com a internet. Confira a rede e tente de novo.'),
+      findsOneWidget,
+    );
+
+    repository.failure = null;
+    await tester.tap(find.widgetWithText(TextButton, 'Tentar de novo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, ['verifyEmail(042137)', 'verifyEmail(042137)']);
+  });
 }

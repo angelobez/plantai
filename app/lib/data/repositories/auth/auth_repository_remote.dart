@@ -1,6 +1,7 @@
 import '../../../domain/models/auth_failure.dart';
 import '../../services/api/api_client.dart';
 import '../../services/api/api_exception.dart';
+import '../../services/api/guard_api_call.dart';
 import '../../services/api/models/auth_tokens.dart';
 import '../../services/google/google_id_tokens.dart';
 import '../../services/session/session_store.dart';
@@ -172,25 +173,25 @@ class AuthRepositoryRemote extends AuthRepository {
   }
 
   /// Runs [call], turning what the API answers into an [AuthFailure].
-  static Future<T> _guard<T>(Future<T> Function() call) async {
-    try {
-      return await call();
-    } on ApiConnectionException {
-      throw AuthFailure.noConnection;
-    } on ApiException catch (error) {
-      throw switch (error.code) {
-        ApiErrorCode.invalidCode => AuthFailure.invalidCode,
-        ApiErrorCode.invalidCredentials => AuthFailure.invalidCredentials,
-        ApiErrorCode.emailNotVerified => AuthFailure.emailNotVerified,
-        ApiErrorCode.googleAccountLinkRefused =>
-          AuthFailure.googleAccountLinkRefused,
-        ApiErrorCode.tooManyRequests => AuthFailure.tooManyRequests,
-        ApiErrorCode.validationFailed => AuthFailure.validationFailed,
-        ApiErrorCode.appUpdateRequired => AuthFailure.updateRequired,
-        _ => AuthFailure.unknown,
-      };
-    }
-  }
+  static Future<T> _guard<T>(Future<T> Function() call) => guardApiCall(
+    call,
+    noConnection: AuthFailure.noConnection,
+    onError: (code) => switch (code) {
+      ApiErrorCode.invalidCode => AuthFailure.invalidCode,
+      ApiErrorCode.invalidCredentials => AuthFailure.invalidCredentials,
+      ApiErrorCode.emailNotVerified => AuthFailure.emailNotVerified,
+      ApiErrorCode.googleAccountLinkRefused =>
+        AuthFailure.googleAccountLinkRefused,
+      ApiErrorCode.tooManyRequests => AuthFailure.tooManyRequests,
+      ApiErrorCode.validationFailed => AuthFailure.validationFailed,
+      ApiErrorCode.appUpdateRequired => AuthFailure.updateRequired,
+      ApiErrorCode.notFound ||
+      ApiErrorCode.unauthenticated ||
+      ApiErrorCode.internalError ||
+      ApiErrorCode.healthCheckFailed ||
+      ApiErrorCode.unknown => AuthFailure.unknown,
+    },
+  );
 
   @override
   void dispose() {

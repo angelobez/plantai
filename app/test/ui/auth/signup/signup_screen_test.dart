@@ -127,4 +127,32 @@ void main() {
     );
     expect(codeSent, 0);
   });
+
+  testWidgets('without connection, "Tentar de novo" sends it again', (
+    tester,
+  ) async {
+    repository.failure = AuthFailure.noConnection;
+    await pump(tester);
+    await fill(tester);
+    await tester.tap(submitButton());
+    await tester.pumpAndSettle();
+
+    repository.failure = null;
+    await tester.tap(find.widgetWithText(TextButton, 'Tentar de novo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, hasLength(2));
+    expect(codeSent, 1);
+    expect(find.widgetWithText(TextButton, 'Tentar de novo'), findsNothing);
+  });
+
+  testWidgets('other failures offer no "Tentar de novo"', (tester) async {
+    repository.failure = AuthFailure.tooManyRequests;
+    await pump(tester);
+    await fill(tester);
+    await tester.tap(submitButton());
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextButton, 'Tentar de novo'), findsNothing);
+  });
 }

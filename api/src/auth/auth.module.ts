@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ENV } from '../config/config.module';
 import { AccessTokens } from './access-tokens';
+import { AuthEmails } from './auth-emails';
 import { AuthGuard } from './auth.guard';
 import { EmailCodes } from './email-codes';
 import { createGoogleTokenVerifier } from './google/google-auth-library-verifier';
@@ -43,6 +44,7 @@ import { SignupService } from './signup/signup.service';
   ],
   providers: [
     AccessTokens,
+    AuthEmails,
     EmailCodes,
     LogoutService,
     Sessions,

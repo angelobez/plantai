@@ -157,4 +157,25 @@ void main() {
 
     expect(forgot, 1);
   });
+
+  testWidgets('without connection, "Tentar de novo" logs in again', (
+    tester,
+  ) async {
+    repository.failure = AuthFailure.noConnection;
+    await pump(tester);
+    await fill(tester);
+    await tester.tap(submitButton());
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Sem conexão com a internet. Confira a rede e tente de novo.'),
+      findsOneWidget,
+    );
+
+    repository.failure = AuthFailure.emailNotVerified;
+    await tester.tap(find.widgetWithText(TextButton, 'Tentar de novo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, hasLength(2));
+    expect(navigations, ['verifyEmail']);
+  });
 }

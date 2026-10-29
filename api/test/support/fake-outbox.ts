@@ -3,6 +3,7 @@ import type {
   EmailSender,
   EmailTemplate,
 } from '../../src/email/email-sender';
+import { EmailNotSentError } from '../../src/email/resend-email-sender';
 
 export interface SentEmail extends Email {
   to: string;
@@ -15,7 +16,20 @@ export interface SentEmail extends Email {
 export class FakeOutbox implements EmailSender {
   readonly sent: SentEmail[] = [];
 
+  /**
+   * While true, every send fails the way the real adapter does when the
+   * provider refuses the e-mail, and nothing is kept.
+   */
+  failing = false;
+
   send(to: string, email: Email): Promise<void> {
+    if (this.failing) {
+      return Promise.reject(
+        new EmailNotSentError(
+          `The outbox refused the ${email.template} e-mail`,
+        ),
+      );
+    }
     this.sent.push({ to, ...email });
     return Promise.resolve();
   }

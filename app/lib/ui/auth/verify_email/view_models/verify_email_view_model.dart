@@ -1,22 +1,22 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 
 import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
+import '../../retry_when_offline.dart';
+import '../../resend_countdown.dart';
 import '../../validators.dart';
 
 /// "Confirme seu e-mail": takes the 6-digit code and asks for another one.
 ///
 /// A right code signs the User in; the router then leaves the entry screens,
 /// so there is nothing to do here on success.
-class VerifyEmailViewModel extends ChangeNotifier {
+class VerifyEmailViewModel extends ChangeNotifier with RetryWhenOffline<void> {
   VerifyEmailViewModel({
     required this._authRepository,
     this.resendCooldown = const Duration(seconds: 45),
   }) {
-    _startCooldown();
+    _countdown.restart();
   }
 
   final AuthRepository _authRepository;
@@ -24,7 +24,10 @@ class VerifyEmailViewModel extends ChangeNotifier {
   /// How long to wait between codes; the first one was just sent.
   final Duration resendCooldown;
 
-  Timer? _cooldown;
+  late final _countdown = ResendCountdown(
+    duration: resendCooldown,
+    onTick: _notify,
+  );
   bool _disposed = false;
 
   /// Where the code went.
@@ -35,13 +38,11 @@ class VerifyEmailViewModel extends ChangeNotifier {
 
   bool _isResending = false;
 
-  int _resendSecondsLeft = 0;
-
   /// Seconds until "reenviar código" works again; 0 when it does.
-  int get resendSecondsLeft => _resendSecondsLeft;
+  int get resendSecondsLeft => _countdown.secondsLeft;
 
   bool get canResend =>
-      _resendSecondsLeft == 0 && !_isResending && !_isSubmitting;
+      resendSecondsLeft == 0 && !_isResending && !_isSubmitting;
 
   String? _codeError;
   String? get codeError => _codeError;
@@ -57,6 +58,7 @@ class VerifyEmailViewModel extends ChangeNotifier {
     _codeError = validateCode(code);
     _error = null;
     _notice = null;
+    clearRetry();
     if (_codeError != null) {
       _notify();
       return;
@@ -67,6 +69,7 @@ class VerifyEmailViewModel extends ChangeNotifier {
     try {
       await _authRepository.verifyEmail(code);
     } on AuthFailure catch (failure) {
+      offerRetry(failure, () => submit(code));
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
@@ -79,30 +82,19 @@ class VerifyEmailViewModel extends ChangeNotifier {
     _isResending = true;
     _error = null;
     _notice = null;
+    clearRetry();
     _notify();
     try {
       await _authRepository.resendCode();
       _notice = 'Enviamos um código novo.';
-      _startCooldown();
+      _countdown.restart();
     } on AuthFailure catch (failure) {
+      offerRetry(failure, resend);
       _error = authFailureMessage(failure);
     } finally {
       _isResending = false;
       _notify();
     }
-  }
-
-  void _startCooldown() {
-    _cooldown?.cancel();
-    _resendSecondsLeft = resendCooldown.inSeconds;
-    _cooldown = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _resendSecondsLeft -= 1;
-      if (_resendSecondsLeft <= 0) {
-        _resendSecondsLeft = 0;
-        timer.cancel();
-      }
-      _notify();
-    });
   }
 
   void _notify() {
@@ -112,7 +104,7 @@ class VerifyEmailViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _cooldown?.cancel();
+    _countdown.dispose();
     super.dispose();
   }
 }

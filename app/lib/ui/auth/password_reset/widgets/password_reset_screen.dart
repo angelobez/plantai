@@ -91,7 +91,10 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           autofillHints: const [AutofillHints.email],
           onSubmitted: (_) => _requestCode(),
         ),
-        FormMessage(error: viewModel.error),
+        FormMessage(
+          error: viewModel.error,
+          onRetry: viewModel.canRetry ? viewModel.retry : null,
+        ),
       ],
       actions: [
         SubmitButton(
@@ -148,7 +151,11 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
           autofillHints: const [AutofillHints.newPassword],
           onSubmitted: (_) => _confirm(),
         ),
-        FormMessage(error: viewModel.error, notice: viewModel.notice),
+        FormMessage(
+          error: viewModel.error,
+          notice: viewModel.notice,
+          onRetry: viewModel.canRetry ? viewModel.retry : null,
+        ),
       ],
       actions: [
         SubmitButton(

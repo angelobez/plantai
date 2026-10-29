@@ -1,6 +1,6 @@
 import '../../../domain/models/profile_failure.dart';
 import '../../services/api/api_client.dart';
-import '../../services/api/api_exception.dart';
+import '../../services/api/guard_api_call.dart';
 import '../../services/api/models/user_profile.dart';
 import 'profile_repository.dart';
 
@@ -19,13 +19,9 @@ class ProfileRepositoryRemote implements ProfileRepository {
     () => _apiClient.patch('/v1/me', {'name': name}, UserProfile.fromJson),
   );
 
-  static Future<T> _guard<T>(Future<T> Function() call) async {
-    try {
-      return await call();
-    } on ApiConnectionException {
-      throw ProfileFailure.noConnection;
-    } on ApiException {
-      throw ProfileFailure.unknown;
-    }
-  }
+  static Future<T> _guard<T>(Future<T> Function() call) => guardApiCall(
+    call,
+    noConnection: ProfileFailure.noConnection,
+    onError: (_) => ProfileFailure.unknown,
+  );
 }

@@ -66,7 +66,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               canResend: viewModel.canResend,
               onResend: viewModel.resend,
             ),
-            FormMessage(error: viewModel.error, notice: viewModel.notice),
+            FormMessage(
+              error: viewModel.error,
+              notice: viewModel.notice,
+              onRetry: viewModel.canRetry ? viewModel.retry : null,
+            ),
           ],
           actions: [
             SubmitButton(

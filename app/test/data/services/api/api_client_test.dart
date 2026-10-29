@@ -53,7 +53,7 @@ void main() {
       throwsA(
         isA<ApiException>()
             .having((e) => e.status, 'status', 422)
-            .having((e) => e.code, 'code', 'VALIDATION_FAILED'),
+            .having((e) => e.code, 'code', ApiErrorCode.validationFailed),
       ),
     );
     expect(updateRequired.isRequired, isFalse);
@@ -73,7 +73,7 @@ void main() {
 
   test('426 APP_UPDATE_REQUIRED raises the update signal', () async {
     adapter.respond = (_) async =>
-        problemResponse(426, ApiErrorCode.appUpdateRequired);
+        problemResponse(426, ApiErrorCode.appUpdateRequired.wire!);
     var notified = 0;
     updateRequired.addListener(() => notified++);
 
@@ -149,7 +149,33 @@ void main() {
     await expectLater(
       client.postWithoutBody('/v1/auth/verify-email', {}),
       throwsA(
-        isA<ApiException>().having((e) => e.code, 'code', 'INVALID_CODE'),
+        isA<ApiException>().having(
+          (e) => e.code,
+          'code',
+          ApiErrorCode.invalidCode,
+        ),
+      ),
+    );
+  });
+
+  test('a code the app does not know, or none, is unknown', () async {
+    adapter.respond = (_) async => problemResponse(400, 'SOMETHING_NEW');
+
+    await expectLater(
+      client.postWithoutBody('/v1/auth/verify-email', {}),
+      throwsA(
+        isA<ApiException>().having((e) => e.code, 'code', ApiErrorCode.unknown),
+      ),
+    );
+
+    adapter.respond = (_) async => jsonResponse(502, {'message': 'proxy'});
+
+    await expectLater(
+      client.postWithoutBody('/v1/auth/verify-email', {}),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 502)
+            .having((e) => e.code, 'code', ApiErrorCode.unknown),
       ),
     );
   });

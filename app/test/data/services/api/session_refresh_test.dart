@@ -42,7 +42,7 @@ void main() {
       if (authorization == 'Bearer ${_renewed.accessToken}') {
         return jsonResponse(200, {'name': 'Marina'});
       }
-      return problemResponse(401, ApiErrorCode.unauthenticated);
+      return problemResponse(401, ApiErrorCode.unauthenticated.wire!);
     };
   }
 
@@ -123,7 +123,8 @@ void main() {
 
   test('a refused refresh clears the session', () async {
     serve(
-      refresh: () async => problemResponse(401, ApiErrorCode.unauthenticated),
+      refresh: () async =>
+          problemResponse(401, ApiErrorCode.unauthenticated.wire!),
     );
     var notified = 0;
     sessionStore.addListener(() => notified++);
@@ -170,7 +171,7 @@ void main() {
     // The API keeps refusing even the renewed token.
     adapter.respond = (options) async {
       if (options.path == _refreshPath) return _tokens(_renewed);
-      return problemResponse(401, ApiErrorCode.unauthenticated);
+      return problemResponse(401, ApiErrorCode.unauthenticated.wire!);
     };
 
     await expectLater(
@@ -201,7 +202,7 @@ void main() {
   test('a 401 with another code is not refreshed', () async {
     adapter.respond = (options) async {
       if (options.path == _refreshPath) return _tokens(_renewed);
-      return problemResponse(401, ApiErrorCode.invalidCredentials);
+      return problemResponse(401, ApiErrorCode.invalidCredentials.wire!);
     };
 
     await expectLater(

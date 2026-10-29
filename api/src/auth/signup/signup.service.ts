@@ -3,10 +3,9 @@ import { eq, sql } from 'drizzle-orm';
 import { DATABASE, type Database } from '../../database/database.module';
 import { type User, users } from '../../database/schema';
 import { DomainError } from '../../errors/domain-error';
-import { EmailSender } from '../../email/email-sender';
-import { accountExistsEmail, signupCodeEmail } from '../../email/emails';
 import { Users } from '../../users/users';
 import type { AuthTokens } from '../auth-tokens.dto';
+import { AuthEmails } from '../auth-emails';
 import { EmailCodes } from '../email-codes';
 import { hashSecret } from '../secrets';
 import { Sessions } from '../sessions';
@@ -18,7 +17,7 @@ export class SignupService {
     @Inject(DATABASE) private readonly db: Database,
     private readonly users: Users,
     private readonly emailCodes: EmailCodes,
-    private readonly emailSender: EmailSender,
+    private readonly authEmails: AuthEmails,
     private readonly sessions: Sessions,
   ) {}
 
@@ -36,15 +35,14 @@ export class SignupService {
     const existing = await this.users.findByEmail(email);
 
     if (existing?.emailVerifiedAt) {
-      await this.emailSender.send(email, accountExistsEmail(existing.name));
+      await this.authEmails.sendAccountExists(existing, email);
       return;
     }
 
     const user = existing
       ? await this.updatePending(existing, name, passwordHash)
       : await this.createPending(name, email, passwordHash);
-    const code = await this.emailCodes.issue(user.id, 'signup');
-    await this.emailSender.send(email, signupCodeEmail(user.name, code));
+    await this.authEmails.sendSignupCode(user, email);
   }
 
   /** Confirms the e-mail with the `signup` code and signs the User in. */

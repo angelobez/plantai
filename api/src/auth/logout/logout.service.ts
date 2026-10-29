@@ -1,28 +1,15 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, sql } from 'drizzle-orm';
-import { DATABASE, type Database } from '../../database/database.module';
-import { refreshTokens } from '../../database/schema';
-import { hashOpaqueToken } from '../secrets';
+import { Injectable } from '@nestjs/common';
+import { Sessions } from '../sessions';
 
 @Injectable()
 export class LogoutService {
-  constructor(@Inject(DATABASE) private readonly db: Database) {}
+  constructor(private readonly sessions: Sessions) {}
 
   /**
-   * Revokes [refreshToken], so neither the app nor a copy of it can renew the
-   * session. Only that token: the User's other sessions go on. A token that is
-   * unknown, expired or already revoked changes nothing (the first revocation
-   * time stays).
+   * Ends the session of [refreshToken], so neither the app nor a copy of it
+   * can renew it. Only that session: the User's other ones go on.
    */
-  async logout(refreshToken: string): Promise<void> {
-    await this.db
-      .update(refreshTokens)
-      .set({ revokedAt: sql`now()` })
-      .where(
-        and(
-          eq(refreshTokens.tokenHash, hashOpaqueToken(refreshToken)),
-          isNull(refreshTokens.revokedAt),
-        ),
-      );
+  logout(refreshToken: string): Promise<void> {
+    return this.sessions.revokeToken(refreshToken);
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
+import '../../retry_when_offline.dart';
 import '../../validators.dart';
 
 /// Where "Entrar" leads.
@@ -19,7 +20,8 @@ enum EmailLoginResult {
 }
 
 /// "Entrar com e-mail": checks e-mail and password, then signs in.
-class EmailLoginViewModel extends ChangeNotifier {
+class EmailLoginViewModel extends ChangeNotifier
+    with RetryWhenOffline<EmailLoginResult> {
   EmailLoginViewModel({required this._authRepository});
 
   final AuthRepository _authRepository;
@@ -46,6 +48,7 @@ class EmailLoginViewModel extends ChangeNotifier {
     // shorter one is just a wrong one.
     _passwordError = password.isEmpty ? 'Informe a sua senha.' : null;
     _error = null;
+    clearRetry();
     if (_emailError != null || _passwordError != null) {
       notifyListeners();
       return EmailLoginResult.failed;
@@ -60,6 +63,7 @@ class EmailLoginViewModel extends ChangeNotifier {
       if (failure == AuthFailure.emailNotVerified) {
         return EmailLoginResult.verifyEmail;
       }
+      offerRetry(failure, () => submit(email: email, password: password));
       _error = authFailureMessage(failure);
       return EmailLoginResult.failed;
     } finally {

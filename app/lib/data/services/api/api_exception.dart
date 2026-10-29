@@ -1,28 +1,51 @@
 /// Stable `code` values from the API's `application/problem+json` errors
-/// (docs/spec/modelo-de-dados-e-api.md, "Códigos de erro").
-abstract final class ApiErrorCode {
-  static const appUpdateRequired = 'APP_UPDATE_REQUIRED';
-  static const validationFailed = 'VALIDATION_FAILED';
-  static const tooManyRequests = 'TOO_MANY_REQUESTS';
-  static const unauthenticated = 'UNAUTHENTICATED';
-  static const invalidCredentials = 'INVALID_CREDENTIALS';
-  static const emailNotVerified = 'EMAIL_NOT_VERIFIED';
-  static const invalidCode = 'INVALID_CODE';
-  static const googleAccountLinkRefused = 'GOOGLE_ACCOUNT_LINK_REFUSED';
+/// (docs/spec/modelo-de-dados-e-api.md, "Códigos de erro"; `ERROR_STATUS` in
+/// `api/src/errors/domain-error.ts`).
+enum ApiErrorCode {
+  validationFailed('VALIDATION_FAILED'),
+  notFound('NOT_FOUND'),
+  appUpdateRequired('APP_UPDATE_REQUIRED'),
+  unauthenticated('UNAUTHENTICATED'),
+  invalidCredentials('INVALID_CREDENTIALS'),
+  emailNotVerified('EMAIL_NOT_VERIFIED'),
+  invalidCode('INVALID_CODE'),
+  googleAccountLinkRefused('GOOGLE_ACCOUNT_LINK_REFUSED'),
+  tooManyRequests('TOO_MANY_REQUESTS'),
+  internalError('INTERNAL_ERROR'),
+  healthCheckFailed('HEALTH_CHECK_FAILED'),
+
+  /// No code, or one this app version does not know.
+  unknown(null);
+
+  const ApiErrorCode(this.wire);
+
+  /// The `code` as the API writes it; null for [unknown].
+  final String? wire;
+
+  /// The value for [code] as it came from the API; [unknown] when it is null
+  /// or not one of these.
+  static ApiErrorCode parse(String? code) {
+    if (code == null) return unknown;
+    for (final value in values) {
+      if (value.wire == code) return value;
+    }
+    return unknown;
+  }
 }
 
 /// The API answered with an error status.
 ///
-/// [code] comes from the `application/problem+json` body; it is null when the
-/// response was not a problem document (a proxy page, for example).
+/// [code] comes from the `application/problem+json` body; it is
+/// [ApiErrorCode.unknown] when the response was not a problem document (a
+/// proxy page, for example) or its code is not one the app knows.
 class ApiException implements Exception {
-  const ApiException({required this.status, this.code});
+  const ApiException({required this.status, this.code = ApiErrorCode.unknown});
 
   final int status;
-  final String? code;
+  final ApiErrorCode code;
 
   @override
-  String toString() => 'ApiException($status, $code)';
+  String toString() => 'ApiException($status, ${code.name})';
 }
 
 /// The API could not be reached: no network, connection refused or timeout.

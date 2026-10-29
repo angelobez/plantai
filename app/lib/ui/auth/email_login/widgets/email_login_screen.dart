@@ -47,11 +47,16 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    final result = await widget.viewModel.submit(
-      email: _email.text,
-      password: _password.text,
+    await _follow(
+      widget.viewModel.submit(email: _email.text, password: _password.text),
     );
-    if (result == EmailLoginResult.verifyEmail && mounted) {
+  }
+
+  /// "Tentar de novo", after a failure for lack of connection.
+  Future<void> _retry() => _follow(widget.viewModel.retry());
+
+  Future<void> _follow(Future<EmailLoginResult> attempt) async {
+    if (await attempt == EmailLoginResult.verifyEmail && mounted) {
       widget.onVerifyEmail();
     }
   }
@@ -118,7 +123,10 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                 ),
               ],
             ),
-            FormMessage(error: viewModel.error),
+            FormMessage(
+              error: viewModel.error,
+              onRetry: viewModel.canRetry ? _retry : null,
+            ),
           ],
           actions: [
             SubmitButton(

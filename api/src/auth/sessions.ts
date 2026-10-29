@@ -67,6 +67,23 @@ export class Sessions {
       );
   }
 
+  /**
+   * Revokes [refreshToken] alone (`POST /auth/logout`): the User's other
+   * sessions go on. A token that is unknown, expired or already revoked
+   * changes nothing (the first revocation time stays).
+   */
+  async revokeToken(refreshToken: string): Promise<void> {
+    await this.db
+      .update(refreshTokens)
+      .set({ revokedAt: sql`now()` })
+      .where(
+        and(
+          eq(refreshTokens.tokenHash, hashOpaqueToken(refreshToken)),
+          isNull(refreshTokens.revokedAt),
+        ),
+      );
+  }
+
   /** Revokes every refresh token of [userId] still in use: all sessions end. */
   async revokeAll(userId: string): Promise<void> {
     await this.db

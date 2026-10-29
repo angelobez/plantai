@@ -46,7 +46,7 @@ async function candidateNames(
       // No proposal cached yet.
     }
   }
-  console.log('Pedindo a lista de espécies ao Claude...');
+  console.log('Asking Claude for the species list...');
   const names = await proposeSpecies();
   await mkdir(CACHE_DIR, { recursive: true });
   await writeFile(PROPOSAL_FILE, JSON.stringify(names, null, 2));
@@ -62,7 +62,7 @@ async function main(): Promise<void> {
   });
 
   const names = await candidateNames(values.names, values['refresh-proposal']);
-  console.log(`${String(names.length)} nomes candidatos.`);
+  console.log(`${String(names.length)} candidate names.`);
 
   const { species, discards } = await buildSeed(
     names,
@@ -76,12 +76,12 @@ async function main(): Promise<void> {
   process.stdout.write('\n');
 
   await writeFile(OUTPUT_FILE, await serializeSeed(species, OUTPUT_FILE));
-  console.log(`${String(species.length)} espécies em ${OUTPUT_FILE}`);
+  console.log(`${String(species.length)} species in ${OUTPUT_FILE}`);
   console.log(formatDiscardReport(discards));
 
   if (species.length < MINIMUM) {
     console.error(
-      `Menos de ${String(MINIMUM)} espécies: a semente ainda não está pronta.`,
+      `Fewer than ${String(MINIMUM)} species: the seed is not ready yet.`,
     );
     process.exitCode = 1;
   }
@@ -94,7 +94,7 @@ main().catch((error: unknown) => {
     error.message.includes('authentication method')
   ) {
     console.error(
-      'Sem credencial do Claude: defina ANTHROPIC_API_KEY ou use --names <arquivo>.',
+      'No Claude credentials: set ANTHROPIC_API_KEY or use --names <file>.',
     );
   }
   process.exitCode = 1;

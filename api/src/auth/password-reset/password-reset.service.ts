@@ -3,10 +3,9 @@ import { eq, sql } from 'drizzle-orm';
 import { DATABASE, type Database } from '../../database/database.module';
 import { users } from '../../database/schema';
 import { DomainError } from '../../errors/domain-error';
-import { EmailSender } from '../../email/email-sender';
-import { passwordResetCodeEmail } from '../../email/emails';
 import { Users } from '../../users/users';
 import type { AuthTokens } from '../auth-tokens.dto';
+import { AuthEmails } from '../auth-emails';
 import { EmailCodes } from '../email-codes';
 import { hashSecret } from '../secrets';
 import { Sessions } from '../sessions';
@@ -25,7 +24,7 @@ export class PasswordResetService {
     @Inject(DATABASE) private readonly db: Database,
     private readonly users: Users,
     private readonly emailCodes: EmailCodes,
-    private readonly emailSender: EmailSender,
+    private readonly authEmails: AuthEmails,
     private readonly sessions: Sessions,
   ) {}
 
@@ -37,11 +36,7 @@ export class PasswordResetService {
     const user = await this.users.findByEmail(email);
     if (!user) return;
 
-    const code = await this.emailCodes.issue(user.id, 'password_reset');
-    await this.emailSender.send(
-      user.email,
-      passwordResetCodeEmail(user.name, code),
-    );
+    await this.authEmails.sendPasswordResetCode(user);
   }
 
   /**

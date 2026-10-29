@@ -102,4 +102,24 @@ void main() {
     repository.gate!.complete();
     await result;
   });
+
+  test('without connection, retry signs in with Google again', () async {
+    repository.failure = AuthFailure.noConnection;
+    await viewModel.signInWithGoogle();
+    expect(viewModel.canRetry, isTrue);
+
+    repository.failure = null;
+    await viewModel.retry();
+
+    expect(repository.calls, ['signInWithGoogle()', 'signInWithGoogle()']);
+    expect(repository.isSignedIn, isTrue);
+    expect(viewModel.canRetry, isFalse);
+  });
+
+  test('Google unavailable offers no retry', () async {
+    repository.failure = AuthFailure.googleUnavailable;
+    await viewModel.signInWithGoogle();
+
+    expect(viewModel.canRetry, isFalse);
+  });
 }
