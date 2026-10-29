@@ -7,6 +7,7 @@ import 'data/repositories/health/health_repository.dart';
 import 'data/repositories/health/health_repository_remote.dart';
 import 'data/services/api/api_client.dart';
 import 'routing/router.dart';
+import 'ui/core/themes/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,9 +49,7 @@ class _PlantaiAppState extends State<PlantaiApp> {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'PlantAí',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-      ),
+      theme: AppTheme.light,
       routerConfig: _router,
     );
   }
