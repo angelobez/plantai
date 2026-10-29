@@ -475,7 +475,7 @@ describe('identifications (Identificação)', () => {
         expect(body.candidates[0]?.commonName).toBe('Costela-de-adão');
       });
 
-      it('skips a Catalog species with no name yet', async () => {
+      it('is the scientific name of a Catalog species with no name yet', async () => {
         const session = await newSession();
         await addSeedSpecies({
           scientificName: 'Epipremnum aureum',
@@ -485,7 +485,7 @@ describe('identifications (Identificação)', () => {
 
         const body = await identifyNewPhoto(session);
 
-        expect(body.candidates[0]?.commonName).toBe('Jiboia');
+        expect(body.candidates[0]?.commonName).toBe('Epipremnum aureum');
       });
 
       it('is null when no name passes', async () => {

@@ -204,6 +204,9 @@ export class IdentificationsService {
    *   GBIF down);
    * - one with no image is dropped unless its species is in the Catalog,
    *   since a new species needs a reference photo.
+   *
+   * A candidate whose species is in the Catalog takes its Catalog name;
+   * otherwise Pl@ntNet's first plausible name, or null.
    */
   private async usableCandidates(
     raw: RawCandidate[],
@@ -212,7 +215,7 @@ export class IdentificationsService {
       await Promise.all(raw.map((candidate) => this.withGbifKey(candidate)))
     ).filter((candidate) => candidate !== null);
 
-    const inCatalog = await this.primaryNamesByGbifKey(
+    const inCatalog = await this.catalogNamesByGbifKey(
       linked.map((candidate) => candidate.gbifKey),
     );
     return linked
@@ -251,15 +254,19 @@ export class IdentificationsService {
   }
 
   /**
-   * The Catalog species among [gbifKeys], each with its primary name (null
-   * while it has none).
+   * The Catalog species among [gbifKeys], each with the name its responses
+   * use: the primary name, or the scientific name while it has none.
    */
-  private async primaryNamesByGbifKey(
+  private async catalogNamesByGbifKey(
     gbifKeys: number[],
-  ): Promise<Map<number, string | null>> {
+  ): Promise<Map<number, string>> {
     if (gbifKeys.length === 0) return new Map();
     const rows = await this.db
-      .select({ gbifKey: species.gbifKey, name: speciesNames.name })
+      .select({
+        gbifKey: species.gbifKey,
+        primaryName: speciesNames.name,
+        scientificName: species.scientificName,
+      })
       .from(species)
       .leftJoin(
         speciesNames,
@@ -269,7 +276,9 @@ export class IdentificationsService {
         ),
       )
       .where(inArray(species.gbifKey, gbifKeys));
-    return new Map(rows.map((row) => [row.gbifKey, row.name]));
+    return new Map(
+      rows.map((row) => [row.gbifKey, row.primaryName ?? row.scientificName]),
+    );
   }
 
   /**

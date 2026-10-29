@@ -245,7 +245,7 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 5. Anexa a foto, grava a linha e responde.
 
 **Cada candidato:** `{ scientificName, commonName, score, images[] }`, com `images` no formato `{ url, author, license, sourceUrl }`: `url` é a imagem média do Pl@ntNet, `sourceUrl` é a original e a licença vem como `CC BY-SA`. O `commonName`:
-- **Espécie já no Catálogo (pela `gbifKey`) e com nome principal:** o nome principal do Catálogo.
+- **Espécie já no Catálogo (pela `gbifKey`):** o nome principal do Catálogo; enquanto ela não tem nome principal, o nome científico, como em toda resposta.
 - **Senão:** o primeiro nome do Pl@ntNet que passa no filtro de "parece nome": até 40 caracteres, sem dígitos, sem vírgula e sem ponto. O espaço antes da primeira palavra com hífen volta a ser hífen ("Costela de-adão" vira "Costela-de-adão").
 - **Nenhum passou:** `null`, e o app mostra o nome científico.
 

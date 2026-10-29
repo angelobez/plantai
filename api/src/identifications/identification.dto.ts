@@ -20,7 +20,7 @@ export const candidateSchema = z.object({
     .meta({ example: 'Jiboia' })
     .nullable()
     .describe(
-      "The Catalog's primary name when the species is there; otherwise the first Pl@ntNet name that looks like one; null when none does (the app shows the scientific name)",
+      "The Catalog's primary name when the species is there (its scientific name while it has none); otherwise the first Pl@ntNet name that looks like one; null when none does (the app shows the scientific name)",
     ),
   score: z.number().min(0).max(1).describe("Pl@ntNet's confidence"),
   images: z
