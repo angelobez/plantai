@@ -174,4 +174,97 @@ void main() {
       });
     });
   });
+
+  group('rename', () {
+    test('renames the plant, showing it is saving meanwhile', () async {
+      final viewModel = viewModelFor(monsteraDaSala.id);
+      await viewModel.load();
+      gardenRepository.gate = Completer();
+
+      final renaming = viewModel.rename('Jiboia da sala');
+
+      expect(viewModel.isSaving, isTrue);
+      gardenRepository.gate!.complete();
+      expect(await renaming, isTrue);
+      expect(viewModel.isSaving, isFalse);
+      expect(viewModel.actionError, isNull);
+      expect(viewModel.plant?.commonName, 'Jiboia da sala');
+      expect(viewModel.plant?.species, monsteraDaSala.species);
+      expect(gardenRepository.updated.single, (
+        id: monsteraDaSala.id,
+        commonName: 'Jiboia da sala',
+        speciesId: null,
+      ));
+    });
+
+    test('a failure keeps the name and says why, with a retry', () async {
+      final viewModel = viewModelFor(monsteraDaSala.id);
+      await viewModel.load();
+      gardenRepository.failure = GardenFailure.noConnection;
+
+      expect(await viewModel.rename('Jiboia da sala'), isFalse);
+
+      expect(viewModel.plant?.commonName, 'Monstera da sala');
+      expect(
+        viewModel.actionError,
+        'Sem conexão com a internet. Confira a rede e tente de novo.',
+      );
+      expect(viewModel.canRetryAction, isTrue);
+      expect(viewModel.isSaving, isFalse);
+    });
+  });
+
+  group('remove', () {
+    test('removes the plant from the garden', () async {
+      final viewModel = viewModelFor(pimentaDaVo.id);
+      await viewModel.load();
+      gardenRepository.gate = Completer();
+
+      final removing = viewModel.remove();
+
+      expect(viewModel.isSaving, isTrue);
+      gardenRepository.gate!.complete();
+      expect(await removing, isTrue);
+      expect(gardenRepository.removed, [pimentaDaVo.id]);
+      expect(gardenRepository.garden.map((plant) => plant.id), [
+        monsteraDaSala.id,
+      ]);
+    });
+
+    test('a failure keeps the plant and says why, with a retry', () async {
+      final viewModel = viewModelFor(pimentaDaVo.id);
+      await viewModel.load();
+      gardenRepository.failure = GardenFailure.unknown;
+
+      expect(await viewModel.remove(), isFalse);
+
+      expect(viewModel.plant, pimentaDaVo);
+      expect(viewModel.actionError, 'Algo deu errado. Tente de novo.');
+      expect(viewModel.canRetryAction, isTrue);
+      expect(viewModel.isSaving, isFalse);
+    });
+
+    test('a plant already gone says so, without a retry', () async {
+      final viewModel = viewModelFor(pimentaDaVo.id);
+      await viewModel.load();
+      gardenRepository.failure = GardenFailure.notFound;
+
+      expect(await viewModel.remove(), isFalse);
+
+      expect(viewModel.actionError, 'Essa planta não está mais no seu jardim.');
+      expect(viewModel.canRetryAction, isFalse);
+    });
+
+    test('a new action clears the last error', () async {
+      final viewModel = viewModelFor(pimentaDaVo.id);
+      await viewModel.load();
+      gardenRepository.failure = GardenFailure.unknown;
+      await viewModel.remove();
+      gardenRepository.failure = null;
+
+      expect(await viewModel.remove(), isTrue);
+
+      expect(viewModel.actionError, isNull);
+    });
+  });
 }

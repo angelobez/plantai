@@ -11,6 +11,7 @@ import '../../core/widgets/photo_panel_scroll.dart';
 import '../../core/widgets/reference_photo_credit.dart';
 import '../../core/widgets/round_back_button.dart';
 import '../view_models/plant_view_model.dart';
+import 'plant_name_dialog.dart';
 
 /// Tela da planta, as in the Claude Design screen (`M-planta`): the User's
 /// photo on top and a white panel over it with the plant's name, its species
@@ -18,20 +19,80 @@ import '../view_models/plant_view_model.dart';
 /// saved with only a name shows just the photo and the name. While Claude
 /// writes the guide, the loading state says "gerando dicas…".
 ///
-/// Read only for now. The actions go in the panel: "Editar nome" next to the
-/// name ([_PlantView]'s header row), "Definir espécie" where the species
-/// card is for a plant without one, and "Remover do jardim" at the bottom.
+/// The actions are in the panel: "Editar nome" as a round button next to
+/// the name, and "Remover do jardim" at the bottom, after a confirmation.
+/// "Definir espécie" goes where the species card is, for a plant without
+/// one. A failed action shows a [SnackBar] with the message and, when it
+/// makes sense, "Tentar de novo".
 class PlantScreen extends StatelessWidget {
   const PlantScreen({
     super.key,
     required this.viewModel,
     required this.openUrl,
+    required this.onRemoved,
   });
 
   final PlantViewModel viewModel;
 
   /// Opens the reference photo's credit link.
   final UrlOpener openUrl;
+
+  /// The plant left the garden: the screen goes back to the Jardim.
+  final VoidCallback onRemoved;
+
+  Future<void> _editName(BuildContext context, Plant plant) async {
+    final name = await showPlantNameDialog(
+      context,
+      initialName: plant.commonName,
+      title: 'Editar nome',
+    );
+    if (name == null || !context.mounted) return;
+    await _rename(context, name);
+  }
+
+  Future<void> _rename(BuildContext context, String name) async {
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+    if (await viewModel.rename(name) || !context.mounted) return;
+    _showActionError(context, retry: () => _rename(context, name));
+  }
+
+  Future<void> _confirmRemove(BuildContext context, Plant plant) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => _RemoveDialog(plantName: plant.commonName),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await _remove(context);
+  }
+
+  Future<void> _remove(BuildContext context) async {
+    ScaffoldMessenger.maybeOf(context)?.hideCurrentSnackBar();
+    if (await viewModel.remove()) {
+      onRemoved();
+      return;
+    }
+    if (context.mounted) {
+      _showActionError(context, retry: () => _remove(context));
+    }
+  }
+
+  void _showActionError(BuildContext context, {required VoidCallback retry}) {
+    final error = viewModel.actionError;
+    if (error == null) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(error),
+        action: viewModel.canRetryAction
+            ? SnackBarAction(
+                label: 'Tentar de novo',
+                onPressed: () {
+                  if (context.mounted) retry();
+                },
+              )
+            : null,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +103,13 @@ class PlantScreen extends StatelessWidget {
           final plant = viewModel.plant;
           final Widget body;
           if (plant != null) {
-            body = _PlantView(plant: plant, openUrl: openUrl);
+            body = _PlantView(
+              plant: plant,
+              openUrl: openUrl,
+              isSaving: viewModel.isSaving,
+              onEditName: () => _editName(context, plant),
+              onRemove: () => _confirmRemove(context, plant),
+            );
           } else if (viewModel.loadError case final error?
               when !viewModel.isLoading) {
             body = Center(
@@ -67,10 +134,21 @@ class PlantScreen extends StatelessWidget {
 }
 
 class _PlantView extends StatelessWidget {
-  const _PlantView({required this.plant, required this.openUrl});
+  const _PlantView({
+    required this.plant,
+    required this.openUrl,
+    required this.isSaving,
+    required this.onEditName,
+    required this.onRemove,
+  });
 
   final Plant plant;
   final UrlOpener openUrl;
+
+  /// While an action runs, the others wait.
+  final bool isSaving;
+  final VoidCallback onEditName;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
@@ -79,13 +157,30 @@ class _PlantView extends StatelessWidget {
       photo: PhotoImage(photo: plant.photo),
       photoHeight: 270,
       children: [
-        Text(
-          plant.commonName,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.4,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                plant.commonName,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            IconButton(
+              onPressed: isSaving ? null : onEditName,
+              tooltip: 'Editar nome',
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.mist,
+                foregroundColor: AppColors.forest,
+                fixedSize: const Size.square(40),
+              ),
+            ),
+          ],
         ),
         if (species != null) ...[
           const SizedBox(height: 14),
@@ -93,7 +188,22 @@ class _PlantView extends StatelessWidget {
           const SizedBox(height: 14),
           CareGuideView(careGuide: species.careGuide),
         ],
-        const SizedBox(height: 28),
+        const SizedBox(height: 16),
+        Center(
+          child: TextButton(
+            onPressed: isSaving ? null : onRemove,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.danger,
+              minimumSize: const Size(0, 44),
+              textStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            child: const Text('Remover do jardim'),
+          ),
+        ),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -163,6 +273,36 @@ class _SpeciesCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Remover do jardim?": the plant and its photo go for good.
+class _RemoveDialog extends StatelessWidget {
+  const _RemoveDialog({required this.plantName});
+
+  final String plantName;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Remover do jardim?'),
+      content: Text('“$plantName” e a foto dela saem do seu jardim de vez.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          // The theme's pill is as wide as the screen; not in a dialog.
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.danger,
+            minimumSize: const Size(96, 44),
+          ),
+          child: const Text('Remover'),
+        ),
+      ],
     );
   }
 }

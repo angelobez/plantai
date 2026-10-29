@@ -144,6 +144,49 @@ void main() {
       expect(tab('Jardim'), findsOneWidget);
     });
 
+    testWidgets('renaming a plant shows the new name back in the list', (
+      tester,
+    ) async {
+      await openGarden(tester);
+      await tester.tap(find.text('Monstera da sala'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Editar nome'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        'Jiboia da sala',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Salvar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Jiboia da sala'), findsOneWidget);
+      expect(find.text('Monstera da sala'), findsNothing);
+    });
+
+    testWidgets('removing a plant goes back to the Jardim, without it', (
+      tester,
+    ) async {
+      await openGarden(tester);
+      await tester.tap(find.text('Pimenta da vó'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(TextButton, 'Remover do jardim'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
+      await tester.pumpAndSettle();
+
+      expect(tab('Jardim'), findsOneWidget);
+      expect(find.text('1 planta'), findsOneWidget);
+      expect(find.text('Pimenta da vó'), findsNothing);
+      expect(find.text('Monstera da sala'), findsOneWidget);
+    });
+
     testWidgets('an empty garden invites to identify, opening the camera', (
       tester,
     ) async {
