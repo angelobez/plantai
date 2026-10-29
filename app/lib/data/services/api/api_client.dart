@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'api_exception.dart';
 import 'models/problem_details.dart';
 import '../session/session_store.dart';
+import 'session_refresh_interceptor.dart';
 import 'update_required.dart';
 
 /// The PlantAí API over HTTP.
@@ -36,6 +37,7 @@ class ApiClient {
                BearerInterceptor(sessionStore),
                UpdateRequiredInterceptor(updateRequired),
              ]) {
+    _dio.interceptors.add(SessionRefreshInterceptor(_dio, sessionStore));
     if (httpClientAdapter != null) _dio.httpClientAdapter = httpClientAdapter;
   }
 
@@ -117,7 +119,7 @@ class AppVersionInterceptor extends Interceptor {
 /// Sends `Authorization: Bearer <access token>` while there is a session.
 ///
 /// The API answers `401 UNAUTHENTICATED` to a missing, invalid or expired
-/// token; renewing the session on that answer belongs next to this one.
+/// token; [SessionRefreshInterceptor] renews the session on that answer.
 class BearerInterceptor extends Interceptor {
   BearerInterceptor(this.sessionStore);
 
