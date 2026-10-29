@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:plantai/data/services/api/update_required.dart';
 import 'package:plantai/data/services/photo_picker/photo_picker.dart';
 import 'package:plantai/domain/models/auth_failure.dart';
+import 'package:plantai/domain/models/identification_failure.dart';
 import 'package:plantai/main.dart';
 import 'package:plantai/routing/router.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
 
 import '../testing/fake_auth_repository.dart';
 import '../testing/fake_catalog_repository.dart';
+import '../testing/fake_identification_repository.dart';
 import '../testing/fake_photo_picker.dart';
 import '../testing/fake_photo_repository.dart';
 import '../testing/fake_profile_repository.dart';
@@ -20,6 +22,7 @@ void main() {
   late FakePhotoRepository photoRepository;
   late FakePhotoPicker photoPicker;
   late FakeCatalogRepository catalogRepository;
+  late FakeIdentificationRepository identificationRepository;
   late List<Uri> openedUrls;
 
   setUp(() {
@@ -28,6 +31,7 @@ void main() {
     photoRepository = FakePhotoRepository();
     photoPicker = FakePhotoPicker();
     catalogRepository = FakeCatalogRepository();
+    identificationRepository = FakeIdentificationRepository();
     openedUrls = [];
   });
 
@@ -40,6 +44,7 @@ void main() {
         photoRepository: photoRepository,
         photoPicker: photoPicker,
         catalogRepository: catalogRepository,
+        identificationRepository: identificationRepository,
         openUrl: (url) async {
           openedUrls.add(url);
           return true;
@@ -190,6 +195,103 @@ void main() {
       expect(find.textContaining('não tem acesso à câmera'), findsNothing);
       expect(find.byKey(const Key('photo-preview')), findsOneWidget);
       expect(photoRepository.uploads, hasLength(1));
+    });
+  });
+
+  group('"Identificar pela foto"', () {
+    Future<void> openCandidates(WidgetTester tester) async {
+      await pumpApp(tester);
+      await tester.tap(cameraButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Escolher da galeria'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Identificar pela foto'));
+      await tester.pumpAndSettle();
+    }
+
+    Finder button(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.bySubtype<ButtonStyleButton>(),
+    );
+
+    testWidgets('identifies the photo sent and shows the candidates', (
+      tester,
+    ) async {
+      await openCandidates(tester);
+
+      expect(identificationRepository.identified, ['photo-1']);
+      expect(find.text('Qual destas é a sua?'), findsOneWidget);
+      expect(find.text('Jiboia'), findsOneWidget);
+    });
+
+    testWidgets('a candidate opens its Tela da espécie, and back is Foto', (
+      tester,
+    ) async {
+      catalogRepository.speciesById = {jiboiaSpecies.id: monstera};
+      await openCandidates(tester);
+
+      await tester.tap(button('É esta').first);
+      await tester.pumpAndSettle();
+
+      expect(catalogRepository.speciesAsked, [jiboiaSpecies.id]);
+      expect(find.text('Costela-de-adão'), findsOneWidget);
+
+      // Candidatos left the stack: its choice is made.
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Que planta é essa?'), findsOneWidget);
+      expect(find.byKey(const Key('photo-preview')), findsOneWidget);
+      expect(identificationRepository.identified, ['photo-1']);
+    });
+
+    testWidgets('"Nenhuma destas" opens Busca', (tester) async {
+      await openCandidates(tester);
+
+      await tester.tap(button('Nenhuma destas'));
+      await tester.pumpAndSettle();
+
+      expect(identificationRepository.choices, [(recognized.id, null)]);
+      expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
+    });
+
+    testWidgets('Foto não reconhecida: "Buscar pelo nome" opens Busca', (
+      tester,
+    ) async {
+      identificationRepository.identification = notRecognized;
+      await openCandidates(tester);
+      expect(find.text('Não consegui reconhecer'), findsOneWidget);
+
+      await tester.tap(button('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
+    });
+
+    testWidgets('Foto não reconhecida: "Tirar outra foto" picks on Foto', (
+      tester,
+    ) async {
+      identificationRepository.identification = notRecognized;
+      await openCandidates(tester);
+
+      await tester.tap(button('Tirar outra foto'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tirar foto'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Que planta é essa?'), findsOneWidget);
+      expect(photoPicker.asked, [PhotoSource.gallery, PhotoSource.camera]);
+      expect(photoRepository.uploads, hasLength(2));
+    });
+
+    testWidgets('Limite diário: the search is still there', (tester) async {
+      identificationRepository.failure = IdentificationFailure.dailyLimit;
+      await openCandidates(tester);
+      expect(find.text('A busca continua liberada'), findsOneWidget);
+
+      await tester.tap(find.text('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
     });
   });
 

@@ -136,7 +136,7 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 | `user_id` | uuid | |
 | `photo_id` | uuid, nulo | `ON DELETE SET NULL`: a foto some com a planta, mas a linha fica, porque conta o uso do Pl@ntNet |
 | `result` | `recognized` \| `not_recognized` | `not_recognized` quando o top 1 tem `score` < 0,2 ou não há candidatos |
-| `candidates` | jsonb | Até 3: `scientificName`, `commonName` (`pt`, cru do Pl@ntNet), `score`, `gbifKey`, `images[]` com `url`, `author` e `license` |
+| `candidates` | jsonb | Até 3: `scientificName`, `commonNames` (`pt`, crus do Pl@ntNet), `score`, `gbifKey`, `images[]` com `url`, `author`, `license` e `sourceUrl`. Numa `recognized`, são os candidatos mostrados, na mesma ordem (o `candidateIndex` aponta para eles), já com a `gbifKey` resolvida no GBIF; numa `not_recognized`, a lista crua do Pl@ntNet |
 | `chosen_species_id` | uuid, nulo | |
 | `chosen_none` | boolean | O usuário marcou "nenhuma destas" |
 | `chosen_at` | timestamptz, nulo | |
@@ -144,7 +144,7 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 
 **Limite diário:** toda linha de `identifications` conta no limite de 10 por usuário por dia, inclusive as `not_recognized`, porque gastam a cota do Pl@ntNet do mesmo jeito. A falha de rede e o 5xx do Pl@ntNet não geram linha, então não contam.
 
-**Espécie nova:** só nasce quando o usuário escolhe o candidato. Nesse momento, a API faz o upsert pela `gbif_key`, e a foto de referência passa a ser a primeira imagem que o Pl@ntNet mostrou daquele candidato.
+**Espécie nova:** só nasce quando o usuário escolhe o candidato. Nesse momento, a API faz o upsert pela `gbif_key`, e a foto de referência passa a ser a primeira imagem que o Pl@ntNet mostrou daquele candidato (`reference_photo_url`, com `origin = identification`). Ela nasce **sem** nome em `species_names`: os nomes do Pl@ntNet não são guardados, e o nome principal vem do Claude na primeira geração das dicas. Até lá, toda resposta usa o nome científico como `commonName`.
 
 ### Jardim
 
@@ -232,10 +232,22 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 | Método e caminho | O que faz |
 |---|---|
 | `POST /photos` | Multipart `file` (até 6 MB) → `201` com `{ id, url, expiresAt }`. Limite de 50 por dia (`PHOTO_DAILY_LIMIT`). Arquivo que não é imagem, campo ausente, corpo que não é multipart ou arquivo acima de 6 MB: `VALIDATION_FAILED`, com `path` `file` |
-| `POST /identifications` | `{ photoId }` → `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Se `result = not_recognized`, vem `candidates: []` |
-| `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }` → `{ species }` ou `204`. Faz o upsert da Espécie no Catálogo |
+| `POST /identifications` | `{ photoId }` → `201` com `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Passos abaixo. Se `result = not_recognized`, vem `candidates: []`. Foto de outro usuário ou inexistente: `NOT_FOUND` |
+| `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }`, nunca os dois → `200` com `{ species }` (no formato do item da busca, com `matchedAlternativeName: null`) ou `204`. Faz o upsert da Espécie no Catálogo. Uma escolha só: a segunda responde `IDENTIFICATION_ALREADY_CHOSEN`. Índice fora da lista, corpo inválido ou identificação `not_recognized`: `VALIDATION_FAILED`. Identificação de outro usuário: `NOT_FOUND` |
 | `GET /species?q=` | Busca sem diferenciar acento nem maiúscula: `lower(unaccent(q))` com `ILIKE '%termo%'` em `name_normalized` e no nome científico normalizado. `q` de 2 a 50 caracteres depois do trim (fora disso, `VALIDATION_FAILED`); `%` e `_` valem como letras. Responde uma lista com uma linha por espécie, até 20: primeiro as que têm um nome que começa pelo termo, depois as outras, cada grupo em ordem alfabética do nome principal. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }`; `matchedAlternativeName` é o nome alternativo que bateu, quando o termo não bateu no principal nem no científico |
 | `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide }`, com `otherNames` em ordem alfabética. Espécie inexistente: `NOT_FOUND`; `id` que não é UUID: `VALIDATION_FAILED` |
+
+**`POST /identifications`, passo a passo:**
+1. Confere o limite de 10 por dia (`IDENTIFICATION_DAILY_LIMIT`), sem chamar o Pl@ntNet.
+2. Lê a foto no armazenamento e chama o Pl@ntNet (`POST /v2/identify/all` com `lang=pt`, `nb-results=3`, `organs=auto` e `include-related-images=true`, timeout de 10 s). O `404` "Species not found" vale como lista vazia. Timeout, rede, `5xx` e qualquer outra resposta: `IDENTIFICATION_SERVICE_UNAVAILABLE`, sem linha.
+3. Candidato sem `gbif.id`: a API resolve o nome no GBIF; sem match (ou com o GBIF fora), ele é descartado. Candidato sem imagem cuja espécie não está no Catálogo também é descartado, porque uma Espécie nova precisa de foto de referência.
+4. `not_recognized` quando não sobra candidato ou quando o top 1 do Pl@ntNet (antes dos descartes) tem `score` < 0,2.
+5. Anexa a foto, grava a linha e responde.
+
+**Cada candidato:** `{ scientificName, commonName, score, images[] }`, com `images` no formato `{ url, author, license, sourceUrl }`: `url` é a imagem média do Pl@ntNet, `sourceUrl` é a original e a licença vem como `CC BY-SA`. O `commonName`:
+- **Espécie já no Catálogo (pela `gbifKey`) e com nome principal:** o nome principal do Catálogo.
+- **Senão:** o primeiro nome do Pl@ntNet que passa no filtro de "parece nome": até 40 caracteres, sem dígitos, sem vírgula e sem ponto. O espaço antes da primeira palavra com hífen volta a ser hífen ("Costela de-adão" vira "Costela-de-adão").
+- **Nenhum passou:** `null`, e o app mostra o nome científico.
 
 **Espécie nas respostas do Catálogo:** a espécie sem nome principal usa o nome científico como `commonName`. A `referencePhoto` é `{ url, author, license, sourceUrl }`; a `url` é pré-assinada (1 h) quando a foto está no armazenamento (`reference_photo_s3_key`) e é a URL externa nos outros casos.
 
@@ -292,6 +304,7 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 | `PHOTO_DAILY_LIMIT` | 429 | Mais de 50 fotos no dia |
 | `IDENTIFICATION_DAILY_LIMIT` | 429 | 10 identificações no dia |
 | `IDENTIFICATION_SERVICE_UNAVAILABLE` | 503 | Falha ou timeout do Pl@ntNet (não conta no limite) |
+| `IDENTIFICATION_ALREADY_CHOSEN` | 409 | Segunda escolha na mesma identificação |
 | `CARE_GUIDE_GENERATING` | 202 | Outra requisição está gerando as dicas |
 | `SPECIES_ALREADY_SET` | 409 | Tentativa de trocar a espécie de uma planta |
 | `DONATION_PROFILE_REQUIRED` | 409 | Primeiro anúncio sem telefone ou localização |

@@ -12,6 +12,9 @@ enum ApiErrorCode {
   googleAccountLinkRefused('GOOGLE_ACCOUNT_LINK_REFUSED'),
   tooManyRequests('TOO_MANY_REQUESTS'),
   photoDailyLimit('PHOTO_DAILY_LIMIT'),
+  identificationDailyLimit('IDENTIFICATION_DAILY_LIMIT'),
+  identificationServiceUnavailable('IDENTIFICATION_SERVICE_UNAVAILABLE'),
+  identificationAlreadyChosen('IDENTIFICATION_ALREADY_CHOSEN'),
   internalError('INTERNAL_ERROR'),
   healthCheckFailed('HEALTH_CHECK_FAILED'),
 

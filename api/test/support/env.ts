@@ -21,6 +21,8 @@ export function testEnv(
     // The photo storage is a fake in the test app; these only satisfy the type.
     S3_BUCKET: 'plantai-photos-test',
     S3_REGION: 'us-east-1',
+    // The plant identifier is a fake in the test app too.
+    PLANTNET_API_KEY: 'test-plantnet-key',
     ...overrides,
   };
 }

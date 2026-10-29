@@ -16,7 +16,8 @@ const envSchema = z
     MIN_APP_VERSION: z
       .string()
       .refine(isSemanticVersion, 'must be a semantic version like 1.2.3'),
-    PLANTNET_API_KEY: z.string().min(1).optional(),
+    /** Identifies the plants in the photos (https://my.plantnet.org/). */
+    PLANTNET_API_KEY: z.string().min(1),
     /** Signs the access tokens (HS256). */
     JWT_SECRET: z.string().min(32),
     /** The Google Cloud OAuth Web client: the audience of the Google ID tokens. */

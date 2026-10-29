@@ -83,15 +83,26 @@ class ApiClient {
     }
   }
 
+  /// How long a call that waits on an external service may take to answer
+  /// (an identification: Pl@ntNet takes ~2 s, but up to 10 s, plus GBIF).
+  static const slowReceiveTimeout = Duration(seconds: 30);
+
   /// `POST` [body] as JSON to [path] and parse its JSON object answer with
-  /// [fromJson].
+  /// [fromJson]. [receiveTimeout] replaces the usual one for a slow route.
   Future<T> post<T>(
     String path,
     Map<String, Object?> body,
-    T Function(Map<String, dynamic> json) fromJson,
-  ) async {
+    T Function(Map<String, dynamic> json) fromJson, {
+    Duration? receiveTimeout,
+  }) async {
     try {
-      final response = await _dio.post<Map<String, dynamic>>(path, data: body);
+      final response = await _dio.post<Map<String, dynamic>>(
+        path,
+        data: body,
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
+      );
       return fromJson(response.data ?? const {});
     } on DioException catch (error) {
       throw _toApiError(error);

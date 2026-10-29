@@ -21,6 +21,10 @@ void main() {
   late List<Photo> identified;
   late List<Photo> searched;
 
+  /// What the identification hands back: a source for another photo, or
+  /// null when the User just came back.
+  PhotoSource? identificationAnswer;
+
   setUp(() {
     photoPicker = FakePhotoPicker();
     photoRepository = FakePhotoRepository();
@@ -31,7 +35,13 @@ void main() {
     closed = 0;
     identified = [];
     searched = [];
+    identificationAnswer = null;
   });
+
+  Future<PhotoSource?> identify(Photo photo) async {
+    identified.add(photo);
+    return identificationAnswer;
+  }
 
   Future<void> pumpPhoto(
     WidgetTester tester, {
@@ -42,7 +52,7 @@ void main() {
       viewModel: viewModel,
       initialSource: source,
       onClose: () => closed++,
-      onIdentify: identified.add,
+      onIdentify: identify,
       onSearchByName: searched.add,
     ),
   );
@@ -72,7 +82,7 @@ void main() {
           viewModel: viewModel,
           initialSource: PhotoSource.camera,
           onClose: () => closed++,
-          onIdentify: identified.add,
+          onIdentify: identify,
           onSearchByName: searched.add,
         ),
       ),
@@ -137,6 +147,31 @@ void main() {
     expect(photoPicker.asked, [PhotoSource.camera, PhotoSource.gallery]);
     expect(photoRepository.uploads, ['IMG_0001.jpg', 'IMG_0002.jpg']);
     expect(closed, 0);
+  });
+
+  testWidgets('"Tirar outra foto" after the identification picks again', (
+    tester,
+  ) async {
+    await pumpPhoto(tester);
+    identificationAnswer = PhotoSource.gallery;
+
+    await tester.tap(find.text('Identificar pela foto'));
+    await tester.pumpAndSettle();
+
+    expect(photoPicker.asked, [PhotoSource.camera, PhotoSource.gallery]);
+    expect(photoRepository.uploads, hasLength(2));
+  });
+
+  testWidgets('coming back from the identification keeps the photo', (
+    tester,
+  ) async {
+    await pumpPhoto(tester);
+
+    await tester.tap(find.text('Identificar pela foto'));
+    await tester.pumpAndSettle();
+
+    expect(photoPicker.asked, [PhotoSource.camera]);
+    expect(identified.single.id, 'photo-1');
   });
 
   testWidgets('canceling "Tirar outra" keeps the photo and the screen', (
