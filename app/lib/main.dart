@@ -7,6 +7,8 @@ import 'data/repositories/auth/auth_repository.dart';
 import 'data/repositories/auth/auth_repository_remote.dart';
 import 'data/repositories/catalog/catalog_repository.dart';
 import 'data/repositories/catalog/catalog_repository_remote.dart';
+import 'data/repositories/garden/garden_repository.dart';
+import 'data/repositories/garden/garden_repository_remote.dart';
 import 'data/repositories/identification/identification_repository.dart';
 import 'data/repositories/identification/identification_repository_remote.dart';
 import 'data/repositories/photo/photo_repository.dart';
@@ -48,6 +50,7 @@ Future<void> main() async {
   final identificationRepository = IdentificationRepositoryRemote(
     apiClient: apiClient,
   );
+  final gardenRepository = GardenRepositoryRemote(apiClient: apiClient);
 
   runApp(
     // Repositories go here, built on the shared ApiClient.
@@ -61,6 +64,7 @@ Future<void> main() async {
         Provider<IdentificationRepository>.value(
           value: identificationRepository,
         ),
+        ChangeNotifierProvider<GardenRepository>.value(value: gardenRepository),
       ],
       child: PlantaiApp(
         updateRequired: updateRequired,
@@ -70,6 +74,7 @@ Future<void> main() async {
         photoPicker: ImagePickerPhotoPicker(),
         catalogRepository: catalogRepository,
         identificationRepository: identificationRepository,
+        gardenRepository: gardenRepository,
       ),
     ),
   );
@@ -85,6 +90,7 @@ class PlantaiApp extends StatefulWidget {
     required this.photoPicker,
     required this.catalogRepository,
     required this.identificationRepository,
+    required this.gardenRepository,
     this.openUrl = openExternally,
   });
 
@@ -95,6 +101,7 @@ class PlantaiApp extends StatefulWidget {
   final PhotoPicker photoPicker;
   final CatalogRepository catalogRepository;
   final IdentificationRepository identificationRepository;
+  final GardenRepository gardenRepository;
   final UrlOpener openUrl;
 
   @override
@@ -110,6 +117,7 @@ class _PlantaiAppState extends State<PlantaiApp> {
     photoPicker: widget.photoPicker,
     catalogRepository: widget.catalogRepository,
     identificationRepository: widget.identificationRepository,
+    gardenRepository: widget.gardenRepository,
     openUrl: widget.openUrl,
   );
 

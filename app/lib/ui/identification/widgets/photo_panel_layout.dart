@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/services/api/models/photo.dart';
-import '../../core/themes/colors.dart';
 import '../../core/widgets/leaf_icon.dart';
 import '../../core/widgets/photo_image.dart';
+import '../../core/widgets/round_back_button.dart';
 
 const _panelOverlap = 26.0;
 
@@ -48,16 +48,7 @@ class PhotoPanelLayout extends StatelessWidget {
                   alignment: Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: IconButton(
-                      tooltip: 'Voltar',
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.92),
-                        foregroundColor: AppColors.ink,
-                        fixedSize: const Size.square(44),
-                      ),
-                      icon: const Icon(Icons.chevron_left, size: 24),
-                    ),
+                    child: const RoundBackButton(),
                   ),
                 ),
               ),

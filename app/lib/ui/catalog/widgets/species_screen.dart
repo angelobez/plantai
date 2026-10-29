@@ -6,7 +6,9 @@ import '../../core/care_guide/care_guide_view.dart';
 import '../../core/themes/colors.dart';
 import '../../core/url_opener.dart';
 import '../../core/widgets/photo_image.dart';
+import '../../core/widgets/photo_panel_scroll.dart';
 import '../../core/widgets/reference_photo_credit.dart';
+import '../../core/widgets/round_back_button.dart';
 import '../view_models/species_view_model.dart';
 
 /// Tela da espécie, as in the Claude Design screen (`M-especie`): the
@@ -15,13 +17,14 @@ import '../view_models/species_view_model.dart';
 /// the photo's credit. While Claude writes the guide, the loading state says
 /// "gerando dicas…".
 ///
-/// "Salvar no meu jardim" goes at the bottom, in
-/// [Scaffold.bottomNavigationBar].
+/// With [onSaveToGarden] (a photo in the flow), "Salvar no meu jardim" sits
+/// at the bottom once the species is read.
 class SpeciesScreen extends StatelessWidget {
   const SpeciesScreen({
     super.key,
     required this.viewModel,
     required this.openUrl,
+    this.onSaveToGarden,
   });
 
   final SpeciesViewModel viewModel;
@@ -29,51 +32,46 @@ class SpeciesScreen extends StatelessWidget {
   /// Opens the credit's link.
   final UrlOpener openUrl;
 
+  /// Saves the species shown as a plant, with the flow's photo.
+  final ValueChanged<Species>? onSaveToGarden;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListenableBuilder(
-        listenable: viewModel,
-        builder: (context, _) {
-          final species = viewModel.species;
-          final Widget body;
-          if (species != null) {
-            body = _SpeciesView(species: species, openUrl: openUrl);
-          } else if (viewModel.loadError case final error?
-              when !viewModel.isLoading) {
-            body = _LoadError(
-              message: error,
-              onRetry: viewModel.canRetry ? viewModel.load : null,
-            );
-          } else {
-            body = CareGuideLoading(
-              generating: viewModel.isGeneratingCareGuide,
-            );
-          }
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              body,
-              const Positioned(
-                top: 0,
-                left: 0,
-                child: SafeArea(
+    return ListenableBuilder(
+      listenable: viewModel,
+      builder: (context, _) {
+        final species = viewModel.species;
+        final onSave = onSaveToGarden;
+        final Widget body;
+        if (species != null) {
+          body = _SpeciesView(species: species, openUrl: openUrl);
+        } else if (viewModel.loadError case final error?
+            when !viewModel.isLoading) {
+          body = _LoadError(
+            message: error,
+            onRetry: viewModel.canRetry ? viewModel.load : null,
+          );
+        } else {
+          body = CareGuideLoading(generating: viewModel.isGeneratingCareGuide);
+        }
+        return Scaffold(
+          body: TopLeftOverlay(body: body, overlay: const RoundBackButton()),
+          bottomNavigationBar: species == null || onSave == null
+              ? null
+              : SafeArea(
                   child: Padding(
-                    padding: EdgeInsets.all(14),
-                    child: _BackButton(),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    child: FilledButton(
+                      onPressed: () => onSave(species),
+                      child: const Text('Salvar no meu jardim'),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
-      ),
+        );
+      },
     );
   }
 }
-
-const _photoHeight = 290.0;
-const _panelOverlap = 26.0;
 
 class _SpeciesView extends StatelessWidget {
   const _SpeciesView({required this.species, required this.openUrl});
@@ -88,61 +86,28 @@ class _SpeciesView extends StatelessWidget {
       species.scientificName,
       if (otherNames.isNotEmpty) 'também chamada de ${otherNames.join(', ')}',
     ].join(' · ');
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: _photoHeight,
-            child: ColoredBox(
-              color: const Color(0xFF7FA886),
-              child: ReferencePhotoImage(photo: species.referencePhoto),
-            ),
+    return PhotoPanelScroll(
+      photo: ReferencePhotoImage(photo: species.referencePhoto),
+      photoHeight: 290,
+      children: [
+        Text(
+          species.commonName,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
           ),
-          Transform.translate(
-            offset: const Offset(0, -_panelOverlap),
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(_panelOverlap),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      species.commonName,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.inkMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    CareGuideView(careGuide: species.careGuide),
-                    const SizedBox(height: 14),
-                    ReferencePhotoCredit(
-                      photo: species.referencePhoto,
-                      openUrl: openUrl,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: const TextStyle(fontSize: 14, color: AppColors.inkMuted),
+        ),
+        const SizedBox(height: 14),
+        CareGuideView(careGuide: species.careGuide),
+        const SizedBox(height: 14),
+        ReferencePhotoCredit(photo: species.referencePhoto, openUrl: openUrl),
+      ],
     );
   }
 }
@@ -160,25 +125,6 @@ class _LoadError extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: FormMessage(error: message, onRetry: onRetry),
       ),
-    );
-  }
-}
-
-/// The white circle over the photo.
-class _BackButton extends StatelessWidget {
-  const _BackButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: 'Voltar',
-      onPressed: () => Navigator.of(context).maybePop(),
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.white.withValues(alpha: 0.92),
-        foregroundColor: AppColors.ink,
-        fixedSize: const Size.square(44),
-      ),
-      icon: const Icon(Icons.chevron_left, size: 24),
     );
   }
 }

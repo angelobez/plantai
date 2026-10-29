@@ -24,6 +24,7 @@ void main() {
     WidgetTester tester, {
     String id = '0190e0d4-0000-7000-8000-0000000000c1',
     bool settle = true,
+    ValueChanged<Species>? onSaveToGarden,
   }) async {
     final viewModel = SpeciesViewModel(
       catalogRepository: catalogRepository,
@@ -31,6 +32,7 @@ void main() {
     )..load();
     final screen = SpeciesScreen(
       viewModel: viewModel,
+      onSaveToGarden: onSaveToGarden,
       openUrl: (url) async {
         openedUrls.add(url);
         return true;
@@ -146,6 +148,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Busca'), findsOneWidget);
+  });
+
+  group('"Salvar no meu jardim"', () {
+    testWidgets('saves the species shown', (tester) async {
+      final saved = <Species>[];
+      await pump(tester, onSaveToGarden: saved.add);
+
+      await tester.tap(find.text('Salvar no meu jardim'));
+
+      expect(saved, [same(monstera)]);
+    });
+
+    testWidgets('is not there without a photo in the flow', (tester) async {
+      await pump(tester);
+
+      expect(find.text('Salvar no meu jardim'), findsNothing);
+    });
+
+    testWidgets('waits for the species', (tester) async {
+      catalogRepository.gate = Completer<void>();
+      await pump(tester, settle: false, onSaveToGarden: (_) {});
+
+      expect(find.text('Salvar no meu jardim'), findsNothing);
+
+      catalogRepository.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Salvar no meu jardim'), findsOneWidget);
+    });
   });
 
   group('care guide', () {

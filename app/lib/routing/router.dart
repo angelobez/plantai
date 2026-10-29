@@ -3,12 +3,14 @@ import 'package:go_router/go_router.dart';
 
 import '../data/repositories/auth/auth_repository.dart';
 import '../data/repositories/catalog/catalog_repository.dart';
+import '../data/repositories/garden/garden_repository.dart';
 import '../data/repositories/identification/identification_repository.dart';
 import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/models/photo.dart';
 import '../data/services/api/update_required.dart';
 import '../data/services/photo_picker/photo_picker.dart';
+import '../domain/models/new_plant.dart';
 import '../ui/about/widgets/about_screen.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
 import '../ui/auth/email_login/widgets/email_login_screen.dart';
@@ -26,9 +28,14 @@ import '../ui/catalog/widgets/search_screen.dart';
 import '../ui/catalog/widgets/species_screen.dart';
 import '../ui/core/url_opener.dart';
 import '../ui/core/widgets/coming_soon.dart';
-import '../ui/core/widgets/leaf_icon.dart';
 import '../ui/core/widgets/tab_page.dart';
 import '../ui/core/widgets/view_model_scope.dart';
+import '../ui/garden/view_models/garden_view_model.dart';
+import '../ui/garden/view_models/plant_view_model.dart';
+import '../ui/garden/widgets/garden_screen.dart';
+import '../ui/garden/widgets/plant_name_dialog.dart';
+import '../ui/garden/widgets/plant_screen.dart';
+import '../ui/garden/widgets/save_plant.dart';
 import '../ui/identification/view_models/candidates_view_model.dart';
 import '../ui/identification/widgets/candidates_screen.dart';
 import '../ui/photo/view_models/photo_view_model.dart';
@@ -41,6 +48,19 @@ import '../ui/update_required/widgets/update_required_screen.dart';
 
 abstract final class Routes {
   static const garden = '/jardim';
+
+  /// Tela da planta, over the Jardim tab (back goes to the list), without
+  /// the bottom bar.
+  static String plant(String plantId) =>
+      '$garden/$_plantPath/${Uri.encodeComponent(plantId)}';
+
+  static const _plantPath = 'planta';
+  static const _plantIdParam = 'id';
+
+  /// The plant of a [plant] location.
+  static String plantIdOf(GoRouterState state) =>
+      state.pathParameters[_plantIdParam]!;
+
   static const nearby = '/perto';
   static const profile = '/perfil';
 
@@ -133,15 +153,37 @@ GoRouter router({
   required PhotoPicker photoPicker,
   required CatalogRepository catalogRepository,
   required IdentificationRepository identificationRepository,
+  required GardenRepository gardenRepository,
   UrlOpener openUrl = openExternally,
 }) {
-  /// The way into the photo flow from anywhere (the camera button, and later
-  /// the empty Jardim and "Definir espécie"): asks camera or gallery over the
+  final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+  /// The way into the photo flow from anywhere (the camera button, the empty
+  /// Jardim, and later "Definir espécie"): asks camera or gallery over the
   /// current screen, then opens Foto. Closing the sheet stays where it was.
   Future<void> openPhotoFlow(BuildContext context) async {
     final source = await showPhotoSourceSheet(context);
     if (source == null || !context.mounted) return;
     await context.push(Routes.identifyFrom(source));
+  }
+
+  /// Saves the plant from the photo flow, then opens it: the flow leaves the
+  /// stack, and back from the Tela da planta is the Jardim tab.
+  void saveAndOpen(BuildContext context, NewPlant plant) => savePlant(
+    context,
+    gardenRepository: gardenRepository,
+    plant: plant,
+    onSaved: (saved) {
+      if (context.mounted) context.go(Routes.plant(saved.id));
+    },
+  );
+
+  /// "Salvar só com o nome" where there is no name yet (Foto não reconhecida,
+  /// Limite diário): asks it first.
+  Future<void> askNameAndSave(BuildContext context, String photoId) async {
+    final name = await showPlantNameDialog(context);
+    if (name == null || !context.mounted) return;
+    saveAndOpen(context, NewPlant(photoId: photoId, commonName: name));
   }
 
   final rules = <String? Function(GoRouterState state)>[
@@ -164,6 +206,7 @@ GoRouter router({
   ];
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: Routes.nearby,
     refreshListenable: Listenable.merge([updateRequired, authRepository]),
     redirect: (context, state) {
@@ -237,9 +280,32 @@ GoRouter router({
             routes: [
               GoRoute(
                 path: Routes.garden,
-                builder: (context, state) => const TabPage(
-                  body: ComingSoon(icon: LeafIcon(), title: 'Meu jardim'),
+                builder: (context, state) => ViewModelScope(
+                  create: () =>
+                      GardenViewModel(gardenRepository: gardenRepository)
+                        ..load(),
+                  builder: (viewModel) => GardenScreen(
+                    viewModel: viewModel,
+                    onPlant: (plant) => context.push(Routes.plant(plant.id)),
+                    onIdentify: () => openPhotoFlow(context),
+                  ),
                 ),
+                routes: [
+                  // Over the whole shell: the Tela da planta has no bottom
+                  // bar, and back is the list.
+                  GoRoute(
+                    parentNavigatorKey: rootNavigatorKey,
+                    path: '${Routes._plantPath}/:${Routes._plantIdParam}',
+                    builder: (context, state) => ViewModelScope(
+                      create: () => PlantViewModel(
+                        gardenRepository: gardenRepository,
+                        plantId: Routes.plantIdOf(state),
+                      )..load(),
+                      builder: (viewModel) =>
+                          PlantScreen(viewModel: viewModel, openUrl: openUrl),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -328,7 +394,7 @@ GoRouter router({
                   },
                   onSearchByName: () =>
                       context.push(Routes.searchByName(photoId: photoId)),
-                  // #53 passes "Salvar só com o nome" here, as on Busca.
+                  onSaveNameOnly: () => askNameAndSave(context, photoId),
                 ),
               );
             },
@@ -345,20 +411,41 @@ GoRouter router({
                   onSpecies: (species) => context.push(
                     Routes.species(species.id, photoId: photoId),
                   ),
+                  onSaveNameOnly: photoId == null
+                      ? null
+                      : (name) => saveAndOpen(
+                          context,
+                          NewPlant(photoId: photoId, commonName: name),
+                        ),
                 ),
               );
             },
           ),
           GoRoute(
             path: '${Routes._speciesPath}/:${Routes._speciesIdParam}',
-            builder: (context, state) => ViewModelScope(
-              create: () => SpeciesViewModel(
-                catalogRepository: catalogRepository,
-                speciesId: Routes.speciesIdOf(state),
-              )..load(),
-              builder: (viewModel) =>
-                  SpeciesScreen(viewModel: viewModel, openUrl: openUrl),
-            ),
+            builder: (context, state) {
+              final photoId = Routes.photoIdOf(state);
+              return ViewModelScope(
+                create: () => SpeciesViewModel(
+                  catalogRepository: catalogRepository,
+                  speciesId: Routes.speciesIdOf(state),
+                )..load(),
+                builder: (viewModel) => SpeciesScreen(
+                  viewModel: viewModel,
+                  openUrl: openUrl,
+                  onSaveToGarden: photoId == null
+                      ? null
+                      : (species) => saveAndOpen(
+                          context,
+                          NewPlant(
+                            photoId: photoId,
+                            commonName: species.commonName,
+                            speciesId: species.id,
+                          ),
+                        ),
+                ),
+              );
+            },
           ),
         ],
       ),
