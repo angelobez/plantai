@@ -17,7 +17,7 @@ Decisões que este documento pressupõe:
 - **"Hoje":** o dia vira à meia-noite de `America/Sao_Paulo`. É o que vale para os limites diários.
 - **Contrato:** REST com JSON e prefixo `/v1`. Os schemas Zod são a fonte única de verdade; deles sai o OpenAPI, servido em `/docs`. No CI, um teste compara o OpenAPI com o snapshot versionado.
 - **No app:** models Dart escritos à mão, com `json_serializable`.
-- **Erros:** `application/problem+json` (RFC 9457) com `type` (`about:blank`), `title`, `status` e um campo `code` estável. A mensagem para a pessoa fica no app, não na API. Todo erro sai nesse formato, inclusive os que não são de domínio. Dos erros HTTP do framework, só três têm tradução: o `400` (JSON malformado, por exemplo) vira `VALIDATION_FAILED` com uma mensagem genérica, sem o texto interno do Nest; o `404` (rota inexistente) vira `NOT_FOUND`; e o `429` vira `TOO_MANY_REQUESTS`. Qualquer outro erro, inclusive outro erro HTTP do framework (um `401` ou `403` sem código de domínio, por exemplo), vira `INTERNAL_ERROR`, sem stack trace nem mensagem interna no corpo, e vai para o log como erro sem mapeamento.
+- **Erros:** `application/problem+json` (RFC 9457) com `type` (`about:blank`), `title`, `status` e um campo `code` estável. A mensagem para a pessoa fica no app, não na API. Todo erro sai nesse formato, inclusive os que não são de domínio. Dos erros HTTP do framework, só três têm tradução: o `400` (JSON malformado, por exemplo) vira `VALIDATION_FAILED` com uma mensagem genérica, sem o texto interno do Nest; o `404` (rota inexistente) vira `NOT_FOUND`; e o `429` vira `TOO_MANY_REQUESTS`. Qualquer outro erro, inclusive outro erro HTTP do framework (um `403` sem código de domínio, por exemplo; o `401` da falta de token é o `UNAUTHENTICATED`), vira `INTERNAL_ERROR`, sem stack trace nem mensagem interna no corpo, e vai para o log como erro sem mapeamento.
 - **Versão do app:** o app manda `X-App-Version` (semver) em toda requisição. Abaixo da versão mínima configurada (`MIN_APP_VERSION`), a API responde `426` com `APP_UPDATE_REQUIRED`, e o app mostra "atualize o PlantAí" com o link do GitHub Release. Vale para todas as rotas, inclusive o `GET /health`. **Sem o cabeçalho, a requisição passa**, para que `curl` e o `/docs` funcionem. Um valor que não é semver responde `400 VALIDATION_FAILED`.
 - **Logs:** o logger de requisições nunca registra o valor dos cabeçalhos `Authorization`, `Cookie`, `Proxy-Authorization`, `Set-Cookie` e `X-Search-Location`; eles aparecem como `[REDACTED]`.
 
@@ -207,7 +207,7 @@ Todos ficam sob `/v1`, e todos exigem `Authorization: Bearer <access token>`, ex
 | Método e caminho | O que faz |
 |---|---|
 | `POST /auth/google` | `{ idToken }` → tokens. Junta com a conta do mesmo e-mail pelas regras do ADR |
-| `POST /auth/signup` | `{ name, email, password }` → envia o código |
+| `POST /auth/signup` | `{ name, email, password }` → `202` sem corpo, igual para e-mail novo, conta não confirmada e conta confirmada, para não revelar se o e-mail tem conta. E-mail novo: cria o Usuário não confirmado e envia o código. Conta não confirmada: troca nome e senha e envia outro código (é o "reenviar código" do app). Conta confirmada: não muda nada e envia o e-mail "você já tem conta" |
 | `POST /auth/verify-email` | `{ email, code }` → tokens |
 | `POST /auth/login` | `{ email, password }` → tokens |
 | `POST /auth/refresh` | `{ refreshToken }` → tokens (com rotação) |
@@ -279,6 +279,7 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 |---|---|---|
 | `APP_UPDATE_REQUIRED` | 426 | `X-App-Version` abaixo da mínima |
 | `VALIDATION_FAILED` | 400 | Zod rejeitou a requisição, o JSON veio malformado (ou outro `400` do framework) ou o `X-App-Version` não é semver. Detalhes em `errors[]`, de `{ path, message }`, com `path` no formato `tags.1` (vazio quando o problema é a requisição inteira; `X-App-Version` para o cabeçalho). Para o `400` do framework, a mensagem é genérica |
+| `UNAUTHENTICATED` | 401 | Rota protegida sem `Authorization: Bearer`, ou com access token inválido ou vencido. O app reage renovando a sessão (`POST /auth/refresh`); o refresh token revogado ou vencido também responde este código |
 | `INVALID_CREDENTIALS` | 401 | Mensagem genérica, igual para e-mail inexistente e senha errada |
 | `EMAIL_NOT_VERIFIED` | 403 | Login antes de confirmar o código |
 | `INVALID_CODE` | 400 | Código errado, expirado ou com tentativas esgotadas |

@@ -16,6 +16,7 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
     .setTitle('PlantAí API')
     .setVersion(API_VERSION)
+    .addBearerAuth()
     .build();
   return cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
 }

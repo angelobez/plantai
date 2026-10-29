@@ -4,19 +4,31 @@ import {
   Module,
   type NestModule,
 } from '@nestjs/common';
+import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from './config/config.module';
 import type { Env } from './config/env';
 import { DatabaseModule } from './database/database.module';
+import { EmailModule } from './email/email.module';
 import { HealthModule } from './health/health.module';
 import { AppVersionMiddleware } from './http/app-version.middleware';
 import { RequestLoggerMiddleware } from './http/request-logger.middleware';
+import { ProfileModule } from './profile/profile.module';
+import { UsersModule } from './users/users';
 
 @Module({})
 export class AppModule implements NestModule {
   static forRoot(env: Env): DynamicModule {
     return {
       module: AppModule,
-      imports: [ConfigModule.forRoot(env), DatabaseModule, HealthModule],
+      imports: [
+        ConfigModule.forRoot(env),
+        DatabaseModule,
+        EmailModule,
+        UsersModule,
+        AuthModule,
+        HealthModule,
+        ProfileModule,
+      ],
     };
   }
 

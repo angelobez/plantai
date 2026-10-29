@@ -45,13 +45,22 @@ curl localhost:3000/v1/health
 
 `npm run db:down` stops the database and keeps its data. After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
 
+### Authentication
+Every route requires `Authorization: Bearer <access token>` (a 15-minute JWT signed with `JWT_SECRET`); without a valid one it answers `401 UNAUTHENTICATED`. The pieces live in `api/src/auth/`:
+- `@Public()` on a route or controller lets it through without a token (`/health` and the `/auth` routes use it). `/docs` sits outside Nest's router and is always public.
+- `@CurrentUser() user: AuthenticatedUser` gives the controller the signed-in User (`{ id }`).
+- Each way in has its own folder (`auth/signup/`), and all of them end in `Sessions.start(user)`, which answers `{ accessToken, refreshToken, user }`.
+
+Without `RESEND_API_KEY`, e-mails are not sent: the API log shows them, sign-up code included. With the key and `EMAIL_FROM=onboarding@resend.dev`, Resend delivers in test mode, only to the e-mail of the Resend account.
+
 ### API contract (OpenAPI)
 `http://localhost:3000/docs` shows the Swagger UI, and `/docs/openapi.json` the document, generated from the routes' Zod schemas by `nestjs-zod`. Both are public. The document is versioned in `api/openapi.json`, and `test/openapi.spec.ts` fails when the generated one differs, so every contract change shows up in the PR diff.
 
 To document a route:
 - Response: a `createZodDto` class, named as the schema should appear (no `Dto` suffix, no `.meta({ id })`, which breaks `cleanupOpenApiDoc`), used with `@ZodResponse({ status, type })`. The global serializer parses the return value with it, so the docs cannot drift from what the route sends.
 - Body or query: a `createZodDto` class as the parameter type; the global pipe validates it.
-- Errors: `@ApiProblems('CODE_A', 'CODE_B')` with the route's own codes. It adds the shared ones (`VALIDATION_FAILED`, `APP_UPDATE_REQUIRED`, `INTERNAL_ERROR`) and the `X-App-Version` header.
+- Errors: `@ApiProblems('CODE_A', 'CODE_B')` with the route's own codes. It adds the shared ones (`VALIDATION_FAILED`, `APP_UPDATE_REQUIRED`, `INTERNAL_ERROR`) and the `X-App-Version` header. A protected route also lists `UNAUTHENTICATED`, and its controller takes `@ApiBearerAuth()`.
+- A nullable primitive needs some metadata on the inner schema (`z.string().meta({ example }).nullable()`); a bare `z.string().nullable()` comes out as an array.
 
 Then run `npm run openapi:update` (from `api/`) and commit `api/openapi.json` with the change.
 
