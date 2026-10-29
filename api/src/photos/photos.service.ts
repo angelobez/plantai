@@ -1,12 +1,15 @@
 import { randomUUIDv7 } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, gte } from 'drizzle-orm';
+import { and, count, eq, gte, isNull } from 'drizzle-orm';
 import sharp from 'sharp';
 import { DATABASE, type Database } from '../database/database.module';
 import { photos } from '../database/schema';
 import { startOfToday } from '../database/today';
 import { DomainError } from '../errors/domain-error';
-import { PhotoStorage } from '../photo-storage/photo-storage';
+import {
+  PhotoStorage,
+  StoredPhotoNotFoundError,
+} from '../photo-storage/photo-storage';
 import type { PhotoResponse } from './photo.dto';
 import { invalidPhoto } from './photo-upload.interceptor';
 
@@ -20,6 +23,9 @@ export function photoKey(photoId: string): string {
 
 /** Same quality the app uses when `image_picker` reduces the photo. */
 const JPEG_QUALITY = 85;
+
+/** A User's photo row, as {@link PhotosService.findOwned} answers it. */
+export type OwnedPhoto = typeof photos.$inferSelect;
 
 interface CleanJpeg {
   bytes: Buffer;
@@ -88,6 +94,48 @@ export class PhotosService {
   async present(photo: { id: string; s3Key: string }): Promise<PhotoResponse> {
     const { url, expiresAt } = await this.storage.presignedGetUrl(photo.s3Key);
     return { id: photo.id, url, expiresAt: expiresAt.toISOString() };
+  }
+
+  /**
+   * [ownerId]'s photo [photoId]; `NOT_FOUND` when there is none, or when it
+   * is someone else's, so its existence is not revealed.
+   */
+  async findOwned(ownerId: string, photoId: string): Promise<OwnedPhoto> {
+    const [photo] = await this.db
+      .select()
+      .from(photos)
+      .where(and(eq(photos.id, photoId), eq(photos.ownerId, ownerId)));
+    if (!photo) throw new DomainError('NOT_FOUND');
+    return photo;
+  }
+
+  /** The stored JPEG; `NOT_FOUND` when the object is gone. */
+  async read(photo: OwnedPhoto): Promise<Buffer> {
+    try {
+      return await this.storage.read(photo.s3Key);
+    } catch (error) {
+      if (error instanceof StoredPhotoNotFoundError) {
+        throw new DomainError('NOT_FOUND', { cause: error });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Marks [photo] as used (by an identification or a plant): the
+   * `unattached` tag goes, so the lifecycle rule keeps it, and `attached_at`
+   * is set. A photo already attached is left as it is, S3 included.
+   *
+   * The tag goes first: if the update fails, the photo is kept anyway, which
+   * is the safe side.
+   */
+  async attach(photo: OwnedPhoto): Promise<void> {
+    if (photo.attachedAt) return;
+    await this.storage.markAttached(photo.s3Key);
+    await this.db
+      .update(photos)
+      .set({ attachedAt: new Date() })
+      .where(and(eq(photos.id, photo.id), isNull(photos.attachedAt)));
   }
 
   /**

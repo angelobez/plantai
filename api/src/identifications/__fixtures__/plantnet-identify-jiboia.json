@@ -1,0 +1,128 @@
+{
+  "query": {
+    "project": "all",
+    "images": ["5d1f0bd7c2b6d8f4a1e3c9b0f6a2d417"],
+    "organs": ["auto"],
+    "includeRelatedImages": true,
+    "noReject": false,
+    "type": "kt"
+  },
+  "predictedOrgans": [
+    {
+      "image": "5d1f0bd7c2b6d8f4a1e3c9b0f6a2d417",
+      "filename": "foto.jpg",
+      "organ": "leaf",
+      "score": 0.93
+    }
+  ],
+  "language": "pt",
+  "preferedReferential": "k-world-flora",
+  "bestMatch": "Epipremnum aureum (Linden & André) G.S.Bunting",
+  "results": [
+    {
+      "score": 0.8121,
+      "species": {
+        "scientificNameWithoutAuthor": "Epipremnum aureum",
+        "scientificNameAuthorship": "(Linden & André) G.S.Bunting",
+        "genus": {
+          "scientificNameWithoutAuthor": "Epipremnum",
+          "scientificNameAuthorship": "",
+          "scientificName": "Epipremnum"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": ["Jibóia", "Jiboia verde", "Hera do-diabo"],
+        "scientificName": "Epipremnum aureum (Linden & André) G.S.Bunting"
+      },
+      "gbif": { "id": "2868323" },
+      "powo": { "id": "84944-1" },
+      "iucn": { "id": "", "category": "NE" },
+      "images": [
+        {
+          "organ": "leaf",
+          "author": "Ana Ribeiro",
+          "license": "cc-by-sa",
+          "date": { "timestamp": 1690012800000, "string": "July 22, 2023" },
+          "citation": "Ana Ribeiro / Pl@ntNet, cc-by-sa",
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/4b2c3a1f0e9d8c7b6a5f4e3d2c1b0a99",
+            "m": "https://bs.plantnet.org/image/m/4b2c3a1f0e9d8c7b6a5f4e3d2c1b0a99",
+            "s": "https://bs.plantnet.org/image/s/4b2c3a1f0e9d8c7b6a5f4e3d2c1b0a99"
+          }
+        },
+        {
+          "organ": "habit",
+          "author": "Carlos Lima",
+          "license": "cc-by",
+          "date": { "timestamp": 1655078400000, "string": "June 13, 2022" },
+          "citation": "Carlos Lima / Pl@ntNet, cc-by",
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d",
+            "m": "https://bs.plantnet.org/image/m/9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d",
+            "s": "https://bs.plantnet.org/image/s/9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d"
+          }
+        }
+      ]
+    },
+    {
+      "score": 0.1343,
+      "species": {
+        "scientificNameWithoutAuthor": "Epipremnum pinnatum",
+        "scientificNameAuthorship": "(L.) Engl.",
+        "genus": {
+          "scientificNameWithoutAuthor": "Epipremnum",
+          "scientificNameAuthorship": "",
+          "scientificName": "Epipremnum"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": ["Jiboia", "Jibóia", "Jibóia sulcada"],
+        "scientificName": "Epipremnum pinnatum (L.) Engl."
+      },
+      "gbif": { "id": "2868325" },
+      "powo": { "id": "87366-1" },
+      "images": [
+        {
+          "organ": "leaf",
+          "author": "Pedro Alves",
+          "license": "cc-by-sa",
+          "date": { "timestamp": 1661990400000, "string": "September 1, 2022" },
+          "citation": "Pedro Alves / Pl@ntNet, cc-by-sa",
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/1f2e3d4c5b6a79881f2e3d4c5b6a7988",
+            "m": "https://bs.plantnet.org/image/m/1f2e3d4c5b6a79881f2e3d4c5b6a7988",
+            "s": "https://bs.plantnet.org/image/s/1f2e3d4c5b6a79881f2e3d4c5b6a7988"
+          }
+        }
+      ]
+    },
+    {
+      "score": 0.0059,
+      "species": {
+        "scientificNameWithoutAuthor": "Philodendron hederaceum",
+        "scientificNameAuthorship": "(Jacq.) Schott",
+        "genus": {
+          "scientificNameWithoutAuthor": "Philodendron",
+          "scientificNameAuthorship": "",
+          "scientificName": "Philodendron"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": ["Maria mole", "Jibóia", "Filodendro"],
+        "scientificName": "Philodendron hederaceum (Jacq.) Schott"
+      },
+      "images": []
+    }
+  ],
+  "version": "2025-01-17 (7.3)",
+  "remainingIdentificationRequests": 487
+}

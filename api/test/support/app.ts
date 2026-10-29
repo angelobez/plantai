@@ -8,11 +8,13 @@ import type { Env } from '../../src/config/env';
 import { GoogleTokenVerifier } from '../../src/auth/google/google-token-verifier';
 import { EmailSender } from '../../src/email/email-sender';
 import { GbifNames } from '../../src/gbif/gbif-names';
+import { PlantIdentifier } from '../../src/identifications/plant-identifier';
 import { PhotoStorage } from '../../src/photo-storage/photo-storage';
 import { FakeGbifNames } from './fake-gbif-names';
 import { FakeGoogleVerifier } from './fake-google-verifier';
 import { FakeOutbox } from './fake-outbox';
 import { FakePhotoStorage } from './fake-photo-storage';
+import { FakePlantIdentifier } from './fake-plant-identifier';
 
 export interface TestAppOptions {
   /** Extra controllers that exist only in the test module. */
@@ -40,6 +42,12 @@ export interface TestAppOptions {
    */
   gbifNames?: FakeGbifNames;
   /**
+   * Identifies the photos instead of Pl@ntNet. Pass one to set its answer
+   * (`answers()`) or make it fail; without it, a throwaway one recognizes
+   * nothing.
+   */
+  plantIdentifier?: FakePlantIdentifier;
+  /**
    * Keeps the real `/auth` rate limits. Without it no request is ever limited,
    * so a test may call `/auth` as often as it needs.
    */
@@ -59,8 +67,9 @@ const unlimitedStorage: ThrottlerStorage = {
 
 /**
  * The whole Nest app, configured exactly like the real entry points. Only the
- * ports to external services (e-mail, Google, photo storage, GBIF) are swapped for fakes, and the
- * rate limits are off unless a test asks for them.
+ * ports to external services (e-mail, Google, photo storage, GBIF, Pl@ntNet)
+ * are swapped for fakes, and the rate limits are off unless a test asks for
+ * them.
  */
 export async function createTestApp(
   env: Env,
@@ -71,6 +80,7 @@ export async function createTestApp(
     googleVerifier = new FakeGoogleVerifier(),
     photoStorage = new FakePhotoStorage(),
     gbifNames = new FakeGbifNames(),
+    plantIdentifier = new FakePlantIdentifier(),
     realRateLimits = false,
   }: TestAppOptions = {},
 ): Promise<INestApplication<App>> {
@@ -85,7 +95,9 @@ export async function createTestApp(
     .overrideProvider(PhotoStorage)
     .useValue(photoStorage)
     .overrideProvider(GbifNames)
-    .useValue(gbifNames);
+    .useValue(gbifNames)
+    .overrideProvider(PlantIdentifier)
+    .useValue(plantIdentifier);
   if (!realRateLimits) {
     builder = builder
       .overrideProvider(ThrottlerStorage)

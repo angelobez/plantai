@@ -9,6 +9,7 @@ const validEnv = {
   EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
   S3_BUCKET: 'plantai-photos',
   S3_REGION: 'us-east-1',
+  PLANTNET_API_KEY: 'plantnet-key',
 };
 
 describe('parseEnv', () => {
@@ -22,6 +23,7 @@ describe('parseEnv', () => {
       EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
       S3_BUCKET: 'plantai-photos',
       S3_REGION: 'us-east-1',
+      PLANTNET_API_KEY: 'plantnet-key',
     });
   });
 
@@ -82,6 +84,7 @@ describe('parseEnv', () => {
     'JWT_SECRET',
     'S3_BUCKET',
     'S3_REGION',
+    'PLANTNET_API_KEY',
   ])('fails when %s is missing', (name) => {
     expect(() => parseEnv({ ...validEnv, [name]: undefined })).toThrow(
       new RegExp(name),
