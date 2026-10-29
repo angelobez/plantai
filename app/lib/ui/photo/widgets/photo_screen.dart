@@ -31,7 +31,9 @@ class PhotoScreen extends StatefulWidget {
   /// Gives up: back to where the User was.
   final VoidCallback onClose;
 
-  /// "Identificar pela foto", with the photo as the API stored it.
+  /// "Identificar pela foto", with the photo as the API stored it. The
+  /// actions are enabled once the photo is sent, even before a flow is
+  /// plugged in here.
   final ValueChanged<Photo>? onIdentify;
 
   /// "Buscar pelo nome", with the photo as the API stored it.
@@ -229,18 +231,14 @@ class _Panel extends StatelessWidget {
                 icon: Icons.photo_camera_outlined,
                 title: 'Identificar pela foto',
                 primary: true,
-                onTap: photo == null || onIdentify == null
-                    ? null
-                    : () => onIdentify!(photo),
+                onTap: photo == null ? null : () => onIdentify?.call(photo),
               ),
               const SizedBox(height: 12),
               _ActionTile(
                 icon: Icons.search,
                 title: 'Buscar pelo nome',
                 subtitle: 'Se você já sabe o nome popular ou científico',
-                onTap: photo == null || onSearchByName == null
-                    ? null
-                    : () => onSearchByName!(photo),
+                onTap: photo == null ? null : () => onSearchByName?.call(photo),
               ),
             ],
           ),

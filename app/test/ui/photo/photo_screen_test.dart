@@ -184,4 +184,22 @@ void main() {
 
     expect(closed, 1);
   });
+
+  testWidgets('without a flow plugged in, the actions still wait and enable', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      PhotoScreen(
+        viewModel: viewModel,
+        initialSource: PhotoSource.camera,
+        onClose: () => closed++,
+      ),
+    );
+
+    expect(isEnabled(tester, 'Identificar pela foto'), isTrue);
+    await tester.tap(find.text('Identificar pela foto'));
+    await tester.pumpAndSettle();
+    expect(find.text('Que planta é essa?'), findsOneWidget);
+  });
 }
