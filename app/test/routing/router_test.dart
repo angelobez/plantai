@@ -246,6 +246,36 @@ void main() {
     );
   });
 
+  group('forgot the password', () {
+    setUp(() => authRepository.setSignedIn(false));
+
+    testWidgets(
+      '"Esqueci a senha" → e-mail → code and new password opens Por perto',
+      (tester) async {
+        await pumpApp(tester);
+        await tester.tap(find.text('Entrar com e-mail'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Esqueci a senha'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField), 'marina@email.com');
+        await tester.tap(find.widgetWithText(FilledButton, 'Enviar código'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).at(0), '123456');
+        await tester.enterText(find.byType(TextField).at(1), 'senha-nova-456');
+        await tester.tap(find.widgetWithText(FilledButton, 'Salvar e entrar'));
+        await tester.pumpAndSettle();
+
+        expect(authRepository.calls, [
+          'requestPasswordReset(marina@email.com)',
+          'resetPassword(marina@email.com, 123456, senha-nova-456)',
+        ]);
+        expect(find.text('Mudas por perto'), findsOneWidget);
+        expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
+      },
+    );
+  });
+
   group('with a session', () {
     testWidgets('the entry screens go to Por perto', (tester) async {
       await pumpApp(tester);

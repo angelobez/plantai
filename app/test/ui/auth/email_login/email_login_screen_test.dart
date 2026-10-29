@@ -157,15 +157,4 @@ void main() {
 
     expect(forgot, 1);
   });
-
-  testWidgets('"Esqueci a senha" says "em breve" until its screen exists', (
-    tester,
-  ) async {
-    await pump(tester);
-
-    await tester.tap(find.text('Esqueci a senha'));
-    await tester.pump();
-
-    expect(find.text('Esqueci a senha: em breve'), findsOneWidget);
-  });
 }

@@ -31,4 +31,16 @@ abstract class AuthRepository extends ChangeNotifier {
   /// it throws `AuthFailure.emailNotVerified`: the API has sent a new code,
   /// and [email] becomes [pendingEmail].
   Future<void> logIn({required String email, required String password});
+
+  /// "Esqueci a senha": has the API e-mail a 6-digit code to [email]. It
+  /// answers the same whether [email] has an account or not.
+  Future<void> requestPasswordReset(String email);
+
+  /// Sets [newPassword] with the [code] e-mailed to [email] and signs in.
+  /// The API ends the sessions on other devices.
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  });
 }

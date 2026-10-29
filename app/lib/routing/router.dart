@@ -6,6 +6,8 @@ import '../data/services/api/update_required.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
 import '../ui/auth/email_login/widgets/email_login_screen.dart';
 import '../ui/auth/login/widgets/login_screen.dart';
+import '../ui/auth/password_reset/view_models/password_reset_view_model.dart';
+import '../ui/auth/password_reset/widgets/password_reset_screen.dart';
 import '../ui/auth/signup/view_models/signup_view_model.dart';
 import '../ui/auth/signup/widgets/signup_screen.dart';
 import '../ui/auth/verify_email/view_models/verify_email_view_model.dart';
@@ -30,6 +32,7 @@ abstract final class Routes {
   static const emailLogin = '$login/email';
   static const signup = '$login/criar-conta';
   static const verifyEmail = '$login/codigo';
+  static const passwordReset = '$login/esqueci-a-senha';
 
   static bool isEntry(String location) =>
       location == login || location.startsWith('$login/');
@@ -91,6 +94,7 @@ GoRouter router({
                 viewModel: viewModel,
                 onVerifyEmail: () => context.push(Routes.verifyEmail),
                 onSignup: () => context.push(Routes.signup),
+                onForgotPassword: () => context.push(Routes.passwordReset),
               ),
             ),
           ),
@@ -110,6 +114,14 @@ GoRouter router({
               create: () =>
                   VerifyEmailViewModel(authRepository: authRepository),
               builder: (viewModel) => VerifyEmailScreen(viewModel: viewModel),
+            ),
+          ),
+          GoRoute(
+            path: _child(Routes.passwordReset),
+            builder: (context, state) => ViewModelScope(
+              create: () =>
+                  PasswordResetViewModel(authRepository: authRepository),
+              builder: (viewModel) => PasswordResetScreen(viewModel: viewModel),
             ),
           ),
         ],

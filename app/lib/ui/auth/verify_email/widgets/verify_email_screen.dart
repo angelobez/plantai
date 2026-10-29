@@ -4,6 +4,7 @@ import '../../../core/themes/colors.dart';
 import '../../widgets/code_field.dart';
 import '../../widgets/entry_page.dart';
 import '../../widgets/form_message.dart';
+import '../../widgets/resend_code_line.dart';
 import '../../widgets/submit_button.dart';
 import '../view_models/verify_email_view_model.dart';
 
@@ -60,7 +61,11 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               errorText: viewModel.codeError,
               onCompleted: (_) => _submit(),
             ),
-            _ResendLine(viewModel: viewModel),
+            ResendCodeLine(
+              secondsLeft: viewModel.resendSecondsLeft,
+              canResend: viewModel.canResend,
+              onResend: viewModel.resend,
+            ),
             FormMessage(error: viewModel.error, notice: viewModel.notice),
           ],
           actions: [
@@ -78,46 +83,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           ],
         );
       },
-    );
-  }
-}
-
-class _ResendLine extends StatelessWidget {
-  const _ResendLine({required this.viewModel});
-
-  final VerifyEmailViewModel viewModel;
-
-  @override
-  Widget build(BuildContext context) {
-    final seconds = viewModel.resendSecondsLeft;
-    final countdown =
-        '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        const Text(
-          'Não chegou? Veja o spam ou ',
-          style: TextStyle(fontSize: 14, color: AppColors.inkMuted),
-        ),
-        if (seconds > 0)
-          Text(
-            'reenvie em $countdown',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.inkMuted,
-            ),
-          )
-        else
-          TextButton(
-            onPressed: viewModel.canResend ? viewModel.resend : null,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              minimumSize: const Size(0, 44),
-            ),
-            child: const Text('reenvie o código'),
-          ),
-      ],
     );
   }
 }
