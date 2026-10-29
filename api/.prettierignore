@@ -1,3 +1,4 @@
 dist/
 coverage/
 drizzle/meta/
+catalog/.cache/
