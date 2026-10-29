@@ -1,13 +1,11 @@
 import type { INestApplication } from '@nestjs/common';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { sql } from 'drizzle-orm';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import type { GoogleIdentity } from '../src/auth/google/google-token-verifier';
 import { createTestApp } from './support/app';
 import {
   type AuthTokensBody,
-  databaseOf,
   newAccount,
   signUp,
   signUpAndVerify,
@@ -71,13 +69,6 @@ describe('sign in with Google', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     return response.body as AuthTokensBody['user'];
-  }
-
-  async function passwordHashOf(email: string): Promise<string | null> {
-    const [row] = await databaseOf(app).execute<{ hash: string | null }>(
-      sql`SELECT password_hash AS hash FROM users WHERE email = ${email}`,
-    );
-    return row?.hash ?? null;
   }
 
   it('creates a confirmed account with the name from Google and reads /me', async () => {
@@ -149,7 +140,10 @@ describe('sign in with Google', () => {
 
     expect(body.user).toEqual(withPassword.user);
     // The account keeps its password, so both ways in work.
-    expect(await passwordHashOf(account.email)).not.toBeNull();
+    await request(app.getHttpServer())
+      .post('/v1/auth/login')
+      .send({ email: account.email, password: account.password })
+      .expect(200);
   });
 
   it('joins a confirmed account when the token has hd (Google Workspace)', async () => {
@@ -220,7 +214,13 @@ describe('sign in with Google', () => {
       email: intruder.email,
     });
     // The old password stops working: there is none any more.
-    expect(await passwordHashOf(intruder.email)).toBeNull();
+    await expectProblem(
+      request(app.getHttpServer())
+        .post('/v1/auth/login')
+        .send({ email: intruder.email, password: intruder.password }),
+      401,
+      'INVALID_CREDENTIALS',
+    );
     // The pending sign-up code no longer opens the account either.
     const verify = await request(app.getHttpServer())
       .post('/v1/auth/verify-email')
