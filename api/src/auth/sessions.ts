@@ -66,4 +66,14 @@ export class Sessions {
         ),
       );
   }
+
+  /** Revokes every refresh token of [userId] still in use: all sessions end. */
+  async revokeAll(userId: string): Promise<void> {
+    await this.db
+      .update(refreshTokens)
+      .set({ revokedAt: sql`now()` })
+      .where(
+        and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)),
+      );
+  }
 }

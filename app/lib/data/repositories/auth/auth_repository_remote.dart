@@ -137,6 +137,29 @@ class AuthRepositoryRemote extends AuthRepository {
     await _startSession(tokens);
   }
 
+  @override
+  Future<void> requestPasswordReset(String email) => _guard(
+    () => _apiClient.postWithoutBody('/v1/auth/password-reset/request', {
+      'email': email,
+    }),
+  );
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final tokens = await _guard(
+      () => _apiClient.post('/v1/auth/password-reset/confirm', {
+        'email': email,
+        'code': code,
+        'newPassword': newPassword,
+      }, AuthTokens.fromJson),
+    );
+    await _startSession(tokens);
+  }
+
   Future<void> _startSession(AuthTokens tokens) async {
     _pendingEmail = null;
     _resend = null;

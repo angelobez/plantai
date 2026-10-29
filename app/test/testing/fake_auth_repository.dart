@@ -93,4 +93,18 @@ class FakeAuthRepository extends AuthRepository {
     await _answer('signInWithGoogle()');
     if (!googleCanceled) setSignedIn(true);
   }
+
+  @override
+  Future<void> requestPasswordReset(String email) =>
+      _answer('requestPasswordReset($email)');
+
+  @override
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _answer('resetPassword($email, $code, $newPassword)');
+    setSignedIn(true);
+  }
 }

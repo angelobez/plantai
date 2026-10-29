@@ -12,6 +12,8 @@ import { LoginController } from './login/login.controller';
 import { LoginService } from './login/login.service';
 import { LogoutController } from './logout/logout.controller';
 import { LogoutService } from './logout/logout.service';
+import { PasswordResetController } from './password-reset/password-reset.controller';
+import { PasswordResetService } from './password-reset/password-reset.service';
 import { RefreshController } from './refresh/refresh.controller';
 import { RefreshService } from './refresh/refresh.service';
 import { Sessions } from './sessions';
@@ -33,6 +35,7 @@ import { SignupService } from './signup/signup.service';
     RefreshController,
     LogoutController,
     GoogleController,
+    PasswordResetController,
   ],
   providers: [
     AccessTokens,
@@ -48,6 +51,7 @@ import { SignupService } from './signup/signup.service';
       inject: [ENV],
       useFactory: createGoogleTokenVerifier,
     },
+    PasswordResetService,
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })

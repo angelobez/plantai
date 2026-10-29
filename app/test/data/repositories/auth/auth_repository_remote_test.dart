@@ -271,6 +271,64 @@ void main() {
     });
   });
 
+  group('password reset', () {
+    test(
+      'requestPasswordReset posts the e-mail and stays signed out',
+      () async {
+        adapter.respond = (_) async => ResponseBody.fromString('', 204);
+
+        await repository.requestPasswordReset('marina@email.com');
+
+        final request = adapter.requests.single;
+        expect(request.method, 'POST');
+        expect(request.path, '/v1/auth/password-reset/request');
+        expect(request.data, {'email': 'marina@email.com'});
+        expect(repository.isSignedIn, isFalse);
+      },
+    );
+
+    test('resetPassword posts code and new password, then signs in', () async {
+      adapter.respond = (_) async => jsonResponse(200, tokensJson());
+      var notified = 0;
+      repository.addListener(() => notified++);
+
+      await repository.resetPassword(
+        email: 'marina@email.com',
+        code: '123456',
+        newPassword: 'senha-nova-456',
+      );
+
+      final request = adapter.requests.single;
+      expect(request.path, '/v1/auth/password-reset/confirm');
+      expect(request.data, {
+        'email': 'marina@email.com',
+        'code': '123456',
+        'newPassword': 'senha-nova-456',
+      });
+      expect(repository.isSignedIn, isTrue);
+      expect(notified, 1);
+      final reloaded = await SessionStore.load();
+      expect(
+        reloaded.session,
+        const Session(accessToken: 'access-1', refreshToken: 'refresh-1'),
+      );
+    });
+
+    test('a wrong code stays signed out', () async {
+      adapter.respond = (_) async => problemResponse(400, 'INVALID_CODE');
+
+      await expectLater(
+        repository.resetPassword(
+          email: 'marina@email.com',
+          code: '123456',
+          newPassword: 'senha-nova-456',
+        ),
+        throwsA(AuthFailure.invalidCode),
+      );
+      expect(repository.isSignedIn, isFalse);
+    });
+  });
+
   group('turns the API answer into an AuthFailure', () {
     for (final (code, failure) in [
       ('INVALID_CODE', AuthFailure.invalidCode),
