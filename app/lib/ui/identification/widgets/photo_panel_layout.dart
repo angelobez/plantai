@@ -99,12 +99,12 @@ class PanelTitle extends StatelessWidget {
   );
 }
 
-/// "Salvar só com o nome", shown disabled while [onPressed] is null (the
-/// flow that saves arrives with the garden).
+/// "Salvar só com o nome". Screens leave it out where there is nothing to
+/// save ("Definir espécie": the plant has its name already).
 class SaveNameOnlyButton extends StatelessWidget {
   const SaveNameOnlyButton({super.key, required this.onPressed});
 
-  final VoidCallback? onPressed;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) => TextButton(

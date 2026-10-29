@@ -126,7 +126,7 @@ void main() {
     expect(saveNameOnly('pé de feijão'), findsOneWidget);
   });
 
-  testWidgets('"Salvar só com o nome" shows, disabled, until saving exists', (
+  testWidgets('without saving, there is no "Salvar só com o nome"', (
     tester,
   ) async {
     catalogRepository.results = [];
@@ -134,8 +134,9 @@ void main() {
 
     await type(tester, 'pé de feijão');
 
-    final button = tester.widget<OutlinedButton>(saveNameOnly('pé de feijão'));
-    expect(button.onPressed, isNull);
+    expect(find.text('Não achei “pé de feijão” no Catálogo'), findsOneWidget);
+    expect(saveNameOnly('pé de feijão'), findsNothing);
+    expect(find.textContaining('salvar só com o nome'), findsNothing);
   });
 
   testWidgets('shows it is searching', (tester) async {

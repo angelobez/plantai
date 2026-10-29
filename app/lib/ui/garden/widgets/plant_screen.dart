@@ -18,20 +18,33 @@ import '../view_models/plant_view_model.dart';
 /// saved with only a name shows just the photo and the name. While Claude
 /// writes the guide, the loading state says "gerando dicas…".
 ///
-/// Read only for now. The actions go in the panel: "Editar nome" next to the
-/// name ([_PlantView]'s header row), "Definir espécie" where the species
-/// card is for a plant without one, and "Remover do jardim" at the bottom.
+/// A plant without a species shows "Definir espécie" where the species card
+/// would be, with its two ways in: [onSearchSpecies] and
+/// [onIdentifySpecies]. The other actions go in the panel too: "Editar nome"
+/// next to the name ([_PlantView]'s header row) and "Remover do jardim" at
+/// the bottom.
 class PlantScreen extends StatelessWidget {
   const PlantScreen({
     super.key,
     required this.viewModel,
     required this.openUrl,
+    this.onSearchSpecies,
+    this.onIdentifySpecies,
   });
 
   final PlantViewModel viewModel;
 
   /// Opens the reference photo's credit link.
   final UrlOpener openUrl;
+
+  /// "Definir espécie" by the Busca: completes with the id of the chosen
+  /// species, or null when the User leaves without one. Without it (and
+  /// [onIdentifySpecies]), "Definir espécie" does not show.
+  final Future<String?> Function()? onSearchSpecies;
+
+  /// "Definir espécie" by a new photo, which identifies the species but
+  /// never becomes the plant's photo: completes as [onSearchSpecies].
+  final Future<String?> Function()? onIdentifySpecies;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +55,18 @@ class PlantScreen extends StatelessWidget {
           final plant = viewModel.plant;
           final Widget body;
           if (plant != null) {
-            body = _PlantView(plant: plant, openUrl: openUrl);
+            body = _PlantView(
+              plant: plant,
+              openUrl: openUrl,
+              defineSpecies:
+                  onSearchSpecies == null && onIdentifySpecies == null
+                  ? null
+                  : _DefineSpecies(
+                      viewModel: viewModel,
+                      onSearch: onSearchSpecies,
+                      onIdentify: onIdentifySpecies,
+                    ),
+            );
           } else if (viewModel.loadError case final error?
               when !viewModel.isLoading) {
             body = Center(
@@ -67,10 +91,17 @@ class PlantScreen extends StatelessWidget {
 }
 
 class _PlantView extends StatelessWidget {
-  const _PlantView({required this.plant, required this.openUrl});
+  const _PlantView({
+    required this.plant,
+    required this.openUrl,
+    required this.defineSpecies,
+  });
 
   final Plant plant;
   final UrlOpener openUrl;
+
+  /// Shown instead of the species card while the plant has none.
+  final Widget? defineSpecies;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +123,9 @@ class _PlantView extends StatelessWidget {
           _SpeciesCard(species: species, openUrl: openUrl),
           const SizedBox(height: 14),
           CareGuideView(careGuide: species.careGuide),
+        ] else if (defineSpecies case final defineSpecies?) ...[
+          const SizedBox(height: 14),
+          defineSpecies,
         ],
         const SizedBox(height: 28),
       ],
@@ -162,6 +196,111 @@ class _SpeciesCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "Definir espécie", on a plant saved with only a name: the Busca or a new
+/// identification gives the species, which the ViewModel sets.
+class _DefineSpecies extends StatelessWidget {
+  const _DefineSpecies({
+    required this.viewModel,
+    required this.onSearch,
+    required this.onIdentify,
+  });
+
+  final PlantViewModel viewModel;
+  final Future<String?> Function()? onSearch;
+  final Future<String?> Function()? onIdentify;
+
+  /// Runs [choose] and sets the species it gives, if any.
+  VoidCallback? _choosing(Future<String?> Function()? choose) {
+    if (choose == null || viewModel.isDefiningSpecies) return null;
+    return () async {
+      final speciesId = await choose();
+      if (speciesId != null) await viewModel.defineSpecies(speciesId);
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final buttonStyle = OutlinedButton.styleFrom(
+      minimumSize: const Size(0, 46),
+      foregroundColor: AppColors.forest,
+      side: const BorderSide(color: AppColors.forest, width: 1.5),
+      shape: const StadiumBorder(),
+      textStyle: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F8F5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Definir espécie',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Escolha a espécie para receber as dicas de cuidado. Depois de '
+            'definida, a espécie não muda: se estiver errada, remova a planta '
+            'e adicione de novo.',
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: AppColors.inkMuted,
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _choosing(onSearch),
+            style: buttonStyle,
+            icon: const Icon(Icons.search, size: 20),
+            label: const Text('Buscar pelo nome'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _choosing(onIdentify),
+            style: buttonStyle,
+            icon: const Icon(Icons.photo_camera_outlined, size: 20),
+            label: const Text('Identificar pela foto'),
+          ),
+          if (viewModel.isDefiningSpecies) ...[
+            const SizedBox(height: 12),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Definindo a espécie…',
+                  style: TextStyle(fontSize: 13, color: AppColors.inkMuted),
+                ),
+              ],
+            ),
+          ],
+          if (viewModel.speciesError case final error?) ...[
+            const SizedBox(height: 12),
+            FormMessage(
+              error: error,
+              onRetry: viewModel.canRetrySpecies
+                  ? viewModel.retryDefineSpecies
+                  : null,
+            ),
+          ],
+        ],
       ),
     );
   }

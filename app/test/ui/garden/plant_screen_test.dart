@@ -26,6 +26,8 @@ void main() {
     WidgetTester tester, {
     Plant? plant,
     bool settle = true,
+    Future<String?> Function()? onSearchSpecies,
+    Future<String?> Function()? onIdentifySpecies,
   }) async {
     final viewModel = PlantViewModel(
       gardenRepository: gardenRepository,
@@ -38,6 +40,8 @@ void main() {
         openedUrls.add(url);
         return true;
       },
+      onSearchSpecies: onSearchSpecies,
+      onIdentifySpecies: onIdentifySpecies,
     );
     if (settle) {
       await pumpScreen(tester, screen, below: const Text('Jardim'));
@@ -173,5 +177,137 @@ void main() {
     gardenRepository.gate!.complete();
     await tester.pumpAndSettle();
     expect(find.text('Monstera da sala'), findsOneWidget);
+  });
+
+  group('"Definir espécie"', () {
+    Finder button(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.bySubtype<ButtonStyleButton>(),
+    );
+
+    bool isEnabled(WidgetTester tester, String label) =>
+        tester.widget<ButtonStyleButton>(button(label)).enabled;
+
+    Future<String?> choose() async => monstera.id;
+
+    testWidgets('shows on a plant saved with only a name, with both ways', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        plant: pimentaDaVo,
+        onSearchSpecies: choose,
+        onIdentifySpecies: choose,
+      );
+
+      expect(find.text('Definir espécie'), findsOneWidget);
+      expect(
+        find.textContaining('Depois de definida, a espécie não muda'),
+        findsOneWidget,
+      );
+      expect(isEnabled(tester, 'Buscar pelo nome'), isTrue);
+      expect(isEnabled(tester, 'Identificar pela foto'), isTrue);
+    });
+
+    testWidgets('does not show on a plant that has a species', (tester) async {
+      await pump(tester, onSearchSpecies: choose, onIdentifySpecies: choose);
+
+      expect(find.text('Definir espécie'), findsNothing);
+      expect(find.text('Buscar pelo nome'), findsNothing);
+    });
+
+    for (final label in ['Buscar pelo nome', 'Identificar pela foto']) {
+      testWidgets('"$label" sets the chosen species and shows its care guide', (
+        tester,
+      ) async {
+        final asked = <String>[];
+        await pump(
+          tester,
+          plant: pimentaDaVo,
+          onSearchSpecies: () async {
+            asked.add('search');
+            return monstera.id;
+          },
+          onIdentifySpecies: () async {
+            asked.add('identify');
+            return monstera.id;
+          },
+        );
+
+        await tester.tap(button(label));
+        await tester.pumpAndSettle();
+
+        expect(asked, [label == 'Buscar pelo nome' ? 'search' : 'identify']);
+        expect(gardenRepository.updates.single.$2.speciesId, monstera.id);
+        expect(find.text('Definir espécie'), findsNothing);
+        expect(find.text('Costela-de-adão'), findsOneWidget);
+        expect(find.byType(CareGuideView), findsOneWidget);
+      });
+    }
+
+    testWidgets('leaving the flow without a species changes nothing', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        plant: pimentaDaVo,
+        onSearchSpecies: () async => null,
+        onIdentifySpecies: choose,
+      );
+
+      await tester.tap(button('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+
+      expect(gardenRepository.updates, isEmpty);
+      expect(find.text('Definir espécie'), findsOneWidget);
+    });
+
+    testWidgets('says it is setting the species meanwhile', (tester) async {
+      await pump(
+        tester,
+        plant: pimentaDaVo,
+        onSearchSpecies: choose,
+        onIdentifySpecies: choose,
+      );
+      gardenRepository.gate = Completer<void>();
+
+      await tester.tap(button('Buscar pelo nome'));
+      await tester.pump();
+
+      expect(find.text('Definindo a espécie…'), findsOneWidget);
+      expect(isEnabled(tester, 'Buscar pelo nome'), isFalse);
+      expect(isEnabled(tester, 'Identificar pela foto'), isFalse);
+
+      gardenRepository.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Costela-de-adão'), findsOneWidget);
+    });
+
+    testWidgets('without connection, offers "Tentar de novo"', (tester) async {
+      await pump(
+        tester,
+        plant: pimentaDaVo,
+        onSearchSpecies: choose,
+        onIdentifySpecies: choose,
+      );
+      gardenRepository.failure = GardenFailure.noConnection;
+
+      await tester.tap(button('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Sem conexão com a internet. Confira a rede e tente de novo.',
+        ),
+        findsOneWidget,
+      );
+      gardenRepository.failure = null;
+      await tester.ensureVisible(find.text('Tentar de novo'));
+      await tester.tap(find.text('Tentar de novo'));
+      await tester.pumpAndSettle();
+
+      expect(gardenRepository.updates, hasLength(2));
+      expect(find.text('Costela-de-adão'), findsOneWidget);
+    });
   });
 }

@@ -17,7 +17,7 @@ class DailyLimitView extends StatelessWidget {
   final Photo? photo;
   final VoidCallback onSearchByName;
 
-  /// Disabled while null.
+  /// Hidden while null ("Definir espécie", where the plant has a name).
   final VoidCallback? onSaveNameOnly;
 
   @override
@@ -41,8 +41,10 @@ class DailyLimitView extends StatelessWidget {
           subtitle: 'A busca continua liberada',
           onTap: onSearchByName,
         ),
-        const SizedBox(height: 4),
-        SaveNameOnlyButton(onPressed: onSaveNameOnly),
+        if (onSaveNameOnly case final onSaveNameOnly?) ...[
+          const SizedBox(height: 4),
+          SaveNameOnlyButton(onPressed: onSaveNameOnly),
+        ],
       ],
     );
   }

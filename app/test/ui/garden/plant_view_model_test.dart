@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:plantai/data/services/api/models/plant.dart';
 import 'package:plantai/domain/models/garden_failure.dart';
 import 'package:plantai/ui/garden/view_models/plant_view_model.dart';
 
+import '../../testing/fake_catalog_repository.dart';
 import '../../testing/fake_garden_repository.dart';
 
 void main() {
@@ -172,6 +174,134 @@ void main() {
 
         expect(gardenRepository.plantsAsked.length, lessThanOrEqualTo(2));
       });
+    });
+  });
+
+  group('defineSpecies', () {
+    Future<PlantViewModel> loaded(String id) async {
+      final viewModel = viewModelFor(id);
+      await viewModel.load();
+      return viewModel;
+    }
+
+    test(
+      'sets the species, then reads the plant again with its care guide',
+      () async {
+        final viewModel = await loaded(pimentaDaVo.id);
+        gardenRepository.gate = Completer<void>();
+
+        final defining = viewModel.defineSpecies(monstera.id);
+        expect(viewModel.isDefiningSpecies, isTrue);
+        expect(viewModel.plant, same(pimentaDaVo));
+
+        gardenRepository.gate!.complete();
+        await defining;
+
+        expect(gardenRepository.updates.single.$1, pimentaDaVo.id);
+        expect(gardenRepository.updates.single.$2.speciesId, monstera.id);
+        expect(gardenRepository.updates.single.$2.commonName, isNull);
+        expect(gardenRepository.plantsAsked, [pimentaDaVo.id, pimentaDaVo.id]);
+        expect(viewModel.isDefiningSpecies, isFalse);
+        expect(viewModel.plant?.species, same(monstera));
+        expect(viewModel.speciesError, isNull);
+      },
+    );
+
+    test('shows the loading state while it reads the plant again', () async {
+      final viewModel = await loaded(pimentaDaVo.id);
+      final states = <(bool, bool)>[];
+      viewModel.addListener(
+        () => states.add((viewModel.isLoading, viewModel.plant == null)),
+      );
+
+      await viewModel.defineSpecies(monstera.id);
+
+      // The plant without species leaves the screen for the spinner (or
+      // "gerando dicas…"), until it comes back with its guide.
+      expect(states, contains((true, true)));
+      expect(states.last, (false, false));
+    });
+
+    test('no connection keeps the plant, says so and tries again with the same species', () async {
+      final viewModel = await loaded(pimentaDaVo.id);
+      gardenRepository.failure = GardenFailure.noConnection;
+
+      await viewModel.defineSpecies(monstera.id);
+
+      expect(viewModel.plant, same(pimentaDaVo));
+      expect(
+        viewModel.speciesError,
+        'Sem conexão com a internet. Confira a rede e tente de novo.',
+      );
+      expect(viewModel.canRetrySpecies, isTrue);
+      expect(viewModel.isDefiningSpecies, isFalse);
+
+      gardenRepository.failure = null;
+      await viewModel.retryDefineSpecies();
+
+      expect(gardenRepository.updates.map((u) => u.$2.speciesId), [
+        monstera.id,
+        monstera.id,
+      ]);
+      expect(viewModel.speciesError, isNull);
+      expect(viewModel.plant?.species, same(monstera));
+    });
+
+    test(
+      'a plant that got a species meanwhile shows the species it has',
+      () async {
+        final viewModel = await loaded(pimentaDaVo.id);
+        // Set from another phone after this screen read the plant.
+        gardenRepository.plantsById[pimentaDaVo.id] = Plant(
+          id: pimentaDaVo.id,
+          commonName: pimentaDaVo.commonName,
+          photo: pimentaDaVo.photo,
+          species: monstera,
+        );
+
+        await viewModel.defineSpecies(costelaDeAdao.id);
+
+        expect(viewModel.plant?.species, same(monstera));
+        expect(viewModel.speciesError, isNull);
+      },
+    );
+
+    test(
+      'a plant that is not in the garden says so, without a retry',
+      () async {
+        final viewModel = await loaded(pimentaDaVo.id);
+        gardenRepository.plantsById.remove(pimentaDaVo.id);
+
+        await viewModel.defineSpecies(monstera.id);
+
+        expect(
+          viewModel.speciesError,
+          'Essa planta não está mais no seu jardim.',
+        );
+        expect(viewModel.canRetrySpecies, isFalse);
+      },
+    );
+
+    test('any other failure shows the generic message, with a retry', () async {
+      final viewModel = await loaded(pimentaDaVo.id);
+      gardenRepository.failure = GardenFailure.unknown;
+
+      await viewModel.defineSpecies(monstera.id);
+
+      expect(viewModel.speciesError, 'Algo deu errado. Tente de novo.');
+      expect(viewModel.canRetrySpecies, isTrue);
+    });
+
+    test('an answer after dispose changes nothing', () async {
+      final viewModel = await loaded(pimentaDaVo.id);
+      gardenRepository.gate = Completer<void>();
+      final defining = viewModel.defineSpecies(monstera.id);
+
+      viewModel.dispose();
+      gardenRepository.gate!.complete();
+
+      await expectLater(defining, completes);
+      expect(gardenRepository.plantsAsked, [pimentaDaVo.id]);
     });
   });
 }

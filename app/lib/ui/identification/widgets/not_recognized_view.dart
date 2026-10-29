@@ -21,7 +21,7 @@ class NotRecognizedView extends StatelessWidget {
   final VoidCallback onTakeAnother;
   final VoidCallback onSearchByName;
 
-  /// Disabled while null.
+  /// Hidden while null ("Definir espécie", where the plant has a name).
   final VoidCallback? onSaveNameOnly;
 
   @override
@@ -54,8 +54,10 @@ class NotRecognizedView extends StatelessWidget {
           ),
           child: const Text('Buscar pelo nome'),
         ),
-        const SizedBox(height: 4),
-        SaveNameOnlyButton(onPressed: onSaveNameOnly),
+        if (onSaveNameOnly case final onSaveNameOnly?) ...[
+          const SizedBox(height: 4),
+          SaveNameOnlyButton(onPressed: onSaveNameOnly),
+        ],
       ],
     );
   }

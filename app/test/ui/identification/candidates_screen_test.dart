@@ -243,9 +243,11 @@ void main() {
       expect(events, ['take another', 'search']);
     });
 
-    testWidgets('"Salvar só com o nome" waits for its flow', (tester) async {
+    testWidgets('"Salvar só com o nome" does not show without saving', (
+      tester,
+    ) async {
       await pump(tester);
-      expect(isEnabled(tester, 'Salvar só com o nome'), isFalse);
+      expect(find.text('Salvar só com o nome'), findsNothing);
     });
 
     testWidgets('"Salvar só com o nome" works once the flow is there', (
@@ -271,7 +273,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('A busca continua liberada'), findsOneWidget);
-      expect(isEnabled(tester, 'Salvar só com o nome'), isFalse);
+      expect(find.text('Salvar só com o nome'), findsNothing);
 
       await tester.tap(find.text('Buscar pelo nome'));
       expect(events, ['search']);
