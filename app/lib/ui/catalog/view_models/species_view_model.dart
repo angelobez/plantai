@@ -2,12 +2,16 @@ import 'package:flutter/foundation.dart';
 
 import '../../../data/repositories/catalog/catalog_repository.dart';
 import '../../../data/services/api/models/species.dart';
+import '../../../domain/models/care_guide_generating.dart';
 import '../../../domain/models/catalog_failure.dart';
+import '../../core/care_guide/wait_for_care_guide.dart';
 
-/// Tela da espécie: reads one species of the Catalog.
+/// Tela da espécie: reads one species of the Catalog, with its care guide.
 ///
-/// The care guide (and its "gerando dicas…" state) is not here yet; it
-/// comes with `careGuide` in the same response.
+/// While Claude writes the guide (a slow first answer, or `202
+/// CARE_GUIDE_GENERATING`), [isGeneratingCareGuide] is true and the read is
+/// tried again after each `Retry-After`; after 60 s it gives up with
+/// "Dicas indisponíveis no momento." ([waitForCareGuide]).
 class SpeciesViewModel extends ChangeNotifier {
   SpeciesViewModel({required this._catalogRepository, required this.speciesId});
 
@@ -19,6 +23,10 @@ class SpeciesViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  /// Whether the screen says "gerando dicas…" while [isLoading].
+  bool _isGeneratingCareGuide = false;
+  bool get isGeneratingCareGuide => _isGeneratingCareGuide;
 
   /// Why the species could not be read.
   String? _loadError;
@@ -36,12 +44,23 @@ class SpeciesViewModel extends ChangeNotifier {
     _canRetry = false;
     _notify();
     try {
-      _species = await _catalogRepository.species(speciesId);
+      _species = await waitForCareGuide(
+        () => _catalogRepository.species(speciesId),
+        onGenerating: () {
+          _isGeneratingCareGuide = true;
+          _notify();
+        },
+        isCancelled: () => _disposed,
+      );
     } on CatalogFailure catch (failure) {
       _loadError = _message(failure);
       _canRetry = failure != CatalogFailure.notFound;
+    } on CareGuideGenerating {
+      _loadError = careGuideUnavailableMessage;
+      _canRetry = true;
     } finally {
       _isLoading = false;
+      _isGeneratingCareGuide = false;
       _notify();
     }
   }

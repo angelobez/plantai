@@ -244,9 +244,13 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(
-        find.textContaining('Foto de referência', findRichText: true),
+      final credit = find.textContaining(
+        'Foto de referência',
+        findRichText: true,
       );
+      await tester.ensureVisible(credit);
+      await tester.pumpAndSettle();
+      await tester.tap(credit);
       expect(openedUrls, [Uri.parse(monsteraPhoto.sourceUrl)]);
 
       await tester.tap(find.byTooltip('Voltar'));
