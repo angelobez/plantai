@@ -5,6 +5,7 @@ export const ERROR_STATUS = {
   VALIDATION_FAILED: HttpStatus.BAD_REQUEST,
   NOT_FOUND: HttpStatus.NOT_FOUND,
   APP_UPDATE_REQUIRED: 426, // Upgrade Required; HttpStatus has no member for it
+  TOO_MANY_REQUESTS: HttpStatus.TOO_MANY_REQUESTS,
   INTERNAL_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
   HEALTH_CHECK_FAILED: HttpStatus.SERVICE_UNAVAILABLE,
 } as const satisfies Record<string, number>;

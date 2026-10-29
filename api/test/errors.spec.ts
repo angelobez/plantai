@@ -1,8 +1,12 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
+  HttpException,
+  HttpStatus,
   type INestApplication,
+  type LoggerService,
   Post,
 } from '@nestjs/common';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -33,11 +37,33 @@ class ProbeController {
   boom(): never {
     throw new Error('connection string postgres://secret@db leaked');
   }
+
+  @Get('throttled')
+  throttled(): never {
+    throw new HttpException('ThrottlerException', HttpStatus.TOO_MANY_REQUESTS);
+  }
+
+  @Get('forbidden')
+  forbidden(): never {
+    throw new ForbiddenException('Forbidden resource for guard internals');
+  }
+}
+
+/** Keeps the error log lines so a test can check what was logged. */
+class CapturingLogger implements LoggerService {
+  readonly errors: string[] = [];
+
+  log(): void {}
+  warn(): void {}
+  error(...messages: unknown[]): void {
+    this.errors.push(messages.map((m) => String(m)).join(' '));
+  }
 }
 
 describe('error contract', () => {
   let container: StartedPostgreSqlContainer;
   let app: INestApplication<App>;
+  const logger = new CapturingLogger();
 
   beforeAll(async () => {
     container = await startPostgis();
@@ -47,7 +73,7 @@ describe('error contract', () => {
         PORT: 0,
         MIN_APP_VERSION: '0.0.0',
       },
-      { controllers: [ProbeController] },
+      { controllers: [ProbeController], logger },
     );
   });
 
@@ -114,10 +140,45 @@ describe('error contract', () => {
       .expect(400)
       .expect('Content-Type', /^application\/problem\+json/);
 
-    expect(response.body).toMatchObject({
+    expect(response.body).toEqual({
+      type: 'about:blank',
+      title: 'Bad Request',
+      status: 400,
       code: 'VALIDATION_FAILED',
-      errors: [{ path: '', message: expect.any(String) as unknown }],
+      errors: [{ path: '', message: 'malformed request' }],
     });
+  });
+
+  it('answers a 429 thrown by Nest with 429 TOO_MANY_REQUESTS', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/v1/test-probe/throttled')
+      .expect(429)
+      .expect('Content-Type', /^application\/problem\+json/);
+
+    expect(response.body).toEqual({
+      type: 'about:blank',
+      title: 'Too Many Requests',
+      status: 429,
+      code: 'TOO_MANY_REQUESTS',
+    });
+  });
+
+  it('answers an unmapped HttpException with 500 INTERNAL_ERROR and logs it', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/v1/test-probe/forbidden')
+      .expect(500)
+      .expect('Content-Type', /^application\/problem\+json/);
+
+    expect(response.body).toEqual({
+      type: 'about:blank',
+      title: 'Internal Server Error',
+      status: 500,
+      code: 'INTERNAL_ERROR',
+    });
+    expect(response.text).not.toMatch(/guard internals/);
+    expect(logger.errors.join('\n')).toMatch(
+      /has no problem-details mapping[\s\S]*ForbiddenException/,
+    );
   });
 
   it('answers an unexpected error with 500 INTERNAL_ERROR and no details', async () => {
