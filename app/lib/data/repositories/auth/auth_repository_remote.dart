@@ -2,6 +2,7 @@ import '../../../domain/models/auth_failure.dart';
 import '../../services/api/api_client.dart';
 import '../../services/api/api_exception.dart';
 import '../../services/api/models/auth_tokens.dart';
+import '../../services/google/google_id_tokens.dart';
 import '../../services/session/session_store.dart';
 import 'auth_repository.dart';
 
@@ -11,12 +12,16 @@ class AuthRepositoryRemote extends AuthRepository {
   AuthRepositoryRemote({
     required this._apiClient,
     required this._sessionStore,
+    this._googleIdTokens,
   }) {
     _sessionStore.addListener(notifyListeners);
   }
 
   final ApiClient _apiClient;
   final SessionStore _sessionStore;
+
+  /// Null only where Google is never used (tests of the other flows).
+  final GoogleIdTokens? _googleIdTokens;
 
   String? _pendingEmail;
 
@@ -62,6 +67,25 @@ class AuthRepositoryRemote extends AuthRepository {
       () => _apiClient.post('/v1/auth/verify-email', {
         'email': email,
         'code': code,
+      }, AuthTokens.fromJson),
+    );
+    await _startSession(tokens);
+  }
+
+  @override
+  Future<void> signInWithGoogle() async {
+    final google = _googleIdTokens;
+    if (google == null) throw StateError('No GoogleIdTokens was given');
+    final String? idToken;
+    try {
+      idToken = await google.request();
+    } on GoogleIdTokenUnavailable {
+      throw AuthFailure.googleUnavailable;
+    }
+    if (idToken == null) return; // Canceled.
+    final tokens = await _guard(
+      () => _apiClient.post('/v1/auth/google', {
+        'idToken': idToken,
       }, AuthTokens.fromJson),
     );
     await _startSession(tokens);

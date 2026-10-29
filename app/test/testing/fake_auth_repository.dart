@@ -20,6 +20,10 @@ class FakeAuthRepository extends AuthRepository {
   /// When set, calls wait for it before answering.
   Completer<void>? gate;
 
+  /// When true, [signInWithGoogle] acts as if the User canceled the account
+  /// picker: no session, no failure.
+  bool googleCanceled = false;
+
   /// Every call, such as `signUp(marina@email.com)` or `verifyEmail(123456)`.
   final calls = <String>[];
 
@@ -60,5 +64,11 @@ class FakeAuthRepository extends AuthRepository {
     await _answer('verifyEmail($code)');
     _pendingEmail = null;
     setSignedIn(true);
+  }
+
+  @override
+  Future<void> signInWithGoogle() async {
+    await _answer('signInWithGoogle()');
+    if (!googleCanceled) setSignedIn(true);
   }
 }

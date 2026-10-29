@@ -26,4 +26,8 @@ abstract class AuthRepository extends ChangeNotifier {
 
   /// Confirms [pendingEmail] with [code] and signs the User in.
   Future<void> verifyEmail(String code);
+
+  /// Shows Google's account picker and signs in with the chosen account. If
+  /// the User cancels, it returns without a session and without a failure.
+  Future<void> signInWithGoogle();
 }

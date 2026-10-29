@@ -81,14 +81,18 @@ The app reads the API address from `--dart-define=API_BASE_URL`; release builds 
 - **USB cable:** forward the phone's port 3000 to the notebook and use `localhost`.
   ```sh
   adb reverse tcp:3000 tcp:3000   # again after every reconnect
-  flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000
+  flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000 \
+    --dart-define=GOOGLE_SERVER_CLIENT_ID=431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com
   ```
 - **Wi-Fi:** phone and notebook on the same network; use the notebook's IP (`hostname -I`).
   ```sh
-  flutter build apk --release --dart-define=API_BASE_URL=http://192.168.0.10:3000
+  flutter build apk --release --dart-define=API_BASE_URL=http://192.168.0.10:3000 \
+    --dart-define=GOOGLE_SERVER_CLIENT_ID=431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com
   ```
 
-Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). Without a session the app opens on Login; "Entrar com e-mail" creates the account, and without `RESEND_API_KEY` the 6-digit code shows up in the API log. With a session (kept in `flutter_secure_storage` between runs) it opens on the Por perto tab. If the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
+**Google Sign-In** needs `--dart-define=GOOGLE_SERVER_CLIENT_ID=<Web client ID>`, the same ID as the API's `GOOGLE_WEB_CLIENT_ID`: Google issues the ID token for it, and the API checks it as the audience. PlantAí's is `431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com` (Google Cloud project `plantai-513101`); a client ID is public, not a secret. Without it the app still runs, and only "Entrar com Google" fails, with a message. The Android OAuth clients match the app by package (`dev.angelobez.plantai`) and the SHA-1 of the signing key, so Google Sign-In works only in APKs signed with the release key or with `~/.android/debug.keystore`, the two registered SHA-1s. Configuration errors show up in `flutter logs` as `Google Sign-In failed: ...`.
+
+Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). Without a session the app opens on Login; "Entrar com Google" signs in with the account chosen on the phone, "Entrar com e-mail" creates the account, and without `RESEND_API_KEY` the 6-digit code shows up in the API log. With a session (kept in `flutter_secure_storage` between runs) it opens on the Por perto tab. If the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
 
 Plain HTTP is allowed only to `localhost`, `127.0.0.1`, `10.0.2.2` (emulator) and, when `API_BASE_URL` is a private IPv4 address (10/8, 172.16/12, 192.168/16), that address; the build generates the network security config from it. Change the Wi-Fi IP and you must rebuild.
 

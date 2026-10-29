@@ -17,6 +17,10 @@ enum AuthFailure implements Exception {
   /// password.
   googleAccountLinkRefused,
 
+  /// Google Sign-In on the phone gave no account (misconfigured client, no
+  /// Google support on the device). Canceling the picker is not a failure.
+  googleUnavailable,
+
   /// Too many attempts; wait and try again.
   tooManyRequests,
 
