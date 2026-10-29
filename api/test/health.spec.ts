@@ -3,6 +3,7 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createTestApp } from './support/app';
+import { testEnv } from './support/env';
 import { startPostgis } from './support/postgis';
 
 describe('GET /v1/health with the database up', () => {
@@ -11,11 +12,7 @@ describe('GET /v1/health with the database up', () => {
 
   beforeAll(async () => {
     container = await startPostgis();
-    app = await createTestApp({
-      DATABASE_URL: container.getConnectionUri(),
-      PORT: 0,
-      MIN_APP_VERSION: '0.0.0',
-    });
+    app = await createTestApp(testEnv(container.getConnectionUri()));
   });
 
   afterAll(async () => {
@@ -41,11 +38,7 @@ describe('GET /v1/health with the database down', () => {
 
   beforeAll(async () => {
     const container = await startPostgis();
-    app = await createTestApp({
-      DATABASE_URL: container.getConnectionUri(),
-      PORT: 0,
-      MIN_APP_VERSION: '0.0.0',
-    });
+    app = await createTestApp(testEnv(container.getConnectionUri()));
     await container.stop();
   });
 
