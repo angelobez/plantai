@@ -2,7 +2,6 @@
 /// (docs/spec/modelo-de-dados-e-api.md, "Códigos de erro").
 abstract final class ApiErrorCode {
   static const appUpdateRequired = 'APP_UPDATE_REQUIRED';
-  static const healthCheckFailed = 'HEALTH_CHECK_FAILED';
 }
 
 /// The API answered with an error status.
