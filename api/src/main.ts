@@ -11,4 +11,6 @@ async function startHttpServer(): Promise<void> {
   await app.listen(env.PORT);
 }
 
+const unusedOnPurpose = 1;
+
 void startHttpServer();
