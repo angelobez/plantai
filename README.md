@@ -52,6 +52,7 @@ Every route requires `Authorization: Bearer <access token>` (a 15-minute JWT sig
 - `@Public()` on a route or controller lets it through without a token (`/health` and the `/auth` routes use it). `/docs` sits outside Nest's router and is always public.
 - `@CurrentUser() user: AuthenticatedUser` gives the controller the signed-in User (`{ id }`).
 - Each way in has its own folder (`auth/signup/`), and all of them end in `Sessions.start(user)`, which answers `{ accessToken, refreshToken, user }`.
+- `POST /auth/refresh` (`auth/refresh/`) rotates the refresh token: the one sent is revoked and a new pair of the same family comes back. A revoked token sent again revokes the whole family (`Sessions.revokeFamily`). The app's `ApiClient` calls it by itself on a `401 UNAUTHENTICATED`.
 
 Without `RESEND_API_KEY`, e-mails are not sent: the API log shows them, sign-up code included. With the key and `EMAIL_FROM=onboarding@resend.dev`, Resend delivers in test mode, only to the e-mail of the Resend account.
 
