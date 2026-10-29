@@ -11,6 +11,8 @@ import 'models/auth_tokens.dart';
 ///   `POST /v1/auth/refresh`; the others wait for it.
 /// - A call sent with an access token that was already replaced is only
 ///   repeated, with the new one.
+/// - A multipart call is repeated with a copy of its body, since the first
+///   one was already sent.
 /// - The refresh answering `UNAUTHENTICATED` (expired or revoked) clears the
 ///   session, which takes the router to Login; the caller gets the original
 ///   `401`.
@@ -67,6 +69,8 @@ class SessionRefreshInterceptor extends Interceptor {
 
     try {
       options.extra[_skip] = true;
+      // A multipart body is a stream that can only be sent once.
+      if (options.data case final FormData form) options.data = form.clone();
       handler.resolve(await _dio.fetch<dynamic>(options));
     } on DioException catch (retryError) {
       handler.next(retryError);

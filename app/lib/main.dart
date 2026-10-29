@@ -5,11 +5,15 @@ import 'package:provider/provider.dart';
 import 'config/app_config.dart';
 import 'data/repositories/auth/auth_repository.dart';
 import 'data/repositories/auth/auth_repository_remote.dart';
+import 'data/repositories/photo/photo_repository.dart';
+import 'data/repositories/photo/photo_repository_remote.dart';
 import 'data/repositories/profile/profile_repository.dart';
 import 'data/repositories/profile/profile_repository_remote.dart';
 import 'data/services/api/api_client.dart';
 import 'data/services/api/update_required.dart';
 import 'data/services/google/google_id_tokens.dart';
+import 'data/services/photo_picker/image_picker_photo_picker.dart';
+import 'data/services/photo_picker/photo_picker.dart';
 import 'data/services/session/session_store.dart';
 import 'routing/router.dart';
 import 'ui/core/themes/theme.dart';
@@ -35,6 +39,7 @@ Future<void> main() async {
     ),
   );
   final profileRepository = ProfileRepositoryRemote(apiClient: apiClient);
+  final photoRepository = PhotoRepositoryRemote(apiClient: apiClient);
 
   runApp(
     // Repositories go here, built on the shared ApiClient.
@@ -43,11 +48,14 @@ Future<void> main() async {
         Provider<ApiClient>.value(value: apiClient),
         ChangeNotifierProvider<AuthRepository>.value(value: authRepository),
         Provider<ProfileRepository>.value(value: profileRepository),
+        Provider<PhotoRepository>.value(value: photoRepository),
       ],
       child: PlantaiApp(
         updateRequired: updateRequired,
         authRepository: authRepository,
         profileRepository: profileRepository,
+        photoRepository: photoRepository,
+        photoPicker: ImagePickerPhotoPicker(),
       ),
     ),
   );
@@ -59,12 +67,16 @@ class PlantaiApp extends StatefulWidget {
     required this.updateRequired,
     required this.authRepository,
     required this.profileRepository,
+    required this.photoRepository,
+    required this.photoPicker,
     this.openUrl = openExternally,
   });
 
   final UpdateRequired updateRequired;
   final AuthRepository authRepository;
   final ProfileRepository profileRepository;
+  final PhotoRepository photoRepository;
+  final PhotoPicker photoPicker;
   final UrlOpener openUrl;
 
   @override
@@ -76,6 +88,8 @@ class _PlantaiAppState extends State<PlantaiApp> {
     updateRequired: widget.updateRequired,
     authRepository: widget.authRepository,
     profileRepository: widget.profileRepository,
+    photoRepository: widget.photoRepository,
+    photoPicker: widget.photoPicker,
     openUrl: widget.openUrl,
   );
 

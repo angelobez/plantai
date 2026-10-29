@@ -2,22 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:plantai/data/services/api/update_required.dart';
+import 'package:plantai/data/services/photo_picker/photo_picker.dart';
 import 'package:plantai/domain/models/auth_failure.dart';
 import 'package:plantai/main.dart';
 import 'package:plantai/routing/router.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
 
 import '../testing/fake_auth_repository.dart';
+import '../testing/fake_photo_picker.dart';
+import '../testing/fake_photo_repository.dart';
 import '../testing/fake_profile_repository.dart';
 
 void main() {
   late UpdateRequired updateRequired;
   late FakeAuthRepository authRepository;
+  late FakePhotoRepository photoRepository;
+  late FakePhotoPicker photoPicker;
   late List<Uri> openedUrls;
 
   setUp(() {
     updateRequired = UpdateRequired();
     authRepository = FakeAuthRepository(signedIn: true);
+    photoRepository = FakePhotoRepository();
+    photoPicker = FakePhotoPicker();
     openedUrls = [];
   });
 
@@ -27,6 +34,8 @@ void main() {
         updateRequired: updateRequired,
         authRepository: authRepository,
         profileRepository: FakeProfileRepository(),
+        photoRepository: photoRepository,
+        photoPicker: photoPicker,
         openUrl: (url) async {
           openedUrls.add(url);
           return true;
@@ -85,20 +94,99 @@ void main() {
     expect(find.text('marina@email.com'), findsNothing);
   });
 
-  testWidgets('the camera button shows "em breve" and goes back', (
-    tester,
-  ) async {
-    await pumpApp(tester);
+  group('the camera button', () {
+    Future<void> openSheet(WidgetTester tester) async {
+      await tester.tap(cameraButton());
+      await tester.pumpAndSettle();
+    }
 
-    await tester.tap(cameraButton());
-    await tester.pumpAndSettle();
-    expect(find.text('Identificar pela foto'), findsOneWidget);
-    expect(find.text('Em breve'), findsOneWidget);
-    expect(find.byKey(const Key('bottom-bar')), findsNothing);
+    testWidgets('asks between camera and gallery; closing stays put', (
+      tester,
+    ) async {
+      await pumpApp(tester);
 
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    expect(find.text('Mudas por perto'), findsOneWidget);
+      await openSheet(tester);
+      expect(find.text('Tirar foto'), findsOneWidget);
+      expect(find.text('Escolher da galeria'), findsOneWidget);
+      expect(photoPicker.asked, isEmpty);
+
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+      expect(find.text('Tirar foto'), findsNothing);
+      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(photoPicker.asked, isEmpty);
+    });
+
+    testWidgets('a photo from the gallery opens Foto and is sent', (
+      tester,
+    ) async {
+      await pumpApp(tester);
+
+      await openSheet(tester);
+      await tester.tap(find.text('Escolher da galeria'));
+      await tester.pumpAndSettle();
+
+      expect(photoPicker.asked, [PhotoSource.gallery]);
+      expect(find.text('Que planta é essa?'), findsOneWidget);
+      expect(find.byKey(const Key('photo-preview')), findsOneWidget);
+      expect(find.text('Identificar pela foto'), findsOneWidget);
+      expect(find.text('Buscar pelo nome'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsNothing);
+      expect(photoRepository.uploads, ['IMG_0001.jpg']);
+    });
+
+    testWidgets('"Fechar" on Foto goes back to the tab it came from', (
+      tester,
+    ) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Jardim'));
+      await tester.pumpAndSettle();
+      await openSheet(tester);
+      await tester.tap(find.text('Tirar foto'));
+      await tester.pumpAndSettle();
+      expect(photoPicker.asked, [PhotoSource.camera]);
+
+      await tester.tap(find.byTooltip('Fechar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Que planta é essa?'), findsNothing);
+      expect(find.text('Meu jardim'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
+    });
+
+    testWidgets('canceling the camera goes back with no error', (tester) async {
+      photoPicker.next = const PickCancelled();
+      await pumpApp(tester);
+
+      await openSheet(tester);
+      await tester.tap(find.text('Tirar foto'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Que planta é essa?'), findsNothing);
+      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(photoRepository.uploads, isEmpty);
+    });
+
+    testWidgets('a refused camera says so and still opens the gallery', (
+      tester,
+    ) async {
+      photoPicker.next = const CameraDenied();
+      await pumpApp(tester);
+      await openSheet(tester);
+      await tester.tap(find.text('Tirar foto'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('não tem acesso à câmera'), findsOneWidget);
+
+      photoPicker.next = Picked(pickedPhoto());
+      await tester.tap(find.text('Escolher da galeria'));
+      await tester.pumpAndSettle();
+
+      expect(photoPicker.asked, [PhotoSource.camera, PhotoSource.gallery]);
+      expect(find.textContaining('não tem acesso à câmera'), findsNothing);
+      expect(find.byKey(const Key('photo-preview')), findsOneWidget);
+      expect(photoRepository.uploads, hasLength(1));
+    });
   });
 
   testWidgets('update required: shows "Atualize o PlantAí" with the link', (

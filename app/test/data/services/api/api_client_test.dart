@@ -193,4 +193,48 @@ void main() {
     expect(request.path, '/v1/me');
     expect(jsonDecode(jsonEncode(request.data)), {'name': 'Marina'});
   });
+
+  test(
+    'postMultipart sends the files as multipart and parses the answer',
+    () async {
+      adapter.respond = (_) async => jsonResponse(201, {'id': 'photo-1'});
+
+      final id = await client.postMultipart('/v1/photos', {
+        'file': UploadFile(
+          bytes: utf8.encode('jpeg-bytes'),
+          filename: 'planta.jpg',
+          contentType: 'image/jpeg',
+        ),
+      }, (json) => json['id']);
+
+      expect(id, 'photo-1');
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/v1/photos');
+      expect(request.contentType, startsWith('multipart/form-data'));
+      final body = utf8.decode(await adapter.bodies.single);
+      expect(body, contains('name="file"; filename="planta.jpg"'));
+      expect(body, contains('content-type: image/jpeg'));
+      expect(body, contains('jpeg-bytes'));
+    },
+  );
+
+  test('postMultipart turns an error answer into an ApiException', () async {
+    adapter.respond = (_) async => problemResponse(429, 'PHOTO_DAILY_LIMIT');
+
+    await expectLater(
+      client.postMultipart('/v1/photos', {
+        'file': UploadFile(
+          bytes: const [1, 2, 3],
+          filename: 'planta.jpg',
+          contentType: 'image/jpeg',
+        ),
+      }, (json) => json),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 429)
+            .having((e) => e.code, 'code', ApiErrorCode.photoDailyLimit),
+      ),
+    );
+  });
 }

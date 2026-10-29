@@ -6,7 +6,8 @@ import 'package:dio/dio.dart';
 /// A dio [HttpClientAdapter] that answers every request with [respond], so
 /// `ApiClient` can be tested without a server.
 ///
-/// [requests] keeps what was sent, to check headers and paths.
+/// [requests] keeps what was sent, to check headers and paths, and [bodies]
+/// the bytes each one carried (a multipart body, for instance).
 class FakeHttpClientAdapter implements HttpClientAdapter {
   FakeHttpClientAdapter(this.respond);
 
@@ -16,6 +17,10 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
 
   final requests = <RequestOptions>[];
 
+  /// The body sent with each of [requests], in the same order; empty for a
+  /// request without one.
+  final bodies = <Future<List<int>>>[];
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -23,6 +28,14 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) {
     requests.add(options);
+    bodies.add(
+      requestStream == null
+          ? Future.value(const [])
+          : requestStream.fold<List<int>>(
+              [],
+              (all, chunk) => all..addAll(chunk),
+            ),
+    );
     return respond(options);
   }
 
