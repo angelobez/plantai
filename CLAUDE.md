@@ -6,18 +6,12 @@ App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mud
 - Conversa, issues, glossário e ADRs: português do Brasil
 - Código, nomes de commits e README: inglês
 
-## Como o projeto é planejado
-- O caminho até o MVP é um mapa do wayfinder: a issue com o label `wayfinder:map`, com os tickets como sub-issues e o vínculo "blocked by" entre eles.
-- Para continuar o planejamento: `/rodada` (questionário assíncrono com vários tickets de uma vez) ou `/proximo` (um ticket numa conversa ao vivo). Entre um ticket e outro, `/clear`.
-- Planejar, não fazer: até o mapa terminar, a saída de cada ticket é uma decisão, não código.
-
 ## Workflow de desenvolvimento
-Vale depois que o mapa terminar.
 - Monorepo: `api/` (NestJS) e `app/` (Flutter); ver `docs/adr/0005-monorepo-com-api-e-app.md`.
-- Fluxo: `/to-spec` → `/to-tickets` → `/implement` por ticket (TDD + `/code-review`), `/clear` entre tickets e `/retro` no fim de cada sessão de código.
+- Fluxo: `/to-spec` → `/to-tickets` → `/implement` por ticket (TDD + `/code-review`), `/clear` entre tickets e `/retro` no fim de cada sessão de código. Planejamento de decisões em aberto: `/rodada` ou `/proximo` (mapa: issue com o label `wayfinder:map`).
 - Cada ticket numa branch com PR; a `main` só recebe PR com CI verde (sem exigir aprovação).
-- API: TypeScript `strict`, Zod nas fronteiras (requests, `.env`, resposta do Claude), ESLint + Prettier, Jest, integração com PostGIS real via Testcontainers.
-- App: `flutter_lints` com `strict-casts`, `strict-inference` e `strict-raw-types`, `dart format`, testes de unidade nos ViewModels e de widget nas telas principais.
+- Padrões de código, cobrados na revisão: `CODING_STANDARDS.md`.
+- Testar no celular: `npm run dev:phone` na raiz, no terminal do Ângelo (fora do Claude Code). Log da API, com os códigos de e-mail, em `api/logs/dev.log`.
 - Pre-commit (Husky + lint-staged): só format e lint nos arquivos alterados. Typecheck e testes rodam no CI, em todo PR, só na parte cuja pasta mudou.
 - Deploy: merge na `main` publica a API no Lambda (GitHub Actions com OIDC, sem chave da AWS no GitHub); tag `v*` gera o APK assinado no GitHub Release. Fica para a fase 2; até 15/11 a API roda no notebook e a tag `v0.N` só marca o fim da entrega.
 - `git push` comum é liberado; `push --force`, `reset --hard`, `clean` e `branch -D` ficam bloqueados (`git-guardrails`).

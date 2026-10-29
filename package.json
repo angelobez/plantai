@@ -1,9 +1,10 @@
 {
   "name": "plantai",
   "private": true,
-  "description": "Repo-wide dev tooling only (Husky + lint-staged). The API lives in api/ and the app in app/.",
+  "description": "Repo-wide dev tooling only (Husky + lint-staged, dev:phone). The API lives in api/ and the app in app/.",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:phone": "scripts/dev-phone.sh"
   },
   "devDependencies": {
     "husky": "^9.1.7",

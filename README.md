@@ -81,9 +81,9 @@ flutter pub get
 
 The app reads the API address from `--dart-define=API_BASE_URL`; release builds have no default (debug builds fall back to `http://localhost:3000`). Pick one of two ways to reach the notebook:
 
-- **USB cable:** forward the phone's port 3000 to the notebook and use `localhost`.
+- **USB cable:** forward the phone's port 3000 to the notebook and use `localhost`. `npm run dev:phone` at the repo root does it for you: it runs the API, re-applies `adb reverse` on every reconnect and tees the API log (e-mail codes included) to `api/logs/dev.log`.
   ```sh
-  adb reverse tcp:3000 tcp:3000   # again after every reconnect
+  adb reverse tcp:3000 tcp:3000   # again after every reconnect, unless dev:phone is running
   flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000 \
     --dart-define=GOOGLE_SERVER_CLIENT_ID=431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com
   ```
