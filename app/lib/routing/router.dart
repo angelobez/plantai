@@ -6,6 +6,7 @@ import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/update_required.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
 import '../ui/auth/email_login/widgets/email_login_screen.dart';
+import '../ui/auth/login/view_models/login_view_model.dart';
 import '../ui/auth/login/widgets/login_screen.dart';
 import '../ui/auth/signup/view_models/signup_view_model.dart';
 import '../ui/auth/signup/widgets/signup_screen.dart';
@@ -84,8 +85,13 @@ GoRouter router({
     routes: [
       GoRoute(
         path: Routes.login,
-        builder: (context, state) =>
-            LoginScreen(onEmail: () => context.push(Routes.emailLogin)),
+        builder: (context, state) => ViewModelScope(
+          create: () => LoginViewModel(authRepository: authRepository),
+          builder: (viewModel) => LoginScreen(
+            viewModel: viewModel,
+            onEmail: () => context.push(Routes.emailLogin),
+          ),
+        ),
         routes: [
           GoRoute(
             path: _child(Routes.emailLogin),

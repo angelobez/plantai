@@ -3,18 +3,26 @@ import 'package:flutter/material.dart';
 import '../../../core/themes/colors.dart';
 import '../../../core/widgets/leaf_icon.dart';
 import '../../../core/widgets/plantai_logo.dart';
+import '../../widgets/form_message.dart';
+import '../view_models/login_view_model.dart';
 
 /// The first screen without a session: the logo, the tagline and the two ways
-/// in. "Entrar com Google" arrives with its own ticket; until then it says
-/// "em breve".
+/// in. "Entrar com Google" signs in right here; the router then leaves for
+/// the tabs.
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key, required this.onEmail, this.onGoogle});
+  const LoginScreen({
+    super.key,
+    required this.viewModel,
+    required this.onEmail,
+  });
+
+  /// The "G" inside "Entrar com Google", for tests to find the button by.
+  static const googleButtonKey = Key('login.google');
+
+  final LoginViewModel viewModel;
 
   /// "Entrar com e-mail".
   final VoidCallback onEmail;
-
-  /// "Entrar com Google"; null shows "em breve".
-  final VoidCallback? onGoogle;
 
   @override
   Widget build(BuildContext context) {
@@ -22,34 +30,42 @@ class LoginScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Expanded(child: _Brand()),
-              OutlinedButton.icon(
-                onPressed: onGoogle ?? () => _comingSoon(context),
-                icon: const _GoogleMark(),
-                label: const Text('Entrar com Google'),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: onEmail,
-                icon: const Icon(Icons.mail_outline, size: 20),
-                label: const Text('Entrar com e-mail'),
-              ),
-            ],
+          child: ListenableBuilder(
+            listenable: viewModel,
+            builder: (context, _) {
+              final isLoading = viewModel.isSigningInWithGoogle;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Expanded(child: _Brand()),
+                  if (viewModel.error case final error?) ...[
+                    FormMessage(error: error),
+                    const SizedBox(height: 16),
+                  ],
+                  OutlinedButton.icon(
+                    onPressed: isLoading ? null : viewModel.signInWithGoogle,
+                    icon: isLoading
+                        ? const SizedBox.square(
+                            key: googleButtonKey,
+                            dimension: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : const _GoogleMark(key: googleButtonKey),
+                    label: const Text('Entrar com Google'),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: isLoading ? null : onEmail,
+                    icon: const Icon(Icons.mail_outline, size: 20),
+                    label: const Text('Entrar com e-mail'),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
-  }
-
-  static void _comingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Entrar com Google: em breve')),
-      );
   }
 }
 
@@ -98,7 +114,7 @@ class _Brand extends StatelessWidget {
 
 /// The round "G" of the Claude Design screen (not Google's colored logo).
 class _GoogleMark extends StatelessWidget {
-  const _GoogleMark();
+  const _GoogleMark({super.key});
 
   @override
   Widget build(BuildContext context) {

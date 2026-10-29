@@ -53,6 +53,7 @@ Every route requires `Authorization: Bearer <access token>` (a 15-minute JWT sig
 - `@CurrentUser() user: AuthenticatedUser` gives the controller the signed-in User (`{ id }`).
 - Each way in has its own folder (`auth/signup/`), and all of them end in `Sessions.start(user)`, which answers `{ accessToken, refreshToken, user }`.
 - `POST /auth/refresh` (`auth/refresh/`) rotates the refresh token: the one sent is revoked and a new pair of the same family comes back. A revoked token sent again revokes the whole family (`Sessions.revokeFamily`). The app's `ApiClient` calls it by itself on a `401 UNAUTHENTICATED`.
+- `POST /auth/google` (`auth/google/`) checks the app's ID token through the `GoogleTokenVerifier` port (`google-auth-library`, audience `GOOGLE_WEB_CLIENT_ID`) and joins an existing account only as ADR 0001 allows. Tests swap the port for `FakeGoogleVerifier` (`createTestApp(env, { googleVerifier })`).
 
 Without `RESEND_API_KEY`, e-mails are not sent: the API log shows them, sign-up code included. With the key and `EMAIL_FROM=onboarding@resend.dev`, Resend delivers in test mode, only to the e-mail of the Resend account.
 
@@ -81,14 +82,18 @@ The app reads the API address from `--dart-define=API_BASE_URL`; release builds 
 - **USB cable:** forward the phone's port 3000 to the notebook and use `localhost`.
   ```sh
   adb reverse tcp:3000 tcp:3000   # again after every reconnect
-  flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000
+  flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000 \
+    --dart-define=GOOGLE_SERVER_CLIENT_ID=431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com
   ```
 - **Wi-Fi:** phone and notebook on the same network; use the notebook's IP (`hostname -I`).
   ```sh
-  flutter build apk --release --dart-define=API_BASE_URL=http://192.168.0.10:3000
+  flutter build apk --release --dart-define=API_BASE_URL=http://192.168.0.10:3000 \
+    --dart-define=GOOGLE_SERVER_CLIENT_ID=431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com
   ```
 
-Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). Without a session the app opens on Login; "Entrar com e-mail" signs in with e-mail and password or, through "Criar conta", creates the account; without `RESEND_API_KEY` the 6-digit code shows up in the API log. With a session (kept in `flutter_secure_storage` between runs) it opens on the Por perto tab. If the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
+**Google Sign-In** needs `--dart-define=GOOGLE_SERVER_CLIENT_ID=<Web client ID>`, the same ID as the API's `GOOGLE_WEB_CLIENT_ID`: Google issues the ID token for it, and the API checks it as the audience. PlantAí's is `431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com` (Google Cloud project `plantai-513101`); a client ID is public, not a secret. Without it the app still runs, and only "Entrar com Google" fails, with a message. The Android OAuth clients match the app by package (`dev.angelobez.plantai`) and the SHA-1 of the signing key, so Google Sign-In works only in APKs signed with the release key or with `~/.android/debug.keystore`, the two registered SHA-1s. Configuration errors show up in `flutter logs` as `Google Sign-In failed: ...`.
+
+Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). Without a session the app opens on Login; "Entrar com Google" signs in with the account chosen on the phone, "Entrar com e-mail" signs in with e-mail and password or, through "Criar conta", creates the account; without `RESEND_API_KEY` the 6-digit code shows up in the API log. With a session (kept in `flutter_secure_storage` between runs) it opens on the Por perto tab. If the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
 
 Plain HTTP is allowed only to `localhost`, `127.0.0.1`, `10.0.2.2` (emulator) and, when `API_BASE_URL` is a private IPv4 address (10/8, 172.16/12, 192.168/16), that address; the build generates the network security config from it. Change the Wi-Fi IP and you must rebuild.
 

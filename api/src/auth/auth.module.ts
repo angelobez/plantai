@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ENV } from '../config/config.module';
 import { AccessTokens } from './access-tokens';
 import { AuthGuard } from './auth.guard';
 import { EmailCodes } from './email-codes';
+import { createGoogleTokenVerifier } from './google/google-auth-library-verifier';
+import { GoogleController } from './google/google.controller';
+import { GoogleService } from './google/google.service';
+import { GoogleTokenVerifier } from './google/google-token-verifier';
 import { LoginController } from './login/login.controller';
 import { LoginService } from './login/login.service';
 import { LogoutController } from './logout/logout.controller';
@@ -27,6 +32,7 @@ import { SignupService } from './signup/signup.service';
     LoginController,
     RefreshController,
     LogoutController,
+    GoogleController,
   ],
   providers: [
     AccessTokens,
@@ -36,6 +42,12 @@ import { SignupService } from './signup/signup.service';
     SignupService,
     LoginService,
     RefreshService,
+    GoogleService,
+    {
+      provide: GoogleTokenVerifier,
+      inject: [ENV],
+      useFactory: createGoogleTokenVerifier,
+    },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })

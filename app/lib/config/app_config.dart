@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart';
 /// Build-time settings, passed with `--dart-define`.
 abstract final class AppConfig {
   static const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const _googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
 
   /// Where the API lives, such as `http://localhost:3000`.
   ///
@@ -17,4 +20,12 @@ abstract final class AppConfig {
       'API_BASE_URL is not set: build with --dart-define=API_BASE_URL=<url>',
     );
   }
+
+  /// The Google Cloud OAuth **Web** client ID (the API's
+  /// `GOOGLE_WEB_CLIENT_ID`), for which Google issues the ID token.
+  ///
+  /// Null without `--dart-define=GOOGLE_SERVER_CLIENT_ID=...`: the app still
+  /// starts, and only "Entrar com Google" fails.
+  static String? get googleServerClientId =>
+      _googleServerClientId.isEmpty ? null : _googleServerClientId;
 }

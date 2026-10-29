@@ -36,4 +36,8 @@ abstract class AuthRepository extends ChangeNotifier {
   /// the tokens. The tokens are forgotten even when the API cannot be reached,
   /// so this never throws.
   Future<void> signOut();
+
+  /// Shows Google's account picker and signs in with the chosen account. If
+  /// the User cancels, it returns without a session and without a failure.
+  Future<void> signInWithGoogle();
 }

@@ -9,6 +9,7 @@ import 'data/repositories/profile/profile_repository.dart';
 import 'data/repositories/profile/profile_repository_remote.dart';
 import 'data/services/api/api_client.dart';
 import 'data/services/api/update_required.dart';
+import 'data/services/google/google_id_tokens.dart';
 import 'data/services/session/session_store.dart';
 import 'routing/router.dart';
 import 'ui/core/themes/theme.dart';
@@ -29,6 +30,9 @@ Future<void> main() async {
   final authRepository = AuthRepositoryRemote(
     apiClient: apiClient,
     sessionStore: sessionStore,
+    googleIdTokens: GoogleSignInIdTokens(
+      serverClientId: AppConfig.googleServerClientId,
+    ),
   );
   final profileRepository = ProfileRepositoryRemote(apiClient: apiClient);
 

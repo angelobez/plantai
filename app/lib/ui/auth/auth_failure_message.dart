@@ -13,6 +13,8 @@ String authFailureMessage(AuthFailure failure) => switch (failure) {
     'Confirme o seu e-mail com o código que enviamos.',
   AuthFailure.googleAccountLinkRefused =>
     'Este e-mail já tem conta no PlantAí. Entre com a sua senha.',
+  AuthFailure.googleUnavailable =>
+    'Não deu para entrar com o Google. Tente de novo ou entre com e-mail.',
   AuthFailure.tooManyRequests =>
     'Muitas tentativas. Espere alguns minutos e tente de novo.',
   AuthFailure.validationFailed => 'Confira os dados e tente de novo.',
