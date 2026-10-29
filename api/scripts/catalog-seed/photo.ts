@@ -110,6 +110,8 @@ const ENTITIES: Record<string, string> = {
 export function cleanArtist(html: string): string {
   return (
     html
+      // Commons repeats some names inside hidden elements.
+      .replace(/<(\w+)[^>]*display:\s*none[^>]*>.*?<\/\1>/gis, '')
       // Block tags separate words; inline tags (links, bold) do not.
       .replace(/<(br|\/?(p|div|li|tr|td))\b[^>]*>/gi, ' ')
       .replace(/<[^>]*>/g, '')

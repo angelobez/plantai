@@ -40,6 +40,14 @@ describe('cleanArtist', () => {
     ).toBe('Joydeep');
   });
 
+  it('drops the hidden copies Commons adds to the HTML', () => {
+    expect(
+      cleanArtist(
+        'Unknown author<span style="display: none;">Unknown author</span>',
+      ),
+    ).toBe('Unknown author');
+  });
+
   it('decodes entities and collapses spaces', () => {
     expect(cleanArtist('Jos&eacute;  &amp; <b>Ana</b>&#39;s')).toBe(
       "José & Ana's",
