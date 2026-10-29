@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/repositories/auth/auth_repository.dart';
+import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/update_required.dart';
+import '../data/services/photo_picker/photo_picker.dart';
 import '../ui/about/widgets/about_screen.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
 import '../ui/auth/email_login/widgets/email_login_screen.dart';
@@ -20,6 +22,9 @@ import '../ui/core/widgets/coming_soon.dart';
 import '../ui/core/widgets/leaf_icon.dart';
 import '../ui/core/widgets/tab_page.dart';
 import '../ui/core/widgets/view_model_scope.dart';
+import '../ui/photo/view_models/photo_view_model.dart';
+import '../ui/photo/widgets/photo_screen.dart';
+import '../ui/photo/widgets/photo_source_sheet.dart';
 import '../ui/profile/view_models/profile_view_model.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/tabs/widgets/tabs_shell.dart';
@@ -29,6 +34,9 @@ abstract final class Routes {
   static const garden = '/jardim';
   static const nearby = '/perto';
   static const profile = '/perfil';
+
+  /// Foto, the start of the flow to identify a plant. Takes the source of
+  /// the first photo in the `fonte` query parameter ([identifyFrom]).
   static const identify = '/identificar';
   static const about = '/sobre';
   static const updateRequired = '/atualize';
@@ -39,6 +47,21 @@ abstract final class Routes {
   static const signup = '$login/criar-conta';
   static const verifyEmail = '$login/codigo';
   static const passwordReset = '$login/esqueci-a-senha';
+
+  /// Foto, opening the camera or the gallery as it appears.
+  static String identifyFrom(PhotoSource source) => Uri(
+    path: identify,
+    queryParameters: {_photoSourceParam: source.name},
+  ).toString();
+
+  static const _photoSourceParam = 'fonte';
+
+  /// The source in a [identifyFrom] location; the gallery when there is none,
+  /// since it needs no permission.
+  static PhotoSource photoSourceOf(GoRouterState state) =>
+      PhotoSource.values
+          .asNameMap()[state.uri.queryParameters[_photoSourceParam]] ??
+      PhotoSource.gallery;
 
   static bool isEntry(String location) =>
       location == login || location.startsWith('$login/');
@@ -54,8 +77,19 @@ GoRouter router({
   required UpdateRequired updateRequired,
   required AuthRepository authRepository,
   required ProfileRepository profileRepository,
+  required PhotoRepository photoRepository,
+  required PhotoPicker photoPicker,
   UrlOpener openUrl = openExternally,
 }) {
+  /// The way into the photo flow from anywhere (the camera button, and later
+  /// the empty Jardim and "Definir espécie"): asks camera or gallery over the
+  /// current screen, then opens Foto. Closing the sheet stays where it was.
+  Future<void> openPhotoFlow(BuildContext context) async {
+    final source = await showPhotoSourceSheet(context);
+    if (source == null || !context.mounted) return;
+    await context.push(Routes.identifyFrom(source));
+  }
+
   final rules = <String? Function(GoRouterState state)>[
     // A 426 on any call: everything goes to "Atualize o PlantAí".
     (state) => updateRequired.isRequired ? Routes.updateRequired : null,
@@ -141,7 +175,7 @@ GoRouter router({
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => TabsShell(
           navigationShell: navigationShell,
-          onCamera: () => context.push(Routes.identify),
+          onCamera: () => openPhotoFlow(context),
         ),
         // Same order as AppTab.
         branches: [
@@ -187,13 +221,19 @@ GoRouter router({
           ),
         ],
       ),
+      // The next screens of the flow ("Buscar pelo nome", candidates) go in
+      // as its child routes and get the uploaded photo from the callbacks.
       GoRoute(
         path: Routes.identify,
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(),
-          body: const ComingSoon(
-            icon: Icon(Icons.photo_camera_outlined),
-            title: 'Identificar pela foto',
+        builder: (context, state) => ViewModelScope(
+          create: () => PhotoViewModel(
+            photoPicker: photoPicker,
+            photoRepository: photoRepository,
+          ),
+          builder: (viewModel) => PhotoScreen(
+            viewModel: viewModel,
+            initialSource: Routes.photoSourceOf(state),
+            onClose: () => context.pop(),
           ),
         ),
       ),
