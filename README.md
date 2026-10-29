@@ -45,6 +45,16 @@ curl localhost:3000/v1/health
 
 `npm run db:down` stops the database and keeps its data. After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
 
+### API contract (OpenAPI)
+`http://localhost:3000/docs` shows the Swagger UI, and `/docs/openapi.json` the document, generated from the routes' Zod schemas by `nestjs-zod`. Both are public. The document is versioned in `api/openapi.json`, and `test/openapi.spec.ts` fails when the generated one differs, so every contract change shows up in the PR diff.
+
+To document a route:
+- Response: a `createZodDto` class, named as the schema should appear (no `Dto` suffix, no `.meta({ id })`, which breaks `cleanupOpenApiDoc`), used with `@ZodResponse({ status, type })`. The global serializer parses the return value with it, so the docs cannot drift from what the route sends.
+- Body or query: a `createZodDto` class as the parameter type; the global pipe validates it.
+- Errors: `@ApiProblems('CODE_A', 'CODE_B')` with the route's own codes. It adds the shared ones (`VALIDATION_FAILED`, `APP_UPDATE_REQUIRED`, `INTERNAL_ERROR`) and the `X-App-Version` header.
+
+Then run `npm run openapi:update` (from `api/`) and commit `api/openapi.json` with the change.
+
 Checks, the same ones CI runs: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS with Testcontainers, so Docker must be running; they do not touch the database from `compose.yaml`.
 
 ## Running the app on a phone
