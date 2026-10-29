@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/repositories/auth/auth_repository.dart';
+import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/update_required.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
 import '../ui/auth/email_login/widgets/email_login_screen.dart';
@@ -15,6 +16,8 @@ import '../ui/core/widgets/coming_soon.dart';
 import '../ui/core/widgets/leaf_icon.dart';
 import '../ui/core/widgets/tab_page.dart';
 import '../ui/core/widgets/view_model_scope.dart';
+import '../ui/profile/view_models/profile_view_model.dart';
+import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/tabs/widgets/tabs_shell.dart';
 import '../ui/update_required/widgets/update_required_screen.dart';
 
@@ -44,6 +47,7 @@ abstract final class Routes {
 GoRouter router({
   required UpdateRequired updateRequired,
   required AuthRepository authRepository,
+  required ProfileRepository profileRepository,
   UrlOpener openUrl = openExternally,
 }) {
   final rules = <String? Function(GoRouterState state)>[
@@ -148,11 +152,12 @@ GoRouter router({
             routes: [
               GoRoute(
                 path: Routes.profile,
-                builder: (context, state) => const TabPage(
-                  body: ComingSoon(
-                    icon: Icon(Icons.person_outline),
-                    title: 'Seu perfil',
-                  ),
+                builder: (context, state) => ViewModelScope(
+                  create: () => ProfileViewModel(
+                    profileRepository: profileRepository,
+                    authRepository: authRepository,
+                  )..load(),
+                  builder: (viewModel) => ProfileScreen(viewModel: viewModel),
                 ),
               ),
             ],

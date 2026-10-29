@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'config/app_config.dart';
 import 'data/repositories/auth/auth_repository.dart';
 import 'data/repositories/auth/auth_repository_remote.dart';
+import 'data/repositories/profile/profile_repository.dart';
+import 'data/repositories/profile/profile_repository_remote.dart';
 import 'data/services/api/api_client.dart';
 import 'data/services/api/update_required.dart';
 import 'data/services/session/session_store.dart';
@@ -28,6 +30,7 @@ Future<void> main() async {
     apiClient: apiClient,
     sessionStore: sessionStore,
   );
+  final profileRepository = ProfileRepositoryRemote(apiClient: apiClient);
 
   runApp(
     // Repositories go here, built on the shared ApiClient.
@@ -35,10 +38,12 @@ Future<void> main() async {
       providers: [
         Provider<ApiClient>.value(value: apiClient),
         ChangeNotifierProvider<AuthRepository>.value(value: authRepository),
+        Provider<ProfileRepository>.value(value: profileRepository),
       ],
       child: PlantaiApp(
         updateRequired: updateRequired,
         authRepository: authRepository,
+        profileRepository: profileRepository,
       ),
     ),
   );
@@ -49,11 +54,13 @@ class PlantaiApp extends StatefulWidget {
     super.key,
     required this.updateRequired,
     required this.authRepository,
+    required this.profileRepository,
     this.openUrl = openExternally,
   });
 
   final UpdateRequired updateRequired;
   final AuthRepository authRepository;
+  final ProfileRepository profileRepository;
   final UrlOpener openUrl;
 
   @override
@@ -64,6 +71,7 @@ class _PlantaiAppState extends State<PlantaiApp> {
   late final _router = router(
     updateRequired: widget.updateRequired,
     authRepository: widget.authRepository,
+    profileRepository: widget.profileRepository,
     openUrl: widget.openUrl,
   );
 

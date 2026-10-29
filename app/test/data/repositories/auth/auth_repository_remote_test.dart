@@ -221,6 +221,56 @@ void main() {
     });
   });
 
+  group('signOut', () {
+    setUp(() async {
+      await sessionStore.save(
+        const Session(accessToken: 'access-1', refreshToken: 'refresh-1'),
+      );
+      adapter.respond = (_) async => ResponseBody.fromString('', 204);
+    });
+
+    Future<void> expectSignedOut() async {
+      expect(repository.isSignedIn, isFalse);
+      expect((await SessionStore.load()).session, isNull);
+    }
+
+    test(
+      'revokes the refresh token, forgets the tokens and notifies',
+      () async {
+        var notified = 0;
+        repository.addListener(() => notified++);
+
+        await repository.signOut();
+
+        final request = adapter.requests.single;
+        expect(request.method, 'POST');
+        expect(request.path, '/v1/auth/logout');
+        expect(request.data, {'refreshToken': 'refresh-1'});
+        await expectSignedOut();
+        expect(notified, 1);
+      },
+    );
+
+    test('forgets the tokens even without a connection', () async {
+      adapter.respond = (options) async => throw DioException.connectionError(
+        requestOptions: options,
+        reason: 'refused',
+      );
+
+      await repository.signOut();
+
+      await expectSignedOut();
+    });
+
+    test('forgets the tokens even when the API answers an error', () async {
+      adapter.respond = (_) async => problemResponse(500, 'INTERNAL_ERROR');
+
+      await repository.signOut();
+
+      await expectSignedOut();
+    });
+  });
+
   group('turns the API answer into an AuthFailure', () {
     for (final (code, failure) in [
       ('INVALID_CODE', AuthFailure.invalidCode),

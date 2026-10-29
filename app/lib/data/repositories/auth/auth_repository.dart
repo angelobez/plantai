@@ -31,4 +31,9 @@ abstract class AuthRepository extends ChangeNotifier {
   /// it throws `AuthFailure.emailNotVerified`: the API has sent a new code,
   /// and [email] becomes [pendingEmail].
   Future<void> logIn({required String email, required String password});
+
+  /// Ends the session: asks the API to revoke the refresh token and forgets
+  /// the tokens. The tokens are forgotten even when the API cannot be reached,
+  /// so this never throws.
+  Future<void> signOut();
 }

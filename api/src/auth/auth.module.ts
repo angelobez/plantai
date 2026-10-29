@@ -5,6 +5,8 @@ import { AuthGuard } from './auth.guard';
 import { EmailCodes } from './email-codes';
 import { LoginController } from './login/login.controller';
 import { LoginService } from './login/login.service';
+import { LogoutController } from './logout/logout.controller';
+import { LogoutService } from './logout/logout.service';
 import { RefreshController } from './refresh/refresh.controller';
 import { RefreshService } from './refresh/refresh.service';
 import { Sessions } from './sessions';
@@ -20,10 +22,16 @@ import { SignupService } from './signup/signup.service';
  * for now), sharing {@link Sessions} (tokens) and {@link EmailCodes}.
  */
 @Module({
-  controllers: [SignupController, LoginController, RefreshController],
+  controllers: [
+    SignupController,
+    LoginController,
+    RefreshController,
+    LogoutController,
+  ],
   providers: [
     AccessTokens,
     EmailCodes,
+    LogoutService,
     Sessions,
     SignupService,
     LoginService,

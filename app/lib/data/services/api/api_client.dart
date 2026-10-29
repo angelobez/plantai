@@ -13,9 +13,9 @@ import 'update_required.dart';
 /// reached). A `426 APP_UPDATE_REQUIRED` on any call also raises
 /// [UpdateRequired].
 ///
-/// Repositories call [get], [post] and [postWithoutBody]; cross-cutting
-/// behavior goes in as another [Interceptor] (the session's `Authorization`
-/// header is [BearerInterceptor]).
+/// Repositories call [get], [post], [patch] and [postWithoutBody];
+/// cross-cutting behavior goes in as another [Interceptor] (the session's
+/// `Authorization` header is [BearerInterceptor]).
 class ApiClient {
   ApiClient({
     required String baseUrl,
@@ -65,6 +65,21 @@ class ApiClient {
   ) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(path, data: body);
+      return fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw _toApiError(error);
+    }
+  }
+
+  /// `PATCH` [body] as JSON to [path] and parse its JSON object answer with
+  /// [fromJson].
+  Future<T> patch<T>(
+    String path,
+    Map<String, Object?> body,
+    T Function(Map<String, dynamic> json) fromJson,
+  ) async {
+    try {
+      final response = await _dio.patch<Map<String, dynamic>>(path, data: body);
       return fromJson(response.data ?? const {});
     } on DioException catch (error) {
       throw _toApiError(error);
