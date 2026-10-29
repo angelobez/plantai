@@ -231,7 +231,7 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 
 | Método e caminho | O que faz |
 |---|---|
-| `POST /photos` | Multipart `file` → `{ id, url, expiresAt }`. Limite de 50 por dia (`PHOTO_DAILY_LIMIT`) |
+| `POST /photos` | Multipart `file` (até 6 MB) → `201` com `{ id, url, expiresAt }`. Limite de 50 por dia (`PHOTO_DAILY_LIMIT`). Arquivo que não é imagem, campo ausente, corpo que não é multipart ou arquivo acima de 6 MB: `VALIDATION_FAILED`, com `path` `file` |
 | `POST /identifications` | `{ photoId }` → `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Se `result = not_recognized`, vem `candidates: []` |
 | `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }` → `{ species }` ou `204`. Faz o upsert da Espécie no Catálogo |
 | `GET /species?q=` | Busca sem diferenciar acento nem maiúscula (`ILIKE '%termo%'` em `name_normalized`), até 20 resultados. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }` |

@@ -14,6 +14,7 @@ import { HealthModule } from './health/health.module';
 import { AppVersionMiddleware } from './http/app-version.middleware';
 import { RequestLoggerMiddleware } from './http/request-logger.middleware';
 import { PhotoStorageModule } from './photo-storage/photo-storage.module';
+import { PhotosModule } from './photos/photos.module';
 import { ProfileModule } from './profile/profile.module';
 import { UsersModule } from './users/users';
 
@@ -32,6 +33,7 @@ export class AppModule implements NestModule {
         AuthModule,
         HealthModule,
         ProfileModule,
+        PhotosModule,
       ],
     };
   }
