@@ -1,20 +1,19 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
+import { ZodResponse } from 'nestjs-zod';
 import { API_VERSION } from '../app-version';
 import { DATABASE, type Database } from '../database/database.module';
 import { DomainError } from '../errors/domain-error';
-
-interface HealthResponse {
-  status: 'ok';
-  apiVersion: string;
-  postgisVersion: string;
-}
+import { ApiProblems } from '../openapi/api-problems.decorator';
+import { HealthResponse } from './health.dto';
 
 @Controller('health')
 export class HealthController {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
   @Get()
+  @ZodResponse({ status: 200, type: HealthResponse })
+  @ApiProblems('HEALTH_CHECK_FAILED')
   async check(): Promise<HealthResponse> {
     const postgisVersion = await this.readPostgisVersion();
     return { status: 'ok', apiVersion: API_VERSION, postgisVersion };
