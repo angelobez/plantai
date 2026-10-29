@@ -31,9 +31,21 @@ describe('POST /auth/logout', () => {
     return request(app.getHttpServer()).post('/v1/auth/logout').send(body);
   }
 
-  // Until `POST /auth/refresh` exists (#40), the revocation is read from the
-  // database; once it does, "refresh with it answers UNAUTHENTICATED" is the
-  // front-door check.
+  function refresh(refreshToken: string): request.Test {
+    return request(app.getHttpServer())
+      .post('/v1/auth/refresh')
+      .send({ refreshToken });
+  }
+
+  async function expectRevoked(refreshToken: string): Promise<void> {
+    const answer = await refresh(refreshToken)
+      .expect(401)
+      .expect('Content-Type', /^application\/problem\+json/);
+    expect(answer.body).toMatchObject({ code: 'UNAUTHENTICATED' });
+  }
+
+  // Only to tell that a second logout keeps the first revocation time, which
+  // the front door cannot show.
   async function revokedAt(token: string): Promise<string | null | undefined> {
     const [row] = await databaseOf(app).execute<{ at: string | null }>(
       sql`SELECT revoked_at::text AS at FROM refresh_tokens
@@ -44,14 +56,13 @@ describe('POST /auth/logout', () => {
 
   it('revokes the refresh token and answers 204 without a body, with no access token', async () => {
     const session = await signUpAndVerify(app, outbox);
-    expect(await revokedAt(session.refreshToken)).toBeNull();
 
     const response = await logout({
       refreshToken: session.refreshToken,
     }).expect(204);
 
     expect(response.text).toBe('');
-    expect(await revokedAt(session.refreshToken)).toEqual(expect.any(String));
+    await expectRevoked(session.refreshToken);
   });
 
   it('only revokes the given token, not the other sessions', async () => {
@@ -60,7 +71,7 @@ describe('POST /auth/logout', () => {
 
     await logout({ refreshToken: session.refreshToken }).expect(204);
 
-    expect(await revokedAt(other.refreshToken)).toBeNull();
+    await refresh(other.refreshToken).expect(200);
   });
 
   it('answers 204 again for a token already revoked, keeping the first revocation', async () => {
@@ -71,6 +82,7 @@ describe('POST /auth/logout', () => {
     await logout({ refreshToken: session.refreshToken }).expect(204);
 
     expect(await revokedAt(session.refreshToken)).toBe(first);
+    await expectRevoked(session.refreshToken);
   });
 
   it('answers 204 for an expired token', async () => {
@@ -92,7 +104,7 @@ describe('POST /auth/logout', () => {
 
     await logout({ refreshToken: session.accessToken }).expect(204);
 
-    expect(await revokedAt(session.refreshToken)).toBeNull();
+    await refresh(session.refreshToken).expect(200);
   });
 
   it.each([
