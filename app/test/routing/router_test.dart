@@ -302,6 +302,24 @@ void main() {
       expect(find.byKey(const Key('bottom-bar')), findsNothing);
     });
 
+    testWidgets('Perfil opens Sobre e créditos and goes back', (tester) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Perfil'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Sobre e créditos'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pl@ntNet'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsNothing);
+
+      await tester.tap(find.text('Pl@ntNet'));
+      expect(openedUrls, [Uri.parse('https://plantnet.org/')]);
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      expect(find.text('marina@email.com'), findsOneWidget);
+    });
+
     testWidgets('ending the session goes to Login', (tester) async {
       await pumpApp(tester);
 

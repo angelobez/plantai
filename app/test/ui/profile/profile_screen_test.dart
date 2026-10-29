@@ -15,6 +15,7 @@ void main() {
   late FakeProfileRepository profileRepository;
   late FakeAuthRepository authRepository;
   late ProfileViewModel viewModel;
+  late int aboutOpened;
 
   setUp(() {
     profileRepository = FakeProfileRepository();
@@ -23,11 +24,15 @@ void main() {
       profileRepository: profileRepository,
       authRepository: authRepository,
     );
+    aboutOpened = 0;
   });
 
   Future<void> pump(WidgetTester tester) async {
     unawaited(viewModel.load());
-    await pumpScreen(tester, ProfileScreen(viewModel: viewModel));
+    await pumpScreen(
+      tester,
+      ProfileScreen(viewModel: viewModel, onAbout: () => aboutOpened++),
+    );
   }
 
   Finder nameField() => find.descendant(
@@ -50,7 +55,16 @@ void main() {
     expect(find.text('Localização de doação'), findsOneWidget);
     expect(find.text('Não informado'), findsNWidgets(2));
     expect(find.text('Sair'), findsOneWidget);
-    expect(find.text('Sobre e créditos'), findsNothing);
+    expect(find.text('Sobre e créditos'), findsOneWidget);
+  });
+
+  testWidgets('Sobre e créditos opens the credits', (tester) async {
+    await pump(tester);
+
+    await tester.tap(find.text('Sobre e créditos'));
+    await tester.pumpAndSettle();
+
+    expect(aboutOpened, 1);
   });
 
   testWidgets('shows the phone and neighborhood once they exist', (
