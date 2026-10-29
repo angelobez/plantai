@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ENV } from '../config/config.module';
 import { AccessTokens } from './access-tokens';
 import { AuthGuard } from './auth.guard';
 import { EmailCodes } from './email-codes';
+import { createGoogleTokenVerifier } from './google/google-auth-library-verifier';
+import { GoogleController } from './google/google.controller';
+import { GoogleService } from './google/google.service';
+import { GoogleTokenVerifier } from './google/google-token-verifier';
 import { Sessions } from './sessions';
 import { SignupController } from './signup/signup.controller';
 import { SignupService } from './signup/signup.service';
@@ -16,12 +21,18 @@ import { SignupService } from './signup/signup.service';
  * for now), sharing {@link Sessions} (tokens) and {@link EmailCodes}.
  */
 @Module({
-  controllers: [SignupController],
+  controllers: [SignupController, GoogleController],
   providers: [
     AccessTokens,
     EmailCodes,
     Sessions,
     SignupService,
+    GoogleService,
+    {
+      provide: GoogleTokenVerifier,
+      inject: [ENV],
+      useFactory: createGoogleTokenVerifier,
+    },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })

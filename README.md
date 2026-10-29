@@ -52,6 +52,7 @@ Every route requires `Authorization: Bearer <access token>` (a 15-minute JWT sig
 - `@Public()` on a route or controller lets it through without a token (`/health` and the `/auth` routes use it). `/docs` sits outside Nest's router and is always public.
 - `@CurrentUser() user: AuthenticatedUser` gives the controller the signed-in User (`{ id }`).
 - Each way in has its own folder (`auth/signup/`), and all of them end in `Sessions.start(user)`, which answers `{ accessToken, refreshToken, user }`.
+- `POST /auth/google` (`auth/google/`) checks the app's ID token through the `GoogleTokenVerifier` port (`google-auth-library`, audience `GOOGLE_WEB_CLIENT_ID`) and joins an existing account only as ADR 0001 allows. Tests swap the port for `FakeGoogleVerifier` (`createTestApp(env, { googleVerifier })`).
 
 Without `RESEND_API_KEY`, e-mails are not sent: the API log shows them, sign-up code included. With the key and `EMAIL_FROM=onboarding@resend.dev`, Resend delivers in test mode, only to the e-mail of the Resend account.
 
