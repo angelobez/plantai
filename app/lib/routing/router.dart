@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../data/repositories/auth/auth_repository.dart';
 import '../data/services/api/update_required.dart';
+import '../ui/auth/email_login/view_models/email_login_view_model.dart';
+import '../ui/auth/email_login/widgets/email_login_screen.dart';
 import '../ui/auth/login/widgets/login_screen.dart';
 import '../ui/auth/signup/view_models/signup_view_model.dart';
 import '../ui/auth/signup/widgets/signup_screen.dart';
@@ -25,6 +27,7 @@ abstract final class Routes {
 
   /// The entry screens all live under [login], so one prefix tells them apart.
   static const login = '/entrar';
+  static const emailLogin = '$login/email';
   static const signup = '$login/criar-conta';
   static const verifyEmail = '$login/codigo';
 
@@ -78,10 +81,19 @@ GoRouter router({
       GoRoute(
         path: Routes.login,
         builder: (context, state) =>
-            // "Entrar com e-mail" goes to the e-mail and password screen once
-            // it exists; until then, straight to "Criar conta".
-            LoginScreen(onEmail: () => context.push(Routes.signup)),
+            LoginScreen(onEmail: () => context.push(Routes.emailLogin)),
         routes: [
+          GoRoute(
+            path: _child(Routes.emailLogin),
+            builder: (context, state) => ViewModelScope(
+              create: () => EmailLoginViewModel(authRepository: authRepository),
+              builder: (viewModel) => EmailLoginScreen(
+                viewModel: viewModel,
+                onVerifyEmail: () => context.push(Routes.verifyEmail),
+                onSignup: () => context.push(Routes.signup),
+              ),
+            ),
+          ),
           GoRoute(
             path: _child(Routes.signup),
             builder: (context, state) => ViewModelScope(

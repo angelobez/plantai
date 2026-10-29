@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:plantai/data/services/api/update_required.dart';
+import 'package:plantai/domain/models/auth_failure.dart';
 import 'package:plantai/main.dart';
 import 'package:plantai/routing/router.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
@@ -30,6 +31,14 @@ void main() {
         },
       ),
     );
+    await tester.pumpAndSettle();
+  }
+
+  /// Login → "Entrar com e-mail" → "Criar conta".
+  Future<void> openSignup(WidgetTester tester) async {
+    await tester.tap(find.text('Entrar com e-mail'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Criar conta', findRichText: true));
     await tester.pumpAndSettle();
   }
 
@@ -156,8 +165,7 @@ void main() {
     ) async {
       await pumpApp(tester);
 
-      await tester.tap(find.text('Entrar com e-mail'));
-      await tester.pumpAndSettle();
+      await openSignup(tester);
       expect(find.text('Criar conta'), findsWidgets);
 
       await tester.enterText(find.byType(TextField).at(0), 'Marina Souza');
@@ -181,8 +189,7 @@ void main() {
 
     testWidgets('the code screen goes back to fix the e-mail', (tester) async {
       await pumpApp(tester);
-      await tester.tap(find.text('Entrar com e-mail'));
-      await tester.pumpAndSettle();
+      await openSignup(tester);
       await tester.enterText(find.byType(TextField).at(0), 'Marina Souza');
       await tester.enterText(find.byType(TextField).at(1), 'marina@emial.com');
       await tester.enterText(find.byType(TextField).at(2), 'senha-boa-123');
@@ -195,6 +202,48 @@ void main() {
       expect(find.text('Criar conta'), findsWidgets);
       expect(find.text('marina@emial.com'), findsOneWidget);
     });
+  });
+
+  group('logging in with e-mail', () {
+    setUp(() => authRepository.setSignedIn(false));
+
+    Future<void> logIn(WidgetTester tester) async {
+      await pumpApp(tester);
+      await tester.tap(find.text('Entrar com e-mail'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'marina@email.com');
+      await tester.enterText(find.byType(TextField).at(1), 'senha-boa-123');
+      await tester.tap(find.widgetWithText(FilledButton, 'Entrar'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the right password opens Por perto', (tester) async {
+      await logIn(tester);
+
+      expect(authRepository.calls, ['logIn(marina@email.com, senha-boa-123)']);
+      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
+    });
+
+    testWidgets(
+      'an unconfirmed e-mail goes to the code, which opens Por perto',
+      (tester) async {
+        authRepository.failure = AuthFailure.emailNotVerified;
+        await logIn(tester);
+
+        expect(find.text('Confirme seu e-mail'), findsOneWidget);
+        expect(
+          find.textContaining('marina@email.com', findRichText: true),
+          findsOneWidget,
+        );
+
+        authRepository.failure = null;
+        await tester.enterText(find.byType(TextField), '123456');
+        await tester.pumpAndSettle();
+
+        expect(find.text('Mudas por perto'), findsOneWidget);
+      },
+    );
   });
 
   group('with a session', () {

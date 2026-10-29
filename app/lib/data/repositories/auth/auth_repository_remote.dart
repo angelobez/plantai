@@ -67,6 +67,35 @@ class AuthRepositoryRemote extends AuthRepository {
     await _startSession(tokens);
   }
 
+  @override
+  Future<void> logIn({required String email, required String password}) async {
+    Future<void> send() async {
+      final tokens = await _guard(
+        () => _apiClient.post('/v1/auth/login', {
+          'email': email,
+          'password': password,
+        }, AuthTokens.fromJson),
+      );
+      await _startSession(tokens);
+    }
+
+    try {
+      await send();
+    } on AuthFailure catch (failure) {
+      if (failure != AuthFailure.emailNotVerified) rethrow;
+      // The API sent a code; logging in again is how to ask for another.
+      _pendingEmail = email;
+      _resend = () async {
+        try {
+          await send();
+        } on AuthFailure catch (failure) {
+          if (failure != AuthFailure.emailNotVerified) rethrow;
+        }
+      };
+      rethrow;
+    }
+  }
+
   Future<void> _startSession(AuthTokens tokens) async {
     _pendingEmail = null;
     _resend = null;
