@@ -31,7 +31,33 @@ export class CreatePlantRequest extends createZodDto(
   }),
 ) {}
 
-/** One plant of `GET /plants`, and the answer of `POST /plants`. */
+/**
+ * `PATCH /plants/:id`: the fields to change, at least one. The species is
+ * set once: a plant that has one answers `SPECIES_ALREADY_SET`.
+ */
+export const updatePlantRequestSchema = z
+  .object({
+    commonName: plantCommonNameSchema.optional(),
+    speciesId: z
+      .uuid()
+      .optional()
+      .describe(
+        'A Catalog species, for a plant saved with only a name; set only once',
+      ),
+  })
+  .refine(
+    (body) => body.commonName !== undefined || body.speciesId !== undefined,
+    { message: 'send commonName, speciesId or both' },
+  );
+
+export class UpdatePlantRequest extends createZodDto(
+  updatePlantRequestSchema,
+) {}
+
+/**
+ * One plant of `GET /plants`, and the answer of `POST /plants` and
+ * `PATCH /plants/:id`.
+ */
 export const plantItemSchema = z.object({
   id: z.uuid(),
   commonName: z.string(),

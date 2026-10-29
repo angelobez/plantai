@@ -21,6 +21,12 @@ export interface NewPlant {
   speciesId?: string | undefined;
 }
 
+/** What `PATCH /plants/:id` takes, already validated: at least one field. */
+export interface PlantChanges {
+  commonName?: string | undefined;
+  speciesId?: string | undefined;
+}
+
 /** A User's plant row with its photo, as {@link PlantsService} finds it. */
 export interface OwnedPlant {
   plant: typeof plants.$inferSelect;
@@ -133,6 +139,29 @@ export class PlantsService {
   }
 
   /**
+   * Changes [userId]'s plant [plantId] and answers it as a list item. The
+   * species is set once: a plant that has one, even the same, answers
+   * `SPECIES_ALREADY_SET` (to fix a wrong species, the User removes the
+   * plant and saves it again). A species that does not exist is
+   * `VALIDATION_FAILED`. Setting it never has Claude write the guide; the
+   * next `GET /plants/:id` does it.
+   */
+  async update(
+    userId: string,
+    plantId: string,
+    changes: PlantChanges,
+  ): Promise<PlantItemResponse> {
+    const { plant } = await this.findOwned(userId, plantId);
+    if (changes.speciesId !== undefined) {
+      await this.setSpecies(plant, changes.speciesId);
+    }
+
+    const [item] = await this.items(userId, eq(plants.id, plant.id));
+    if (!item) throw new Error('The changed plant was not found');
+    return item;
+  }
+
+  /**
    * [userId]'s plant [plantId] with its photo; `NOT_FOUND` when there is
    * none, or when it is someone else's, so its existence is not revealed.
    * Every route on one plant starts here.
@@ -212,6 +241,23 @@ export class PlantsService {
             : null,
       })),
     );
+  }
+
+  private async setSpecies(
+    plant: OwnedPlant['plant'],
+    speciesId: string,
+  ): Promise<void> {
+    if (plant.speciesId) throw new DomainError('SPECIES_ALREADY_SET');
+    if (!(await this.speciesExists(speciesId))) {
+      throw invalid('speciesId', 'no such species');
+    }
+    // Only a plant with no species yet: of two requests at once, one wins.
+    const updated = await this.db
+      .update(plants)
+      .set({ speciesId })
+      .where(and(eq(plants.id, plant.id), isNull(plants.speciesId)))
+      .returning({ id: plants.id });
+    if (updated.length === 0) throw new DomainError('SPECIES_ALREADY_SET');
   }
 
   private async speciesExists(speciesId: string): Promise<boolean> {

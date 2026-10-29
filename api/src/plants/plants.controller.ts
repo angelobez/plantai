@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
@@ -13,6 +13,7 @@ import {
   PlantItem,
   type PlantItemResponse,
   type PlantResponse,
+  UpdatePlantRequest,
 } from './plant.dto';
 import { PlantsService } from './plants.service';
 
@@ -58,5 +59,21 @@ export class PlantsController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<PlantResponse> {
     return this.plantsService.get(user.id, id);
+  }
+
+  /**
+   * Changes a plant. The species is set once, on a plant saved with only a
+   * name: a plant that has one answers `SPECIES_ALREADY_SET`, even for the
+   * same species. A `speciesId` that does not exist is `VALIDATION_FAILED`.
+   */
+  @Patch(':id')
+  @ZodResponse({ status: 200, type: PlantItem })
+  @ApiProblems('UNAUTHENTICATED', 'NOT_FOUND', 'SPECIES_ALREADY_SET')
+  update(
+    @Param() { id }: IdParam,
+    @Body() body: UpdatePlantRequest,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<PlantItemResponse> {
+    return this.plantsService.update(user.id, id, body);
   }
 }

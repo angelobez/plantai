@@ -618,4 +618,137 @@ describe('plants (Meu jardim)', () => {
       });
     });
   });
+
+  describe('PATCH /plants/:id', () => {
+    function patchPlant(
+      session: AuthTokensBody,
+      id: string,
+      body: object,
+    ): request.Test {
+      return request(app.getHttpServer())
+        .patch(`/v1/plants/${id}`)
+        .set('Authorization', `Bearer ${session.accessToken}`)
+        .send(body);
+    }
+
+    it('sets the species of a plant saved with only a name', async () => {
+      const session = await newSession();
+      const saved = await savePlant(session, { commonName: 'Jiboia da sala' });
+      const speciesId = await addSpecies('Epipremnum aureum', 'Jiboia');
+      await guideFor(speciesId, 'ready', '2x por semana');
+
+      const response = await patchPlant(session, saved.id, {
+        speciesId,
+      }).expect(200);
+
+      expect(response.body).toEqual({
+        id: saved.id,
+        commonName: 'Jiboia da sala',
+        photo: expect.objectContaining({ id: saved.photo.id }) as unknown,
+        species: {
+          id: speciesId,
+          commonName: 'Jiboia',
+          scientificName: 'Epipremnum aureum',
+          wateringSummary: '2x por semana',
+        },
+      });
+      const plant = (await getPlant(session, saved.id).expect(200))
+        .body as PlantBody;
+      expect(plant.species).toMatchObject({
+        id: speciesId,
+        careGuideStatus: 'ready',
+      });
+    });
+
+    it('answers SPECIES_ALREADY_SET for a plant that has a species', async () => {
+      const session = await newSession();
+      const first = await addSpecies('Epipremnum aureum', 'Jiboia');
+      const other = await addSpecies('Monstera deliciosa', 'Costela-de-adão');
+      const saved = await savePlant(session, {
+        commonName: 'Jiboia',
+        speciesId: first,
+      });
+
+      const response = await patchPlant(session, saved.id, {
+        speciesId: other,
+      })
+        .expect(409)
+        .expect('Content-Type', /^application\/problem\+json/);
+
+      expect(response.body).toMatchObject({ code: 'SPECIES_ALREADY_SET' });
+      const [item] = (await listPlants(session).expect(200))
+        .body as PlantItemBody[];
+      expect(item?.species?.id).toBe(first);
+    });
+
+    it('answers SPECIES_ALREADY_SET for the species the plant already has', async () => {
+      const session = await newSession();
+      const speciesId = await addSpecies('Epipremnum aureum', 'Jiboia');
+      const saved = await savePlant(session, {
+        commonName: 'Jiboia',
+        speciesId,
+      });
+
+      const response = await patchPlant(session, saved.id, {
+        speciesId,
+      }).expect(409);
+
+      expect(response.body).toMatchObject({ code: 'SPECIES_ALREADY_SET' });
+    });
+
+    it('answers VALIDATION_FAILED for a species that does not exist', async () => {
+      const session = await newSession();
+      const saved = await savePlant(session, { commonName: 'Pimenta da vó' });
+
+      const response = await patchPlant(session, saved.id, {
+        speciesId: UNKNOWN_ID,
+      }).expect(400);
+
+      expect(response.body).toMatchObject({
+        code: 'VALIDATION_FAILED',
+        errors: [expect.objectContaining({ path: 'speciesId' })],
+      });
+      const [item] = (await listPlants(session).expect(200))
+        .body as PlantItemBody[];
+      expect(item?.species).toBeNull();
+    });
+
+    it.each([
+      ['an empty body', {}, ''],
+      ['a speciesId that is not a UUID', { speciesId: 'abc' }, 'speciesId'],
+    ])('answers VALIDATION_FAILED for %s', async (_, body, path) => {
+      const session = await newSession();
+      const saved = await savePlant(session, { commonName: 'Pimenta da vó' });
+
+      const response = await patchPlant(session, saved.id, body).expect(400);
+
+      expect(response.body).toMatchObject({
+        code: 'VALIDATION_FAILED',
+        errors: [expect.objectContaining({ path })],
+      });
+    });
+
+    it("answers NOT_FOUND for another User's plant", async () => {
+      const owner = await newSession();
+      const saved = await savePlant(owner, { commonName: 'Pimenta da vó' });
+      const speciesId = await addSpecies('Capsicum frutescens', 'Malagueta');
+      const session = await newSession();
+
+      const response = await patchPlant(session, saved.id, {
+        speciesId,
+      }).expect(404);
+
+      expect(response.body).toMatchObject({ code: 'NOT_FOUND' });
+      const [item] = (await listPlants(owner).expect(200))
+        .body as PlantItemBody[];
+      expect(item?.species).toBeNull();
+    });
+
+    it('answers UNAUTHENTICATED without a session', async () => {
+      await request(app.getHttpServer())
+        .patch(`/v1/plants/${UNKNOWN_ID}`)
+        .send({ speciesId: UNKNOWN_ID })
+        .expect(401);
+    });
+  });
 });
