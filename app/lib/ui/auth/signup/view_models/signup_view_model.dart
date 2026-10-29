@@ -3,11 +3,12 @@ import 'package:flutter/foundation.dart';
 import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
+import '../../retry_when_offline.dart';
 import '../../validators.dart';
 
 /// "Criar conta": checks name, e-mail and password, then has the API send
 /// the code. On success the screen goes to the code screen.
-class SignupViewModel extends ChangeNotifier {
+class SignupViewModel extends ChangeNotifier with RetryWhenOffline<bool> {
   SignupViewModel({required this._authRepository});
 
   final AuthRepository _authRepository;
@@ -38,6 +39,7 @@ class SignupViewModel extends ChangeNotifier {
     _emailError = validateEmail(email);
     _passwordError = validatePassword(password);
     _error = null;
+    clearRetry();
     if (_nameError != null || _emailError != null || _passwordError != null) {
       notifyListeners();
       return false;
@@ -53,6 +55,10 @@ class SignupViewModel extends ChangeNotifier {
       );
       return true;
     } on AuthFailure catch (failure) {
+      offerRetry(
+        failure,
+        () => submit(name: name, email: email, password: password),
+      );
       _error = authFailureMessage(failure);
       return false;
     } finally {

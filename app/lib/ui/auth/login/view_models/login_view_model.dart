@@ -3,10 +3,11 @@ import 'package:flutter/foundation.dart';
 import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
+import '../../retry_when_offline.dart';
 
 /// Login: "Entrar com Google". On success the router leaves for the tabs;
 /// canceling the account picker just stays here, with no message.
-class LoginViewModel extends ChangeNotifier {
+class LoginViewModel extends ChangeNotifier with RetryWhenOffline<void> {
   LoginViewModel({required this._authRepository});
 
   final AuthRepository _authRepository;
@@ -24,10 +25,12 @@ class LoginViewModel extends ChangeNotifier {
     if (_isSigningInWithGoogle) return;
     _isSigningInWithGoogle = true;
     _error = null;
+    clearRetry();
     notifyListeners();
     try {
       await _authRepository.signInWithGoogle();
     } on AuthFailure catch (failure) {
+      offerRetry(failure, signInWithGoogle);
       _error = switch (failure) {
         // Here it means Google's token was refused, not a wrong password.
         AuthFailure.invalidCredentials => authFailureMessage(

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
+import '../../retry_when_offline.dart';
 import '../../resend_countdown.dart';
 import '../../validators.dart';
 
@@ -18,7 +19,8 @@ enum PasswordResetStep {
 /// "Esqueci a senha": the e-mail, then the code and a new password, which
 /// signs the User in (the router then takes them to the tabs). Also how an
 /// account made with Google gets a password.
-class PasswordResetViewModel extends ChangeNotifier {
+class PasswordResetViewModel extends ChangeNotifier
+    with RetryWhenOffline<void> {
   PasswordResetViewModel({
     required this._authRepository,
     this.resendCooldown = const Duration(seconds: 45),
@@ -88,6 +90,7 @@ class PasswordResetViewModel extends ChangeNotifier {
       _step = PasswordResetStep.code;
       _countdown.restart();
     } on AuthFailure catch (failure) {
+      offerRetry(failure, () => requestCode(email));
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
@@ -117,6 +120,7 @@ class PasswordResetViewModel extends ChangeNotifier {
         newPassword: newPassword,
       );
     } on AuthFailure catch (failure) {
+      offerRetry(failure, () => confirm(code: code, newPassword: newPassword));
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
@@ -135,6 +139,7 @@ class PasswordResetViewModel extends ChangeNotifier {
       _notice = 'Enviamos um código novo.';
       _countdown.restart();
     } on AuthFailure catch (failure) {
+      offerRetry(failure, resend);
       _error = authFailureMessage(failure);
     } finally {
       _isResending = false;
@@ -155,6 +160,7 @@ class PasswordResetViewModel extends ChangeNotifier {
     _passwordError = null;
     _error = null;
     _notice = null;
+    clearRetry();
   }
 
   void _notify() {

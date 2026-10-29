@@ -39,7 +39,10 @@ class LoginScreen extends StatelessWidget {
                 children: [
                   const Expanded(child: _Brand()),
                   if (viewModel.error case final error?) ...[
-                    FormMessage(error: error),
+                    FormMessage(
+                      error: error,
+                      onRetry: viewModel.canRetry ? viewModel.retry : null,
+                    ),
                     const SizedBox(height: 16),
                   ],
                   OutlinedButton.icon(

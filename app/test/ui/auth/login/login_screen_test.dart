@@ -110,4 +110,19 @@ void main() {
     expect(find.byType(SnackBar), findsNothing);
     expect(find.textContaining('Tente de novo'), findsNothing);
   });
+
+  testWidgets('without connection, "Tentar de novo" tries Google again', (
+    tester,
+  ) async {
+    repository.failure = AuthFailure.noConnection;
+    await pumpScreen(tester, login());
+    await tester.tap(find.text('Entrar com Google'));
+    await tester.pumpAndSettle();
+
+    repository.failure = null;
+    await tester.tap(find.widgetWithText(TextButton, 'Tentar de novo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, ['signInWithGoogle()', 'signInWithGoogle()']);
+  });
 }

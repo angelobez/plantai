@@ -114,4 +114,26 @@ void main() {
 
     expect(viewModel.error, isNull);
   });
+
+  test('without connection, retry logs in again with the same data', () async {
+    repository.failure = AuthFailure.noConnection;
+    expect(await submit(), EmailLoginResult.failed);
+    expect(viewModel.canRetry, isTrue);
+
+    repository.failure = null;
+    expect(await viewModel.retry(), EmailLoginResult.signedIn);
+
+    expect(repository.calls, [
+      'logIn(marina@email.com, senha-boa-123)',
+      'logIn(marina@email.com, senha-boa-123)',
+    ]);
+    expect(viewModel.canRetry, isFalse);
+  });
+
+  test('a wrong password offers no retry', () async {
+    repository.failure = AuthFailure.invalidCredentials;
+    await submit();
+
+    expect(viewModel.canRetry, isFalse);
+  });
 }

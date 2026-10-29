@@ -269,4 +269,28 @@ void main() {
       expect(find.text('Entrar com e-mail'), findsOneWidget);
     });
   });
+
+  testWidgets('without connection, "Tentar de novo" asks for the code again', (
+    tester,
+  ) async {
+    repository.failure = AuthFailure.noConnection;
+    await pump(tester);
+    await tester.enterText(field('E-mail'), 'marina@email.com');
+    await tester.tap(button('Enviar código'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Sem conexão com a internet. Confira a rede e tente de novo.'),
+      findsOneWidget,
+    );
+
+    repository.failure = null;
+    await tester.tap(find.widgetWithText(TextButton, 'Tentar de novo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, [
+      'requestPasswordReset(marina@email.com)',
+      'requestPasswordReset(marina@email.com)',
+    ]);
+    expect(find.bySemanticsLabel('Código de 6 dígitos'), findsOneWidget);
+  });
 }

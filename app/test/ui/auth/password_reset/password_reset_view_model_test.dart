@@ -240,4 +240,47 @@ void main() {
       });
     });
   });
+
+  group('without connection', () {
+    test('retry asks for the code again', () async {
+      final viewModel = create();
+      repository.failure = AuthFailure.noConnection;
+      await viewModel.requestCode('marina@email.com');
+      expect(viewModel.canRetry, isTrue);
+
+      repository.failure = null;
+      await viewModel.retry();
+
+      expect(repository.calls, [
+        'requestPasswordReset(marina@email.com)',
+        'requestPasswordReset(marina@email.com)',
+      ]);
+      expect(viewModel.step, PasswordResetStep.code);
+      expect(viewModel.canRetry, isFalse);
+    });
+
+    test('retry sends the same code and password again', () async {
+      final viewModel = await onCodeStep();
+      repository.failure = AuthFailure.noConnection;
+      await viewModel.confirm(code: '123456', newPassword: 'senha-nova-456');
+      expect(viewModel.canRetry, isTrue);
+
+      repository.failure = null;
+      await viewModel.retry();
+
+      expect(repository.calls, [
+        'resetPassword(marina@email.com, 123456, senha-nova-456)',
+        'resetPassword(marina@email.com, 123456, senha-nova-456)',
+      ]);
+      expect(viewModel.canRetry, isFalse);
+    });
+
+    test('a wrong code offers no retry', () async {
+      final viewModel = await onCodeStep();
+      repository.failure = AuthFailure.invalidCode;
+      await viewModel.confirm(code: '123456', newPassword: 'senha-nova-456');
+
+      expect(viewModel.canRetry, isFalse);
+    });
+  });
 }
