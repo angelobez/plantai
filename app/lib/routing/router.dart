@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 
 import '../data/repositories/auth/auth_repository.dart';
 import '../data/repositories/catalog/catalog_repository.dart';
+import '../data/repositories/identification/identification_repository.dart';
 import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
+import '../data/services/api/models/photo.dart';
 import '../data/services/api/update_required.dart';
 import '../data/services/photo_picker/photo_picker.dart';
 import '../ui/about/widgets/about_screen.dart';
@@ -27,6 +29,8 @@ import '../ui/core/widgets/coming_soon.dart';
 import '../ui/core/widgets/leaf_icon.dart';
 import '../ui/core/widgets/tab_page.dart';
 import '../ui/core/widgets/view_model_scope.dart';
+import '../ui/identification/view_models/candidates_view_model.dart';
+import '../ui/identification/widgets/candidates_screen.dart';
 import '../ui/photo/view_models/photo_view_model.dart';
 import '../ui/photo/widgets/photo_screen.dart';
 import '../ui/photo/widgets/photo_source_sheet.dart';
@@ -73,6 +77,15 @@ abstract final class Routes {
     photoId,
   );
 
+  /// Candidatos, inside the photo flow: identifies the photo [photoId],
+  /// already sent, and leads to Candidatos, Foto não reconhecida or Limite
+  /// diário. Pushed with the [Photo] as `extra`, for its thumbnail; the
+  /// push completes with the source of another photo when the User asks for
+  /// one ("Tirar outra foto").
+  static String candidates(String photoId) =>
+      '$identify/$_candidatesPath/${Uri.encodeComponent(photoId)}';
+
+  static const _candidatesPath = 'candidatos';
   static const _searchPath = 'busca';
   static const _speciesPath = 'especie';
   static const _speciesIdParam = 'id';
@@ -81,6 +94,10 @@ abstract final class Routes {
   /// The photo of a [searchByName] or [species] location, if any.
   static String? photoIdOf(GoRouterState state) =>
       state.uri.queryParameters[_photoIdParam];
+
+  /// The photo of a [candidates] location.
+  static String candidatesPhotoIdOf(GoRouterState state) =>
+      state.pathParameters[_photoIdParam]!;
 
   /// The species of a [species] location.
   static String speciesIdOf(GoRouterState state) =>
@@ -115,6 +132,7 @@ GoRouter router({
   required PhotoRepository photoRepository,
   required PhotoPicker photoPicker,
   required CatalogRepository catalogRepository,
+  required IdentificationRepository identificationRepository,
   UrlOpener openUrl = openExternally,
 }) {
   /// The way into the photo flow from anywhere (the camera button, and later
@@ -257,7 +275,7 @@ GoRouter router({
           ),
         ],
       ),
-      // The next screens of the flow (Busca, Tela da espécie, candidates) are
+      // The next screens of the flow (Candidatos, Busca, Tela da espécie) are
       // its child routes, pushed over Foto, so going back finds the same
       // photo. They get the uploaded photo's id in the query.
       GoRoute(
@@ -271,11 +289,50 @@ GoRouter router({
             viewModel: viewModel,
             initialSource: Routes.photoSourceOf(state),
             onClose: () => context.pop(),
+            onIdentify: (photo) => context.push<PhotoSource>(
+              Routes.candidates(photo.id),
+              extra: photo,
+            ),
             onSearchByName: (photo) =>
                 context.push(Routes.searchByName(photoId: photo.id)),
           ),
         ),
         routes: [
+          GoRoute(
+            path: '${Routes._candidatesPath}/:${Routes._photoIdParam}',
+            builder: (context, state) {
+              final photoId = Routes.candidatesPhotoIdOf(state);
+              final extra = state.extra;
+              return ViewModelScope(
+                create: () => CandidatesViewModel(
+                  identificationRepository: identificationRepository,
+                  photoId: photoId,
+                )..identify(),
+                builder: (viewModel) => CandidatesScreen(
+                  viewModel: viewModel,
+                  photo: extra is Photo ? extra : null,
+                  openUrl: openUrl,
+                  // The choice is made: Candidatos leaves the stack, and
+                  // back from the next screen is Foto.
+                  onSpecies: (species) => context.pushReplacement(
+                    Routes.species(species.id, photoId: photoId),
+                  ),
+                  onNoneOfThese: () => context.pushReplacement(
+                    Routes.searchByName(photoId: photoId),
+                  ),
+                  onTakeAnother: () async {
+                    final source = await showPhotoSourceSheet(context);
+                    if (source != null && context.mounted) {
+                      context.pop(source);
+                    }
+                  },
+                  onSearchByName: () =>
+                      context.push(Routes.searchByName(photoId: photoId)),
+                  // #53 passes "Salvar só com o nome" here, as on Busca.
+                ),
+              );
+            },
+          ),
           GoRoute(
             path: Routes._searchPath,
             builder: (context, state) {

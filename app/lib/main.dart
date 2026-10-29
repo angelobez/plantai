@@ -7,6 +7,8 @@ import 'data/repositories/auth/auth_repository.dart';
 import 'data/repositories/auth/auth_repository_remote.dart';
 import 'data/repositories/catalog/catalog_repository.dart';
 import 'data/repositories/catalog/catalog_repository_remote.dart';
+import 'data/repositories/identification/identification_repository.dart';
+import 'data/repositories/identification/identification_repository_remote.dart';
 import 'data/repositories/photo/photo_repository.dart';
 import 'data/repositories/photo/photo_repository_remote.dart';
 import 'data/repositories/profile/profile_repository.dart';
@@ -43,6 +45,9 @@ Future<void> main() async {
   final profileRepository = ProfileRepositoryRemote(apiClient: apiClient);
   final photoRepository = PhotoRepositoryRemote(apiClient: apiClient);
   final catalogRepository = CatalogRepositoryRemote(apiClient: apiClient);
+  final identificationRepository = IdentificationRepositoryRemote(
+    apiClient: apiClient,
+  );
 
   runApp(
     // Repositories go here, built on the shared ApiClient.
@@ -53,6 +58,9 @@ Future<void> main() async {
         Provider<ProfileRepository>.value(value: profileRepository),
         Provider<PhotoRepository>.value(value: photoRepository),
         Provider<CatalogRepository>.value(value: catalogRepository),
+        Provider<IdentificationRepository>.value(
+          value: identificationRepository,
+        ),
       ],
       child: PlantaiApp(
         updateRequired: updateRequired,
@@ -61,6 +69,7 @@ Future<void> main() async {
         photoRepository: photoRepository,
         photoPicker: ImagePickerPhotoPicker(),
         catalogRepository: catalogRepository,
+        identificationRepository: identificationRepository,
       ),
     ),
   );
@@ -75,6 +84,7 @@ class PlantaiApp extends StatefulWidget {
     required this.photoRepository,
     required this.photoPicker,
     required this.catalogRepository,
+    required this.identificationRepository,
     this.openUrl = openExternally,
   });
 
@@ -84,6 +94,7 @@ class PlantaiApp extends StatefulWidget {
   final PhotoRepository photoRepository;
   final PhotoPicker photoPicker;
   final CatalogRepository catalogRepository;
+  final IdentificationRepository identificationRepository;
   final UrlOpener openUrl;
 
   @override
@@ -98,6 +109,7 @@ class _PlantaiAppState extends State<PlantaiApp> {
     photoRepository: widget.photoRepository,
     photoPicker: widget.photoPicker,
     catalogRepository: widget.catalogRepository,
+    identificationRepository: widget.identificationRepository,
     openUrl: widget.openUrl,
   );
 

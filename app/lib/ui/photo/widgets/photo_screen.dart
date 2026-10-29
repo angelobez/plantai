@@ -6,6 +6,7 @@ import '../../auth/widgets/form_message.dart';
 import '../../core/themes/colors.dart';
 import '../../core/widgets/leaf_icon.dart';
 import '../view_models/photo_view_model.dart';
+import 'photo_action_tile.dart';
 import 'photo_source_sheet.dart';
 
 /// Foto, as in the Claude Design screen (`M-foto`): the photo on top with
@@ -31,10 +32,12 @@ class PhotoScreen extends StatefulWidget {
   /// Gives up: back to where the User was.
   final VoidCallback onClose;
 
-  /// "Identificar pela foto", with the photo as the API stored it. The
-  /// actions are enabled once the photo is sent, even before a flow is
-  /// plugged in here.
-  final ValueChanged<Photo>? onIdentify;
+  /// "Identificar pela foto", with the photo as the API stored it. It
+  /// completes when the User is back on Foto, with the source of another
+  /// photo when they asked for one ("Tirar outra foto" on Foto não
+  /// reconhecida), which Foto then opens. The actions are enabled once the
+  /// photo is sent, even before a flow is plugged in here.
+  final Future<PhotoSource?> Function(Photo photo)? onIdentify;
 
   /// "Buscar pelo nome", with the photo as the API stored it.
   final ValueChanged<Photo>? onSearchByName;
@@ -55,6 +58,11 @@ class _PhotoScreenState extends State<PhotoScreen> {
   Future<void> _pick(PhotoSource source) async {
     final hasSomething = await _viewModel.pick(source);
     if (!hasSomething && mounted) widget.onClose();
+  }
+
+  Future<void> _identify(Photo photo) async {
+    final source = await widget.onIdentify?.call(photo);
+    if (source != null && mounted) await _pick(source);
   }
 
   Future<void> _pickAnother() async {
@@ -83,7 +91,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
               child: _Panel(
                 viewModel: _viewModel,
                 onGallery: () => _pick(PhotoSource.gallery),
-                onIdentify: widget.onIdentify,
+                onIdentify: widget.onIdentify == null ? null : _identify,
                 onSearchByName: widget.onSearchByName,
               ),
             ),
@@ -227,14 +235,14 @@ class _Panel extends StatelessWidget {
                 const _Sending(),
                 const SizedBox(height: 12),
               ],
-              _ActionTile(
+              PhotoActionTile(
                 icon: Icons.photo_camera_outlined,
                 title: 'Identificar pela foto',
                 primary: true,
                 onTap: photo == null ? null : () => onIdentify?.call(photo),
               ),
               const SizedBox(height: 12),
-              _ActionTile(
+              PhotoActionTile(
                 icon: Icons.search,
                 title: 'Buscar pelo nome',
                 subtitle: 'Se você já sabe o nome popular ou científico',
@@ -267,90 +275,6 @@ class _Sending extends StatelessWidget {
             style: TextStyle(fontSize: 14, color: AppColors.inkMuted),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// One of the two big choices: dark green for the main one, mist for the
-/// other. Disabled (faded) while [onTap] is null.
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.subtitle,
-    this.primary = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final bool primary;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final foreground = primary ? Colors.white : AppColors.ink;
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      child: Opacity(
-        opacity: enabled ? 1 : 0.5,
-        child: Material(
-          color: primary ? AppColors.forest : AppColors.mist,
-          borderRadius: BorderRadius.circular(18),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(18),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 64),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 10,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      icon,
-                      color: primary ? Colors.white : AppColors.forest,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: foreground,
-                            ),
-                          ),
-                          if (subtitle != null)
-                            Text(
-                              subtitle!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: primary
-                                    ? const Color(0xFFDCE9DF)
-                                    : AppColors.inkMuted,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
