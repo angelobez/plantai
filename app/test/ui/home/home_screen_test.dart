@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:plantai/data/services/api/api_exception.dart';
+import 'package:plantai/domain/models/health_failure.dart';
 import 'package:plantai/ui/home/view_models/home_view_model.dart';
 import 'package:plantai/ui/home/widgets/home_screen.dart';
 
@@ -58,17 +58,17 @@ void main() {
     expect(retryButton, findsNothing);
   });
 
-  final retryableFailures = <String, (Object, String)>{
+  final retryableFailures = <String, (HealthFailure, String)>{
     'API unreachable': (
-      const ApiConnectionException(),
+      HealthFailure.noConnection,
       'Não foi possível falar com a API',
     ),
     'database down': (
-      const ApiException(status: 503, code: ApiErrorCode.healthCheckFailed),
+      HealthFailure.databaseDown,
       'A API respondeu, mas o banco de dados está fora do ar',
     ),
     'unknown error': (
-      const ApiException(status: 500, code: 'INTERNAL_ERROR'),
+      HealthFailure.unknown,
       'Algo deu errado ao falar com a API',
     ),
   };
@@ -90,7 +90,7 @@ void main() {
 
   testWidgets('"Tentar de novo" loads again', (tester) async {
     await pumpHome(tester);
-    repository.fail(const ApiConnectionException());
+    repository.fail(HealthFailure.noConnection);
     await tester.pumpAndSettle();
 
     await tester.tap(retryButton);
@@ -106,9 +106,7 @@ void main() {
     tester,
   ) async {
     await pumpHome(tester);
-    repository.fail(
-      const ApiException(status: 426, code: ApiErrorCode.appUpdateRequired),
-    );
+    repository.fail(HealthFailure.updateRequired);
     await tester.pumpAndSettle();
 
     expect(find.text('Atualize o PlantAí'), findsOneWidget);

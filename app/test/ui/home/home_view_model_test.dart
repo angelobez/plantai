@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:plantai/data/services/api/api_exception.dart';
+import 'package:plantai/domain/models/health_failure.dart';
 import 'package:plantai/ui/home/view_models/home_view_model.dart';
 
 import '../../testing/fake_health_repository.dart';
@@ -27,33 +27,13 @@ void main() {
     final state = viewModel.state;
     expect(state, isA<HomeConnected>());
     state as HomeConnected;
-    expect(state.apiVersion, '0.0.1');
-    expect(state.postgisVersion, '3.5.2');
+    expect(state.health.apiVersion, '0.0.1');
+    expect(state.health.postgisVersion, '3.5.2');
   });
 
-  final failures = <String, (Object, HomeFailure)>{
-    'API unreachable': (
-      const ApiConnectionException(),
-      HomeFailure.noConnection,
-    ),
-    'database down': (
-      const ApiException(status: 503, code: ApiErrorCode.healthCheckFailed),
-      HomeFailure.databaseDown,
-    ),
-    'app update required': (
-      const ApiException(status: 426, code: ApiErrorCode.appUpdateRequired),
-      HomeFailure.updateRequired,
-    ),
-    'unexpected API error': (
-      const ApiException(status: 500, code: 'INTERNAL_ERROR'),
-      HomeFailure.unknown,
-    ),
-    'error that is not from the API': (StateError('bug'), HomeFailure.unknown),
-  };
-
-  for (final MapEntry(key: name, value: (error, failure)) in failures.entries) {
-    test('loading -> failed ($name)', () async {
-      repository.fail(error);
+  for (final failure in HealthFailure.values) {
+    test('loading -> failed (${failure.name})', () async {
+      repository.fail(failure);
       await pumpEventQueue();
 
       final state = viewModel.state;
@@ -62,11 +42,23 @@ void main() {
     });
   }
 
+  test(
+    'loading -> failed (unknown) on an error that is not a HealthFailure',
+    () async {
+      repository.throwUnexpected(StateError('bug'));
+      await pumpEventQueue();
+
+      final state = viewModel.state;
+      expect(state, isA<HomeFailed>());
+      expect((state as HomeFailed).failure, HealthFailure.unknown);
+    },
+  );
+
   test('notifies listeners on every state change', () async {
     var notifications = 0;
     viewModel.addListener(() => notifications++);
 
-    repository.fail(const ApiConnectionException());
+    repository.fail(HealthFailure.noConnection);
     await pumpEventQueue();
     viewModel.load();
     repository.succeed();
@@ -76,7 +68,7 @@ void main() {
   });
 
   test('retrying after a failure loads again until connected', () async {
-    repository.fail(const ApiConnectionException());
+    repository.fail(HealthFailure.noConnection);
     await pumpEventQueue();
 
     viewModel.load();

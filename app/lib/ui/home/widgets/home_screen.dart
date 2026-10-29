@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../domain/models/health.dart';
+import '../../../domain/models/health_failure.dart';
 import '../view_models/home_view_model.dart';
 
 /// Opens [url] outside the app; returns whether it could.
@@ -34,12 +36,8 @@ class HomeScreen extends StatelessWidget {
               listenable: viewModel,
               builder: (context, _) => switch (viewModel.state) {
                 HomeLoading() => const _Loading(),
-                HomeConnected(:final apiVersion, :final postgisVersion) =>
-                  _Connected(
-                    apiVersion: apiVersion,
-                    postgisVersion: postgisVersion,
-                  ),
-                HomeFailed(failure: HomeFailure.updateRequired) =>
+                HomeConnected(:final health) => _Connected(health: health),
+                HomeFailed(failure: HealthFailure.updateRequired) =>
                   _UpdateRequired(openUrl: openUrl),
                 HomeFailed(:final failure) => _Failed(
                   message: _messageFor(failure),
@@ -53,14 +51,14 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  static String _messageFor(HomeFailure failure) => switch (failure) {
-    HomeFailure.noConnection =>
+  static String _messageFor(HealthFailure failure) => switch (failure) {
+    HealthFailure.noConnection =>
       'Não foi possível falar com a API. Confira se ela está rodando e se '
           'o celular está conectado ao notebook.',
-    HomeFailure.databaseDown =>
+    HealthFailure.databaseDown =>
       'A API respondeu, mas o banco de dados está fora do ar.',
-    HomeFailure.updateRequired ||
-    HomeFailure.unknown => 'Algo deu errado ao falar com a API.',
+    HealthFailure.updateRequired ||
+    HealthFailure.unknown => 'Algo deu errado ao falar com a API.',
   };
 }
 
@@ -81,10 +79,9 @@ class _Loading extends StatelessWidget {
 }
 
 class _Connected extends StatelessWidget {
-  const _Connected({required this.apiVersion, required this.postgisVersion});
+  const _Connected({required this.health});
 
-  final String apiVersion;
-  final String postgisVersion;
+  final Health health;
 
   @override
   Widget build(BuildContext context) {
@@ -95,8 +92,8 @@ class _Connected extends StatelessWidget {
         const SizedBox(height: 16),
         Text('Conectado à API', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        Text('Versão da API: $apiVersion'),
-        Text('Versão do PostGIS: $postgisVersion'),
+        Text('Versão da API: ${health.apiVersion}'),
+        Text('Versão do PostGIS: ${health.postgisVersion}'),
       ],
     );
   }
