@@ -3,6 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { AccessTokens } from './access-tokens';
 import { AuthGuard } from './auth.guard';
 import { EmailCodes } from './email-codes';
+import { LoginController } from './login/login.controller';
+import { LoginService } from './login/login.service';
 import { Sessions } from './sessions';
 import { SignupController } from './signup/signup.controller';
 import { SignupService } from './signup/signup.service';
@@ -16,12 +18,13 @@ import { SignupService } from './signup/signup.service';
  * for now), sharing {@link Sessions} (tokens) and {@link EmailCodes}.
  */
 @Module({
-  controllers: [SignupController],
+  controllers: [SignupController, LoginController],
   providers: [
     AccessTokens,
     EmailCodes,
     Sessions,
     SignupService,
+    LoginService,
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })
