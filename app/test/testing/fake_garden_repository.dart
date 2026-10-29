@@ -57,9 +57,10 @@ final pimentaDaVoItem = PlantSummary(
 );
 
 /// A [GardenRepository] the test drives: [plants] answers [garden],
-/// [plant] answers [plantsById], and [create] puts a new plant at the top of
-/// [garden], telling the listeners. Every call throws [failure] when set.
-/// It records the calls in [listed], [plantsAsked] and [created].
+/// [plant] answers [plantsById], [create] puts a new plant at the top of
+/// [garden], [update] renames one and [remove] takes it out, each telling
+/// the listeners. Every call throws [failure] when set. It records the calls
+/// in [listed], [plantsAsked], [created], [updated] and [removed].
 ///
 /// Set [gate] to hold every call until the test completes it.
 class FakeGardenRepository extends GardenRepository {
@@ -94,6 +95,12 @@ class FakeGardenRepository extends GardenRepository {
 
   /// Every plant saved, in order.
   final created = <NewPlant>[];
+
+  /// Every update, in order: the id and the fields given.
+  final updated = <({String id, String? commonName, String? speciesId})>[];
+
+  /// The id of every plant removed, in order.
+  final removed = <String>[];
 
   Future<void> _answer() async {
     await gate?.future;
@@ -139,5 +146,43 @@ class FakeGardenRepository extends GardenRepository {
     final plant = plantsById[id];
     if (plant == null) throw GardenFailure.notFound;
     return plant;
+  }
+
+  @override
+  Future<PlantSummary> update(
+    String id, {
+    String? commonName,
+    String? speciesId,
+  }) async {
+    updated.add((id: id, commonName: commonName, speciesId: speciesId));
+    await _answer();
+    final index = garden.indexWhere((plant) => plant.id == id);
+    final plant = plantsById[id];
+    if (index < 0 || plant == null) throw GardenFailure.notFound;
+    final item = garden[index];
+    final renamed = PlantSummary(
+      id: id,
+      commonName: commonName ?? item.commonName,
+      photo: item.photo,
+      species: item.species,
+    );
+    garden = [...garden]..[index] = renamed;
+    plantsById[id] = Plant(
+      id: id,
+      commonName: renamed.commonName,
+      photo: plant.photo,
+      species: plant.species,
+    );
+    notifyListeners();
+    return renamed;
+  }
+
+  @override
+  Future<void> remove(String id) async {
+    removed.add(id);
+    await _answer();
+    if (plantsById.remove(id) == null) throw GardenFailure.notFound;
+    garden = garden.where((plant) => plant.id != id).toList();
+    notifyListeners();
   }
 }

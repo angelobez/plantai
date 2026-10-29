@@ -41,6 +41,28 @@ class GardenRepositoryRemote extends GardenRepository {
     ),
   );
 
+  @override
+  Future<PlantSummary> update(
+    String id, {
+    String? commonName,
+    String? speciesId,
+  }) async {
+    final updated = await _guard(
+      () => _apiClient.patch(_plantPath(id), {
+        'commonName': ?commonName,
+        'speciesId': ?speciesId,
+      }, PlantSummary.fromJson),
+    );
+    notifyListeners();
+    return updated;
+  }
+
+  @override
+  Future<void> remove(String id) async {
+    await _guard(() => _apiClient.delete(_plantPath(id)));
+    notifyListeners();
+  }
+
   static String _plantPath(String id) =>
       '/v1/plants/${Uri.encodeComponent(id)}';
 

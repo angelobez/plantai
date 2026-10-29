@@ -13,8 +13,8 @@ import 'update_required.dart';
 /// reached). A `426 APP_UPDATE_REQUIRED` on any call also raises
 /// [UpdateRequired].
 ///
-/// Repositories call [get], [getList], [post], [patch], [postWithoutBody]
-/// and [postMultipart];
+/// Repositories call [get], [getList], [post], [patch], [delete],
+/// [postWithoutBody] and [postMultipart];
 /// cross-cutting behavior goes in as another [Interceptor] (the session's
 /// `Authorization` header is [BearerInterceptor]).
 class ApiClient {
@@ -125,6 +125,15 @@ class ApiClient {
     try {
       final response = await _dio.patch<Map<String, dynamic>>(path, data: body);
       return fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw _toApiError(error);
+    }
+  }
+
+  /// `DELETE` [path], for routes that answer `204` without a body.
+  Future<void> delete(String path) async {
+    try {
+      await _dio.delete<void>(path);
     } on DioException catch (error) {
       throw _toApiError(error);
     }

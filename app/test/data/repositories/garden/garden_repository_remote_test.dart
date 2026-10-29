@@ -170,6 +170,62 @@ void main() {
     expect(changes, 0);
   });
 
+  test('update patches only the fields it is given', () async {
+    adapter.respond = (_) async => jsonResponse(200, _itemJson);
+
+    final plant = await repository.update(
+      _plantId,
+      commonName: 'Jiboia da sala',
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/v1/plants/$_plantId');
+    expect(await sentJson(), {'commonName': 'Jiboia da sala'});
+    expect(plant.commonName, 'Jiboia da sala');
+  });
+
+  test('update tells its listeners, and a failed one does not', () async {
+    var changes = 0;
+    repository.addListener(() => changes += 1);
+    adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
+
+    await expectLater(
+      repository.update(_plantId, commonName: 'J'),
+      throwsA(GardenFailure.notFound),
+    );
+    expect(changes, 0);
+
+    adapter.respond = (_) async => jsonResponse(200, _itemJson);
+    await repository.update(_plantId, commonName: 'Jiboia da sala');
+    expect(changes, 1);
+  });
+
+  test('remove deletes the plant and tells its listeners', () async {
+    adapter.respond = (_) async => ResponseBody.fromString('', 204);
+    var changes = 0;
+    repository.addListener(() => changes += 1);
+
+    await repository.remove(_plantId);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'DELETE');
+    expect(request.path, '/v1/plants/$_plantId');
+    expect(changes, 1);
+  });
+
+  test('a remove that fails changes nothing', () async {
+    adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
+    var changes = 0;
+    repository.addListener(() => changes += 1);
+
+    await expectLater(
+      repository.remove(_plantId),
+      throwsA(GardenFailure.notFound),
+    );
+    expect(changes, 0);
+  });
+
   test('plant reads one plant with its species and care guide', () async {
     adapter.respond = (_) async => jsonResponse(200, _plantJson);
 

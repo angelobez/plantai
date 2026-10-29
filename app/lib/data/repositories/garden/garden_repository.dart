@@ -19,4 +19,15 @@ abstract class GardenRepository extends ChangeNotifier {
   /// species waits while Claude writes the guide; when another reading is
   /// writing it, throws `CareGuideGenerating` instead.
   Future<Plant> plant(String id);
+
+  /// Changes plant [id]: only the fields given (a new [commonName], the
+  /// [speciesId] of a plant saved without one). Answers it as in the list.
+  Future<PlantSummary> update(
+    String id, {
+    String? commonName,
+    String? speciesId,
+  });
+
+  /// Removes plant [id] and its photo from the garden.
+  Future<void> remove(String id);
 }
