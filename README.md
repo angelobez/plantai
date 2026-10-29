@@ -45,6 +45,8 @@ curl localhost:3000/v1/health
 
 `npm run db:down` stops the database and keeps its data. After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
 
+**Google Sign-In:** `scripts/google-oauth-wizard.sh` walks through recreating the Google Cloud project, the consent screen and the OAuth clients (two Android, one Web) from scratch, reading both SHA-1s with `keytool`, and writes `GOOGLE_WEB_CLIENT_ID` to `api/.env`. The Web client secret is never stored.
+
 ### API contract (OpenAPI)
 `http://localhost:3000/docs` shows the Swagger UI, and `/docs/openapi.json` the document, generated from the routes' Zod schemas by `nestjs-zod`. Both are public. The document is versioned in `api/openapi.json`, and `test/openapi.spec.ts` fails when the generated one differs, so every contract change shows up in the PR diff.
 
