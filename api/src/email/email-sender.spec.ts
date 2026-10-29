@@ -10,6 +10,8 @@ const env = {
   JWT_SECRET: 'a-test-secret-that-is-at-least-32-chars',
   GOOGLE_WEB_CLIENT_ID: 'web-client',
   EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
+  S3_BUCKET: 'unused',
+  S3_REGION: 'us-east-1',
 };
 
 describe('createEmailSender', () => {

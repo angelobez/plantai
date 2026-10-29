@@ -3,12 +3,8 @@ import {
   floraTaxonUrl,
   splitCommonNames,
 } from './common-names';
-import {
-  gbifMatchUrl,
-  gbifPortugueseNames,
-  gbifVernacularNamesUrl,
-  resolveGbifMatch,
-} from './gbif';
+import { type FetchJson, HttpGbifNames } from '../../src/gbif/http-gbif-names';
+import { gbifPortugueseNames, gbifVernacularNamesUrl } from './gbif';
 import {
   commonsImageInfoUrl,
   p18FileNames,
@@ -21,7 +17,7 @@ import {
 import type { Discard, SeedSpecies } from './seed';
 
 /** GET a URL and parse the JSON body. The real one caches on disk. */
-export type FetchJson = (url: string) => Promise<unknown>;
+export type { FetchJson };
 
 export interface SeedResult {
   species: SeedSpecies[];
@@ -66,10 +62,8 @@ async function buildOne(
 ): Promise<SeedSpecies | Discard> {
   const discard = (reason: string): Discard => ({ name: proposed, reason });
 
-  const gbif = resolveGbifMatch(
-    proposed,
-    await fetchJson(gbifMatchUrl(proposed)),
-  );
+  // The same GBIF resolution as the API's.
+  const gbif = await new HttpGbifNames(fetchJson).resolve(proposed);
   if (!gbif.ok) return discard(gbif.reason);
   const duplicateOf = seenKeys.get(gbif.gbifKey);
   if (duplicateOf !== undefined) {

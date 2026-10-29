@@ -12,7 +12,7 @@ Decisões que este documento pressupõe:
 
 ## Convenções
 
-- **Banco:** PostgreSQL com PostGIS (`postgis`, `unaccent` e `citext`), schema e migrations em Drizzle.
+- **Banco:** PostgreSQL com PostGIS (`postgis`, `unaccent`, `citext` e `pg_trgm`), schema e migrations em Drizzle.
 - **IDs:** UUIDv7 em tudo que aparece na API. Datas em `timestamptz`; na API, ISO 8601 em UTC.
 - **"Hoje":** o dia vira à meia-noite de `America/Sao_Paulo`. É o que vale para os limites diários.
 - **Contrato:** REST com JSON e prefixo `/v1`. Os schemas Zod são a fonte única de verdade; deles sai o OpenAPI, servido em `/docs`. No CI, um teste compara o OpenAPI com o snapshot versionado.
@@ -81,10 +81,11 @@ erDiagram
 | `origin` | `seed` \| `identification` | |
 | `created_at` | timestamptz | |
 
-Exatamente um dos dois campos de foto (`reference_photo_s3_key` ou `reference_photo_url`) tem valor (`CHECK`).
+Exatamente um dos dois campos de foto (`reference_photo_s3_key` ou `reference_photo_url`) tem valor (`CHECK`). Na carga da semente, a espécie nasce com a URL do Wikimedia em `reference_photo_url` e passa para `reference_photo_s3_key` quando a cópia para o armazenamento dá certo; se a cópia falhar, a foto continua pela URL externa até a próxima carga.
 
 **`species_names`**: `id`, `species_id`, `name`, `name_normalized` (coluna gerada com `lower(unaccent(name))`), `is_primary`.
-- Um índice único parcial garante um só `is_primary` por espécie.
+- Um índice único parcial garante um só `is_primary` por espécie, e `(species_id, name)` é único, para a carga da semente não duplicar nomes.
+- O `unaccent` não é `IMMUTABLE`; a coluna gerada e os índices usam o wrapper `public.immutable_unaccent`. A busca tem índices trigram (`pg_trgm`) em `name_normalized` e em `lower(immutable_unaccent(scientific_name))`.
 - **O nome principal da semente:** vem da Flora e Funga do Brasil.
 - **O nome principal de uma espécie nova:** vem do Claude.
 - **O nome do Claude quando já existe um principal:** entra como nome alternativo, se for diferente.
@@ -133,7 +134,7 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 |---|---|---|
 | `id` | uuid | |
 | `user_id` | uuid | |
-| `photo_id` | uuid | |
+| `photo_id` | uuid, nulo | `ON DELETE SET NULL`: a foto some com a planta, mas a linha fica, porque conta o uso do Pl@ntNet |
 | `result` | `recognized` \| `not_recognized` | `not_recognized` quando o top 1 tem `score` < 0,2 ou não há candidatos |
 | `candidates` | jsonb | Até 3: `scientificName`, `commonName` (`pt`, cru do Pl@ntNet), `score`, `gbifKey`, `images[]` com `url`, `author` e `license` |
 | `chosen_species_id` | uuid, nulo | |
@@ -190,7 +191,8 @@ Não tem tabela própria:
 2. **Envio:** `POST /v1/photos` em multipart. O teto do Lambda é 6 MB.
 3. **Na API:** o `sharp` gira a imagem conforme a orientação, remove todo o EXIF (inclusive o GPS) e grava no S3 com a tag `unattached=true`.
 4. **Nas respostas:** a foto aparece como `{ id, url, expiresAt }`, em que `url` é pré-assinada e vale 1 h. O app usa o `id` como chave de cache no `cached_network_image`.
-5. **Fotos de referência:** as do Catálogo e as dos candidatos vêm como `{ url, author, license, sourceUrl }`. A `url` é pré-assinada (S3) ou externa (Pl@ntNet).
+5. **Local:** em vez do S3, um emulador (RustFS) no `compose.yaml`, com o bucket privado criado ao subir. O mesmo código fala com os dois; muda só o `.env` (`S3_ENDPOINT` e as chaves só existem no local). A URL pré-assinada é assinada com `http://localhost:9000`, e o `npm run dev:phone` faz `adb reverse` dessa porta. A regra de ciclo de vida não existe no emulador.
+6. **Fotos de referência:** as do Catálogo e as dos candidatos vêm como `{ url, author, license, sourceUrl }`. A `url` é pré-assinada (S3) ou externa (Pl@ntNet).
 
 ## Endpoints
 

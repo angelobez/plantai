@@ -7,6 +7,8 @@ const validEnv = {
   JWT_SECRET: 'a-test-secret-that-is-at-least-32-chars',
   GOOGLE_WEB_CLIENT_ID: 'web-client.apps.googleusercontent.com',
   EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
+  S3_BUCKET: 'plantai-photos',
+  S3_REGION: 'us-east-1',
 };
 
 describe('parseEnv', () => {
@@ -18,7 +20,42 @@ describe('parseEnv', () => {
       JWT_SECRET: 'a-test-secret-that-is-at-least-32-chars',
       GOOGLE_WEB_CLIENT_ID: 'web-client.apps.googleusercontent.com',
       EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
+      S3_BUCKET: 'plantai-photos',
+      S3_REGION: 'us-east-1',
     });
+  });
+
+  it('keeps the S3 emulator endpoint and its keys when they are set', () => {
+    expect(
+      parseEnv({
+        ...validEnv,
+        S3_ENDPOINT: 'http://localhost:9000',
+        S3_ACCESS_KEY_ID: 'plantai',
+        S3_SECRET_ACCESS_KEY: 'plantai-secret',
+      }),
+    ).toMatchObject({
+      S3_ENDPOINT: 'http://localhost:9000',
+      S3_ACCESS_KEY_ID: 'plantai',
+      S3_SECRET_ACCESS_KEY: 'plantai-secret',
+    });
+  });
+
+  it('treats empty S3 endpoint and keys as unset, as on Lambda', () => {
+    const env = parseEnv({
+      ...validEnv,
+      S3_ENDPOINT: '',
+      S3_ACCESS_KEY_ID: '',
+      S3_SECRET_ACCESS_KEY: '',
+    });
+    expect(env.S3_ENDPOINT).toBeUndefined();
+    expect(env.S3_ACCESS_KEY_ID).toBeUndefined();
+    expect(env.S3_SECRET_ACCESS_KEY).toBeUndefined();
+  });
+
+  it('fails when only one of the S3 keys is set', () => {
+    expect(() =>
+      parseEnv({ ...validEnv, S3_ACCESS_KEY_ID: 'plantai' }),
+    ).toThrow(/S3_SECRET_ACCESS_KEY/);
   });
 
   it('keeps RESEND_API_KEY when it is set', () => {
@@ -39,14 +76,17 @@ describe('parseEnv', () => {
     );
   });
 
-  it.each(['GOOGLE_WEB_CLIENT_ID', 'EMAIL_FROM', 'JWT_SECRET'])(
-    'fails when %s is missing',
-    (name) => {
-      expect(() => parseEnv({ ...validEnv, [name]: undefined })).toThrow(
-        new RegExp(name),
-      );
-    },
-  );
+  it.each([
+    'GOOGLE_WEB_CLIENT_ID',
+    'EMAIL_FROM',
+    'JWT_SECRET',
+    'S3_BUCKET',
+    'S3_REGION',
+  ])('fails when %s is missing', (name) => {
+    expect(() => parseEnv({ ...validEnv, [name]: undefined })).toThrow(
+      new RegExp(name),
+    );
+  });
 
   it('fails naming the missing variable', () => {
     expect(() => parseEnv({ ...validEnv, DATABASE_URL: undefined })).toThrow(
