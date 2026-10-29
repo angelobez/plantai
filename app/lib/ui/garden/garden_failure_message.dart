@@ -9,5 +9,8 @@ String gardenFailureMessage(
   GardenFailure.noConnection =>
     'Sem conexão com a internet. Confira a rede e tente de novo.',
   GardenFailure.notFound => notFound,
+  GardenFailure.speciesAlreadySet =>
+    'Essa planta já tem uma espécie. Se ela estiver errada, remova a planta '
+        'e adicione de novo.',
   GardenFailure.unknown => 'Algo deu errado. Tente de novo.',
 };

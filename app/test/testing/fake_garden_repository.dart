@@ -6,6 +6,7 @@ import 'package:plantai/data/services/api/models/plant.dart';
 import 'package:plantai/domain/models/care_guide_generating.dart';
 import 'package:plantai/domain/models/garden_failure.dart';
 import 'package:plantai/domain/models/new_plant.dart';
+import 'package:plantai/domain/models/plant_changes.dart';
 
 import 'fake_catalog_repository.dart';
 
@@ -58,8 +59,11 @@ final pimentaDaVoItem = PlantSummary(
 
 /// A [GardenRepository] the test drives: [plants] answers [garden],
 /// [plant] answers [plantsById], and [create] puts a new plant at the top of
-/// [garden], telling the listeners. Every call throws [failure] when set.
-/// It records the calls in [listed], [plantsAsked] and [created].
+/// [garden], telling the listeners. [update] changes the plant in
+/// [plantsById] and [garden] (a species becomes [monstera]; a plant that has
+/// one throws [GardenFailure.speciesAlreadySet]), telling the listeners too.
+/// Every call throws [failure] when set. It records the calls in [listed],
+/// [plantsAsked], [created] and [updates].
 ///
 /// Set [gate] to hold every call until the test completes it.
 class FakeGardenRepository extends GardenRepository {
@@ -94,6 +98,9 @@ class FakeGardenRepository extends GardenRepository {
 
   /// Every plant saved, in order.
   final created = <NewPlant>[];
+
+  /// Every change asked for, in order, with the plant's id.
+  final updates = <(String, PlantChanges)>[];
 
   Future<void> _answer() async {
     await gate?.future;
@@ -139,5 +146,38 @@ class FakeGardenRepository extends GardenRepository {
     final plant = plantsById[id];
     if (plant == null) throw GardenFailure.notFound;
     return plant;
+  }
+
+  @override
+  Future<PlantSummary> update(String id, PlantChanges changes) async {
+    updates.add((id, changes));
+    await _answer();
+    final plant = plantsById[id];
+    if (plant == null) throw GardenFailure.notFound;
+    if (changes.speciesId != null && plant.species != null) {
+      throw GardenFailure.speciesAlreadySet;
+    }
+    final changed = Plant(
+      id: id,
+      commonName: changes.commonName ?? plant.commonName,
+      photo: plant.photo,
+      species: changes.speciesId != null ? monstera : plant.species,
+    );
+    plantsById[id] = changed;
+    final item = PlantSummary(
+      id: id,
+      commonName: changed.commonName,
+      photo: changed.photo,
+      species: changed.species == null
+          ? null
+          : PlantSpeciesSummary(
+              id: changed.species!.id,
+              commonName: changed.species!.commonName,
+              scientificName: changed.species!.scientificName,
+            ),
+    );
+    garden = [for (final p in garden) p.id == id ? item : p];
+    notifyListeners();
+    return item;
   }
 }

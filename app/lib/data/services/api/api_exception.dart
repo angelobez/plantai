@@ -15,6 +15,7 @@ enum ApiErrorCode {
   identificationDailyLimit('IDENTIFICATION_DAILY_LIMIT'),
   identificationServiceUnavailable('IDENTIFICATION_SERVICE_UNAVAILABLE'),
   identificationAlreadyChosen('IDENTIFICATION_ALREADY_CHOSEN'),
+  speciesAlreadySet('SPECIES_ALREADY_SET'),
 
   /// `202`: another request is writing the care guide; try again after
   /// [ApiException.retryAfter].

@@ -11,6 +11,7 @@ import 'package:plantai/data/services/session/session_store.dart';
 import 'package:plantai/domain/models/care_guide_generating.dart';
 import 'package:plantai/domain/models/garden_failure.dart';
 import 'package:plantai/domain/models/new_plant.dart';
+import 'package:plantai/domain/models/plant_changes.dart';
 
 import '../../../testing/fake_http_client_adapter.dart';
 
@@ -166,6 +167,45 @@ void main() {
     await expectLater(
       repository.create(const NewPlant(photoId: _photoId, commonName: 'J')),
       throwsA(GardenFailure.notFound),
+    );
+    expect(changes, 0);
+  });
+
+  test('update patches only the fields it is given', () async {
+    adapter.respond = (_) async => jsonResponse(200, _itemJson);
+    final plant = await repository.update(
+      _plantId,
+      const PlantChanges(speciesId: _speciesId),
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/v1/plants/$_plantId');
+    expect(await sentJson(), {'speciesId': _speciesId});
+    expect(plant.species?.id, _speciesId);
+  });
+
+  test('update tells its listeners the garden changed', () async {
+    adapter.respond = (_) async => jsonResponse(200, _itemJson);
+    var changes = 0;
+    repository.addListener(() => changes += 1);
+
+    await repository.update(
+      _plantId,
+      const PlantChanges(speciesId: _speciesId),
+    );
+
+    expect(changes, 1);
+  });
+
+  test('SPECIES_ALREADY_SET becomes GardenFailure.speciesAlreadySet', () async {
+    adapter.respond = (_) async => problemResponse(409, 'SPECIES_ALREADY_SET');
+    var changes = 0;
+    repository.addListener(() => changes += 1);
+
+    await expectLater(
+      repository.update(_plantId, const PlantChanges(speciesId: _speciesId)),
+      throwsA(GardenFailure.speciesAlreadySet),
     );
     expect(changes, 0);
   });
