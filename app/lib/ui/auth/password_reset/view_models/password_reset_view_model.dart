@@ -1,10 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 
 import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
+import '../../resend_countdown.dart';
 import '../../validators.dart';
 
 /// The two steps of "Esqueci a senha".
@@ -30,7 +29,10 @@ class PasswordResetViewModel extends ChangeNotifier {
   /// How long to wait between codes.
   final Duration resendCooldown;
 
-  Timer? _cooldown;
+  late final _countdown = ResendCountdown(
+    duration: resendCooldown,
+    onTick: _notify,
+  );
   bool _disposed = false;
 
   PasswordResetStep _step = PasswordResetStep.email;
@@ -45,13 +47,11 @@ class PasswordResetViewModel extends ChangeNotifier {
 
   bool _isResending = false;
 
-  int _resendSecondsLeft = 0;
-
   /// Seconds until "reenviar código" works again; 0 when it does.
-  int get resendSecondsLeft => _resendSecondsLeft;
+  int get resendSecondsLeft => _countdown.secondsLeft;
 
   bool get canResend =>
-      _resendSecondsLeft == 0 && !_isResending && !_isSubmitting;
+      resendSecondsLeft == 0 && !_isResending && !_isSubmitting;
 
   String? _emailError;
   String? get emailError => _emailError;
@@ -86,7 +86,7 @@ class PasswordResetViewModel extends ChangeNotifier {
       await _authRepository.requestPasswordReset(trimmed);
       _email = trimmed;
       _step = PasswordResetStep.code;
-      _startCooldown();
+      _countdown.restart();
     } on AuthFailure catch (failure) {
       _error = authFailureMessage(failure);
     } finally {
@@ -133,7 +133,7 @@ class PasswordResetViewModel extends ChangeNotifier {
     try {
       await _authRepository.requestPasswordReset(_email);
       _notice = 'Enviamos um código novo.';
-      _startCooldown();
+      _countdown.restart();
     } on AuthFailure catch (failure) {
       _error = authFailureMessage(failure);
     } finally {
@@ -157,19 +157,6 @@ class PasswordResetViewModel extends ChangeNotifier {
     _notice = null;
   }
 
-  void _startCooldown() {
-    _cooldown?.cancel();
-    _resendSecondsLeft = resendCooldown.inSeconds;
-    _cooldown = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _resendSecondsLeft -= 1;
-      if (_resendSecondsLeft <= 0) {
-        _resendSecondsLeft = 0;
-        timer.cancel();
-      }
-      _notify();
-    });
-  }
-
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -177,7 +164,7 @@ class PasswordResetViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _cooldown?.cancel();
+    _countdown.dispose();
     super.dispose();
   }
 }
