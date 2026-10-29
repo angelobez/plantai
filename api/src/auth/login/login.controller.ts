@@ -16,7 +16,7 @@ export class LoginController {
   @Post('login')
   @HttpCode(200)
   @ZodResponse({ status: 200, type: AuthTokens })
-  @ApiProblems('INVALID_CREDENTIALS', 'EMAIL_NOT_VERIFIED')
+  @ApiProblems('INVALID_CREDENTIALS', 'EMAIL_NOT_VERIFIED', 'TOO_MANY_REQUESTS')
   logIn(@Body() body: LoginRequest): Promise<AuthTokens> {
     return this.login.logIn(body);
   }

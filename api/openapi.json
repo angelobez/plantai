@@ -79,6 +79,31 @@
               }
             }
           },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
           "500": {
             "description": "INTERNAL_ERROR",
             "content": {
@@ -187,6 +212,31 @@
                           "type": "string",
                           "enum": [
                             "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
                           ]
                         }
                       }
@@ -362,6 +412,31 @@
               }
             }
           },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
           "500": {
             "description": "INTERNAL_ERROR",
             "content": {
@@ -504,6 +579,31 @@
               }
             }
           },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
           "500": {
             "description": "INTERNAL_ERROR",
             "content": {
@@ -605,6 +705,31 @@
                           "type": "string",
                           "enum": [
                             "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
                           ]
                         }
                       }
@@ -780,6 +905,31 @@
               }
             }
           },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
           "500": {
             "description": "INTERNAL_ERROR",
             "content": {
@@ -880,6 +1030,31 @@
                           "type": "string",
                           "enum": [
                             "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
                           ]
                         }
                       }
@@ -997,6 +1172,31 @@
                           "type": "string",
                           "enum": [
                             "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "TOO_MANY_REQUESTS",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "TOO_MANY_REQUESTS"
                           ]
                         }
                       }

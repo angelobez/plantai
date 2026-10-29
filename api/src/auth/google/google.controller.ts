@@ -16,7 +16,11 @@ export class GoogleController {
   @Post('google')
   @HttpCode(200)
   @ZodResponse({ status: 200, type: AuthTokens })
-  @ApiProblems('INVALID_CREDENTIALS', 'GOOGLE_ACCOUNT_LINK_REFUSED')
+  @ApiProblems(
+    'INVALID_CREDENTIALS',
+    'GOOGLE_ACCOUNT_LINK_REFUSED',
+    'TOO_MANY_REQUESTS',
+  )
   signIn(@Body() body: GoogleRequest): Promise<AuthTokens> {
     return this.google.signIn(body);
   }

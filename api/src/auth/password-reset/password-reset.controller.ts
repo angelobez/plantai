@@ -4,6 +4,7 @@ import { ZodResponse } from 'nestjs-zod';
 import { ApiProblems } from '../../openapi/api-problems.decorator';
 import { AuthTokens } from '../auth-tokens.dto';
 import { Public } from '../public.decorator';
+import { LimitsEmailsSent } from '../rate-limits';
 import {
   PasswordResetConfirmRequest,
   PasswordResetRequest,
@@ -17,6 +18,7 @@ export class PasswordResetController {
   constructor(private readonly passwordReset: PasswordResetService) {}
 
   @Post('request')
+  @LimitsEmailsSent()
   @HttpCode(204)
   @ApiResponse({
     status: 204,
@@ -24,7 +26,7 @@ export class PasswordResetController {
       'No body. The same with and without an account; only an account ' +
       'gets the e-mail with the code',
   })
-  @ApiProblems()
+  @ApiProblems('TOO_MANY_REQUESTS')
   async request(@Body() body: PasswordResetRequest): Promise<void> {
     await this.passwordReset.request(body);
   }
@@ -32,7 +34,7 @@ export class PasswordResetController {
   @Post('confirm')
   @HttpCode(200)
   @ZodResponse({ status: 200, type: AuthTokens })
-  @ApiProblems('INVALID_CODE')
+  @ApiProblems('INVALID_CODE', 'TOO_MANY_REQUESTS')
   confirm(@Body() body: PasswordResetConfirmRequest): Promise<AuthTokens> {
     return this.passwordReset.confirm(body);
   }

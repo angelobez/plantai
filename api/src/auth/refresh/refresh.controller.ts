@@ -21,7 +21,7 @@ export class RefreshController {
       'sent stops working; sending it again revokes the whole family.',
   })
   @ZodResponse({ status: 200, type: AuthTokens })
-  @ApiProblems('UNAUTHENTICATED')
+  @ApiProblems('UNAUTHENTICATED', 'TOO_MANY_REQUESTS')
   renew(@Body() body: RefreshRequest): Promise<AuthTokens> {
     return this.refresh.renew(body.refreshToken);
   }
