@@ -1,0 +1,87 @@
+{
+  "claims": {
+    "P18": [
+      {
+        "mainsnak": {
+          "snaktype": "value",
+          "property": "P18",
+          "hash": "024ec0d20f6939fac2c13d32d4dcaa6ed207d6d4",
+          "datavalue": {
+            "value": "Epipremnum aureum 31082012.jpg",
+            "type": "string"
+          },
+          "datatype": "commonsMedia"
+        },
+        "type": "statement",
+        "id": "Q161809$E3295BAD-503F-4028-8E31-970CAE701CBC",
+        "rank": "normal"
+      },
+      {
+        "mainsnak": {
+          "snaktype": "value",
+          "property": "P18",
+          "hash": "4fcfe15d2fffed1917db4bc8ced1c888941265b2",
+          "datavalue": {
+            "value": "Epipremnum pinnatum var.jpg",
+            "type": "string"
+          },
+          "datatype": "commonsMedia"
+        },
+        "type": "statement",
+        "qualifiers": {
+          "P2096": [
+            {
+              "snaktype": "value",
+              "property": "P2096",
+              "hash": "ddbeb81a7e81dbc003cc5ca05ba0642a8bf6b3b9",
+              "datavalue": {
+                "value": {
+                  "text": "Un cultivar variegat d'Epipremnum aureum",
+                  "language": "ca"
+                },
+                "type": "monolingualtext"
+              },
+              "datatype": "monolingualtext"
+            }
+          ]
+        },
+        "qualifiers-order": ["P2096"],
+        "id": "Q161809$459E1B6A-2724-45E5-B354-0B995587F780",
+        "rank": "normal"
+      },
+      {
+        "mainsnak": {
+          "snaktype": "value",
+          "property": "P18",
+          "hash": "4f4e1ae0ded425302dae777cd9787f40ffb4fc56",
+          "datavalue": {
+            "value": "Epipremnum aurem flower.png",
+            "type": "string"
+          },
+          "datatype": "commonsMedia"
+        },
+        "type": "statement",
+        "qualifiers": {
+          "P2096": [
+            {
+              "snaktype": "value",
+              "property": "P2096",
+              "hash": "21001b154f0c758ce4c8e9113860634a6c16138c",
+              "datavalue": {
+                "value": {
+                  "text": "Induced flowering of Epipremnum aureum",
+                  "language": "en"
+                },
+                "type": "monolingualtext"
+              },
+              "datatype": "monolingualtext"
+            }
+          ]
+        },
+        "qualifiers-order": ["P2096"],
+        "id": "Q161809$0cf1a0e4-454f-9c7e-7d39-b4284ff8dc6f",
+        "rank": "normal"
+      }
+    ]
+  }
+}
