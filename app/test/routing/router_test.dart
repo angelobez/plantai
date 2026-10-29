@@ -7,6 +7,7 @@ import 'package:plantai/routing/router.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
 
 import '../testing/fake_auth_repository.dart';
+import '../testing/fake_profile_repository.dart';
 
 void main() {
   late UpdateRequired updateRequired;
@@ -24,6 +25,7 @@ void main() {
       PlantaiApp(
         updateRequired: updateRequired,
         authRepository: authRepository,
+        profileRepository: FakeProfileRepository(),
         openUrl: (url) async {
           openedUrls.add(url);
           return true;
@@ -65,13 +67,13 @@ void main() {
 
     await tester.tap(tab('Perfil'));
     await tester.pumpAndSettle();
-    expect(find.text('Seu perfil'), findsOneWidget);
+    expect(find.text('marina@email.com'), findsOneWidget);
     expect(find.text('Meu jardim'), findsNothing);
 
     await tester.tap(tab('Por perto'));
     await tester.pumpAndSettle();
     expect(find.text('Mudas por perto'), findsOneWidget);
-    expect(find.text('Seu perfil'), findsNothing);
+    expect(find.text('marina@email.com'), findsNothing);
   });
 
   testWidgets('the camera button shows "em breve" and goes back', (
@@ -206,6 +208,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Mudas por perto'), findsOneWidget);
+    });
+
+    testWidgets('Sair in Perfil goes to Login', (tester) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Perfil'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Sair'));
+      await tester.pumpAndSettle();
+
+      expect(authRepository.calls.last, 'signOut()');
+      expect(find.text('Entrar com e-mail'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsNothing);
     });
 
     testWidgets('ending the session goes to Login', (tester) async {

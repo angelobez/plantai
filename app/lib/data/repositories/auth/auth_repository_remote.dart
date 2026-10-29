@@ -67,6 +67,23 @@ class AuthRepositoryRemote extends AuthRepository {
     await _startSession(tokens);
   }
 
+  @override
+  Future<void> signOut() async {
+    final session = _sessionStore.session;
+    try {
+      if (session != null) {
+        await _apiClient.postWithoutBody('/v1/auth/logout', {
+          'refreshToken': session.refreshToken,
+        });
+      }
+    } on Exception {
+      // Offline or refused: the token stays valid on the API until it
+      // expires, but this phone no longer has it.
+    } finally {
+      await _sessionStore.clear();
+    }
+  }
+
   Future<void> _startSession(AuthTokens tokens) async {
     _pendingEmail = null;
     _resend = null;

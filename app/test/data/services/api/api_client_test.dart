@@ -153,4 +153,18 @@ void main() {
       ),
     );
   });
+
+  test('patch sends the JSON body and parses the answer', () async {
+    adapter.respond = (_) async => jsonResponse(200, {'name': 'Marina'});
+
+    final name = await client.patch('/v1/me', {
+      'name': 'Marina',
+    }, (json) => json['name']);
+
+    expect(name, 'Marina');
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/v1/me');
+    expect(jsonDecode(jsonEncode(request.data)), {'name': 'Marina'});
+  });
 }

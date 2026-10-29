@@ -61,4 +61,13 @@ class FakeAuthRepository extends AuthRepository {
     _pendingEmail = null;
     setSignedIn(true);
   }
+
+  /// Records the call and ends the session, even when [failure] is set: the
+  /// real one forgets the tokens whatever the API answers.
+  @override
+  Future<void> signOut() async {
+    calls.add('signOut()');
+    await gate?.future;
+    setSignedIn(false);
+  }
 }
