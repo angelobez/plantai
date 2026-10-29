@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUIDv7 } from 'node:crypto';
-import { sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { DATABASE, type Database } from '../database/database.module';
 import { refreshTokens, type User } from '../database/schema';
 import { toUserProfile } from '../profile/user-profile.dto';
@@ -22,8 +22,16 @@ export class Sessions {
   ) {}
 
   /** A new session for [user]: an access token and a new refresh token family. */
-  async start(user: User): Promise<AuthTokens> {
-    const refreshToken = await this.issueRefreshToken(user.id, randomUUIDv7());
+  start(user: User): Promise<AuthTokens> {
+    return this.resume(user, randomUUIDv7());
+  }
+
+  /**
+   * The tokens for [user] going on in [familyId]: a new access token and a
+   * new refresh token of that family (`POST /auth/refresh`).
+   */
+  async resume(user: User, familyId: string): Promise<AuthTokens> {
+    const refreshToken = await this.issueRefreshToken(user.id, familyId);
     return {
       accessToken: this.accessTokens.issue(user.id),
       refreshToken,
@@ -44,5 +52,18 @@ export class Sessions {
       expiresAt: sql`now() + make_interval(days => ${REFRESH_TOKEN_TTL_DAYS})`,
     });
     return token;
+  }
+
+  /** Revokes every refresh token of [familyId] still in use. */
+  async revokeFamily(familyId: string): Promise<void> {
+    await this.db
+      .update(refreshTokens)
+      .set({ revokedAt: sql`now()` })
+      .where(
+        and(
+          eq(refreshTokens.familyId, familyId),
+          isNull(refreshTokens.revokedAt),
+        ),
+      );
   }
 }
