@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ENV } from '../config/config.module';
 import { AccessTokens } from './access-tokens';
 import { AuthGuard } from './auth.guard';
@@ -14,6 +15,7 @@ import { LogoutController } from './logout/logout.controller';
 import { LogoutService } from './logout/logout.service';
 import { PasswordResetController } from './password-reset/password-reset.controller';
 import { PasswordResetService } from './password-reset/password-reset.service';
+import { AUTH_RATE_LIMITS, AuthRateLimitGuard } from './rate-limits';
 import { RefreshController } from './refresh/refresh.controller';
 import { RefreshService } from './refresh/refresh.service';
 import { Sessions } from './sessions';
@@ -26,9 +28,11 @@ import { SignupService } from './signup/signup.service';
  * `@CurrentUser()`.
  *
  * Each way in has its own folder with controller, service and DTOs (`signup/`
- * for now), sharing {@link Sessions} (tokens) and {@link EmailCodes}.
+ * for now), sharing {@link Sessions} (tokens) and {@link EmailCodes}. Every
+ * `/auth` route is rate limited ({@link AUTH_RATE_LIMITS}).
  */
 @Module({
+  imports: [ThrottlerModule.forRoot(AUTH_RATE_LIMITS)],
   controllers: [
     SignupController,
     LoginController,
@@ -52,6 +56,7 @@ import { SignupService } from './signup/signup.service';
       useFactory: createGoogleTokenVerifier,
     },
     PasswordResetService,
+    { provide: APP_GUARD, useClass: AuthRateLimitGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
 })

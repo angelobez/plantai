@@ -54,6 +54,8 @@ Every route requires `Authorization: Bearer <access token>` (a 15-minute JWT sig
 - Each way in has its own folder (`auth/signup/`), and all of them end in `Sessions.start(user)`, which answers `{ accessToken, refreshToken, user }`.
 - `POST /auth/refresh` (`auth/refresh/`) rotates the refresh token: the one sent is revoked and a new pair of the same family comes back. A revoked token sent again revokes the whole family (`Sessions.revokeFamily`). The app's `ApiClient` calls it by itself on a `401 UNAUTHENTICATED`.
 - `POST /auth/google` (`auth/google/`) checks the app's ID token through the `GoogleTokenVerifier` port (`google-auth-library`, audience `GOOGLE_WEB_CLIENT_ID`) and joins an existing account only as ADR 0001 allows. Tests swap the port for `FakeGoogleVerifier` (`createTestApp(env, { googleVerifier })`).
+- Rate limits (`auth/rate-limits.ts`, `@nestjs/throttler` in memory) cover every `/auth` route through a global guard: 20 requests per minute per IP, plus 5 per 15 minutes per e-mail of the body (3 on the routes that send an e-mail, marked `@LimitsEmailsSent()`). Over the limit: `429 TOO_MANY_REQUESTS`; list it in the route's `@ApiProblems`. Tests run without limits unless they pass `createTestApp(env, { realRateLimits: true })` (`test/auth-rate-limits.spec.ts`).
+- The request logger never logs bodies, and redacts `Authorization`.
 
 Without `RESEND_API_KEY`, e-mails are not sent: the API log shows them, sign-up code included. With the key and `EMAIL_FROM=onboarding@resend.dev`, Resend delivers in test mode, only to the e-mail of the Resend account.
 

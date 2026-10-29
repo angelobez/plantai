@@ -1,5 +1,6 @@
 import type { INestApplication, LoggerService, Type } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
+import { ThrottlerStorage } from '@nestjs/throttler';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
@@ -24,11 +25,28 @@ export interface TestAppOptions {
    * tokens; without it, a throwaway one rejects every token.
    */
   googleVerifier?: FakeGoogleVerifier;
+  /**
+   * Keeps the real `/auth` rate limits. Without it no request is ever limited,
+   * so a test may call `/auth` as often as it needs.
+   */
+  realRateLimits?: boolean;
 }
+
+/** Counts nothing and never blocks. */
+const unlimitedStorage: ThrottlerStorage = {
+  increment: () =>
+    Promise.resolve({
+      totalHits: 0,
+      timeToExpire: 0,
+      isBlocked: false,
+      timeToBlockExpire: 0,
+    }),
+};
 
 /**
  * The whole Nest app, configured exactly like the real entry points. Only the
- * ports to external services (e-mail, Google) are swapped for fakes.
+ * ports to external services (e-mail, Google) are swapped for fakes, and the
+ * rate limits are off unless a test asks for them.
  */
 export async function createTestApp(
   env: Env,
@@ -37,17 +55,23 @@ export async function createTestApp(
     logger,
     outbox = new FakeOutbox(),
     googleVerifier = new FakeGoogleVerifier(),
+    realRateLimits = false,
   }: TestAppOptions = {},
 ): Promise<INestApplication<App>> {
-  const moduleRef = await Test.createTestingModule({
+  let builder: TestingModuleBuilder = Test.createTestingModule({
     imports: [AppModule.forRoot(env)],
     controllers,
   })
     .overrideProvider(EmailSender)
     .useValue(outbox)
     .overrideProvider(GoogleTokenVerifier)
-    .useValue(googleVerifier)
-    .compile();
+    .useValue(googleVerifier);
+  if (!realRateLimits) {
+    builder = builder
+      .overrideProvider(ThrottlerStorage)
+      .useValue(unlimitedStorage);
+  }
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<INestApplication<App>>({
     logger: logger ?? false,

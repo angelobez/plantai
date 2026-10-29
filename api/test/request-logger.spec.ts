@@ -58,4 +58,44 @@ describe('request logger', () => {
     expect(everything).not.toContain('-23.5505');
     expect(everything).not.toContain('secret-cookie');
   });
+
+  it('never logs the body of /auth nor the Authorization', async () => {
+    const server = app.getHttpServer();
+    await request(server)
+      .post('/v1/auth/signup')
+      .set('Authorization', 'Bearer secret-access-token')
+      .send({
+        name: 'Pessoa Secreta',
+        email: 'secret-email@email.com',
+        password: 'secret-password',
+      })
+      .expect(202);
+    await request(server)
+      .post('/v1/auth/verify-email')
+      .send({ email: 'secret-email@email.com', code: '987654' })
+      .expect(400);
+    await request(server)
+      .post('/v1/auth/refresh')
+      .send({ refreshToken: 'secret-refresh-token' })
+      .expect(401);
+
+    expect(
+      logger.lines.find((l) => l.includes('POST /v1/auth/signup 202')),
+    ).toBeDefined();
+    expect(
+      logger.lines.find((l) => l.includes('POST /v1/auth/refresh 401')),
+    ).toBeDefined();
+
+    const everything = logger.lines.join('\n');
+    for (const secret of [
+      'secret-access-token',
+      'Pessoa Secreta',
+      'secret-email',
+      'secret-password',
+      '987654',
+      'secret-refresh-token',
+    ]) {
+      expect(everything).not.toContain(secret);
+    }
+  });
 });

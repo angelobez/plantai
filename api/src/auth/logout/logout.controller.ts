@@ -20,7 +20,7 @@ export class LogoutController {
       'No body. The refresh token is revoked; the same answer when it was ' +
       'already revoked, expired or unknown',
   })
-  @ApiProblems()
+  @ApiProblems('TOO_MANY_REQUESTS')
   async logout(@Body() body: LogoutRequest): Promise<void> {
     await this.logoutService.logout(body.refreshToken);
   }
