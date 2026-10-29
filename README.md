@@ -15,6 +15,7 @@ PlantAí is a neighborhood plant app: snap a photo to identify a plant, get AI-g
 | Path | What lives there |
 | --- | --- |
 | `api/` | NestJS API (see [Running the API locally](#running-the-api-locally)) |
+| `app/` | Flutter app, Android only (see [Running the app on a phone](#running-the-app-on-a-phone)) |
 | `CLAUDE.md` | Working agreement for Claude Code sessions |
 | `CONTEXT.md` | Domain glossary (created as terms are settled) |
 | `docs/adr/` | Architecture decision records |
@@ -43,3 +44,39 @@ curl localhost:3000/v1/health
 `npm run db:down` stops the database and keeps its data. After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
 
 Checks, the same ones CI will run: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS with Testcontainers, so Docker must be running; they do not touch the database from `compose.yaml`.
+
+## Running the app on a phone
+Needs Flutter 3.47 (Dart 3.13), the Android SDK and JDK 17, plus the API running on the notebook (above). From `app/`:
+
+```sh
+flutter pub get
+```
+
+The app reads the API address from `--dart-define=API_BASE_URL`; release builds have no default (debug builds fall back to `http://localhost:3000`). Pick one of two ways to reach the notebook:
+
+- **USB cable:** forward the phone's port 3000 to the notebook and use `localhost`.
+  ```sh
+  adb reverse tcp:3000 tcp:3000   # again after every reconnect
+  flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000
+  ```
+- **Wi-Fi:** phone and notebook on the same network; use the notebook's IP (`hostname -I`).
+  ```sh
+  flutter build apk --release --dart-define=API_BASE_URL=http://192.168.0.10:3000
+  ```
+
+Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). The home screen shows the API and PostGIS versions when everything is up, and "Tentar de novo" when it is not.
+
+Plain HTTP is allowed only to `localhost`, `127.0.0.1`, `10.0.2.2` (emulator) and, when `API_BASE_URL` is a private IPv4 address (10/8, 172.16/12, 192.168/16), that address; the build generates the network security config from it. Change the Wi-Fi IP and you must rebuild.
+
+**Release signing:** create `android/key.properties` (never committed) pointing at the upload key in `~/.config/plantai/`:
+
+```properties
+storeFile=/home/<you>/.config/plantai/upload-keystore.jks
+storePassword=...
+keyAlias=upload
+keyPassword=...
+```
+
+Without it (as in CI) the release build is signed with the debug key, which cannot install over a phone that has the release-signed app.
+
+Checks, the same ones CI will run: `dart format --set-exit-if-changed .`, `flutter analyze` and `flutter test`. After changing a `@JsonSerializable` model, regenerate its `.g.dart` with `dart run build_runner build` and commit it.
