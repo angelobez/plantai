@@ -1,31 +1,44 @@
 import 'package:dio/dio.dart';
 
 import 'api_exception.dart';
-import 'models/health_response.dart';
 import 'models/problem_details.dart';
+import 'update_required.dart';
 
 /// The PlantAí API over HTTP.
 ///
 /// Every call either returns the parsed body or throws [ApiException] (the API
 /// answered with an error) or [ApiConnectionException] (it could not be
-/// reached).
+/// reached). A `426 APP_UPDATE_REQUIRED` on any call also raises
+/// [UpdateRequired].
+///
+/// Endpoints are typed methods on top of [get]; cross-cutting behavior (such
+/// as the session's `Authorization` header) goes in as another [Interceptor].
 class ApiClient {
-  ApiClient({required String baseUrl, required String appVersion})
-    : _dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 5),
-          sendTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-        ),
-      )..interceptors.add(AppVersionInterceptor(appVersion));
+  ApiClient({
+    required String baseUrl,
+    required String appVersion,
+    required UpdateRequired updateRequired,
+    HttpClientAdapter? httpClientAdapter,
+  }) : _dio =
+           Dio(
+               BaseOptions(
+                 baseUrl: baseUrl,
+                 connectTimeout: const Duration(seconds: 5),
+                 sendTimeout: const Duration(seconds: 10),
+                 receiveTimeout: const Duration(seconds: 10),
+               ),
+             )
+             ..interceptors.addAll([
+               AppVersionInterceptor(appVersion),
+               UpdateRequiredInterceptor(updateRequired),
+             ]) {
+    if (httpClientAdapter != null) _dio.httpClientAdapter = httpClientAdapter;
+  }
 
   final Dio _dio;
 
-  Future<HealthResponse> getHealth() =>
-      _get('/v1/health', HealthResponse.fromJson);
-
-  Future<T> _get<T>(
+  /// `GET` [path] and parse its JSON object body with [fromJson].
+  Future<T> get<T>(
     String path,
     T Function(Map<String, dynamic> json) fromJson,
   ) async {
@@ -41,10 +54,12 @@ class ApiClient {
     final response = error.response;
     if (response == null) return ApiConnectionException(error);
     final status = response.statusCode ?? 0;
-    return ApiException(status: status, code: _problemCode(response.data));
+    return ApiException(status: status, code: problemCode(response.data));
   }
 
-  static String? _problemCode(Object? body) {
+  /// The `code` of an `application/problem+json` body, or null when [body] is
+  /// not one.
+  static String? problemCode(Object? body) {
     if (body is! Map<String, dynamic>) return null;
     try {
       return ProblemDetails.fromJson(body).code;
@@ -67,5 +82,24 @@ class AppVersionInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     options.headers[header] = appVersion;
     handler.next(options);
+  }
+}
+
+/// Raises [UpdateRequired] when any call gets `426 APP_UPDATE_REQUIRED`. The
+/// error still reaches the caller.
+class UpdateRequiredInterceptor extends Interceptor {
+  UpdateRequiredInterceptor(this.updateRequired);
+
+  final UpdateRequired updateRequired;
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final response = err.response;
+    if (response?.statusCode == 426 &&
+        ApiClient.problemCode(response?.data) ==
+            ApiErrorCode.appUpdateRequired) {
+      updateRequired.raise();
+    }
+    handler.next(err);
   }
 }
