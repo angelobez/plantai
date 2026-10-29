@@ -218,4 +218,27 @@ void main() {
     expect(refreshes(), isEmpty);
     expect(sessionStore.session, _expired);
   });
+
+  test('a multipart upload is repeated, whole, after the refresh', () async {
+    serve(refresh: () async => _tokens(_renewed));
+
+    final name = await client.postMultipart('/v1/me', {
+      'file': UploadFile(
+        bytes: utf8.encode('the-whole-photo'),
+        filename: 'planta.jpg',
+        contentType: 'image/jpeg',
+      ),
+    }, (json) => json['name']);
+
+    expect(name, 'Marina');
+    expect(refreshes(), hasLength(1));
+    final uploads = [
+      for (final (index, request) in adapter.requests.indexed)
+        if (request.path == '/v1/me') adapter.bodies[index],
+    ];
+    expect(uploads, hasLength(2));
+    for (final upload in uploads) {
+      expect(utf8.decode(await upload), contains('the-whole-photo'));
+    }
+  });
 }

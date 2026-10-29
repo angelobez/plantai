@@ -11,6 +11,7 @@ enum ApiErrorCode {
   invalidCode('INVALID_CODE'),
   googleAccountLinkRefused('GOOGLE_ACCOUNT_LINK_REFUSED'),
   tooManyRequests('TOO_MANY_REQUESTS'),
+  photoDailyLimit('PHOTO_DAILY_LIMIT'),
   internalError('INTERNAL_ERROR'),
   healthCheckFailed('HEALTH_CHECK_FAILED'),
 

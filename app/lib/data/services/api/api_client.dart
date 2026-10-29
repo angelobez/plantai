@@ -13,7 +13,8 @@ import 'update_required.dart';
 /// reached). A `426 APP_UPDATE_REQUIRED` on any call also raises
 /// [UpdateRequired].
 ///
-/// Repositories call [get], [post], [patch] and [postWithoutBody];
+/// Repositories call [get], [post], [patch], [postWithoutBody] and
+/// [postMultipart];
 /// cross-cutting behavior goes in as another [Interceptor] (the session's
 /// `Authorization` header is [BearerInterceptor]).
 class ApiClient {
@@ -96,6 +97,38 @@ class ApiClient {
     }
   }
 
+  /// How long sending a multipart body may take: a photo of up to ~1 MB on a
+  /// slow mobile network takes longer than the usual [BaseOptions.sendTimeout].
+  static const uploadSendTimeout = Duration(seconds: 60);
+
+  /// `POST` [files] as `multipart/form-data` to [path], one part per field,
+  /// and parse its JSON object answer with [fromJson]. Like every call, it is
+  /// repeated (with the whole body) after a session renewal.
+  Future<T> postMultipart<T>(
+    String path,
+    Map<String, UploadFile> files,
+    T Function(Map<String, dynamic> json) fromJson,
+  ) async {
+    final form = FormData.fromMap({
+      for (final MapEntry(key: field, value: file) in files.entries)
+        field: MultipartFile.fromBytes(
+          file.bytes,
+          filename: file.filename,
+          contentType: DioMediaType.parse(file.contentType),
+        ),
+    });
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        path,
+        data: form,
+        options: Options(sendTimeout: uploadSendTimeout),
+      );
+      return fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw _toApiError(error);
+    }
+  }
+
   static Exception _toApiError(DioException error) {
     final response = error.response;
     if (response == null) return ApiConnectionException(error);
@@ -167,4 +200,20 @@ class UpdateRequiredInterceptor extends Interceptor {
     }
     handler.next(err);
   }
+}
+
+/// A file for [ApiClient.postMultipart], kept in memory so the body can be
+/// sent again after a session renewal.
+class UploadFile {
+  const UploadFile({
+    required this.bytes,
+    required this.filename,
+    required this.contentType,
+  });
+
+  final List<int> bytes;
+  final String filename;
+
+  /// The part's media type, such as `image/jpeg`.
+  final String contentType;
 }
