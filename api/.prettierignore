@@ -1,3 +1,6 @@
 dist/
 coverage/
 drizzle/meta/
+# Written by `npm run openapi:update`, compared byte for byte by the test.
+openapi.json
+catalog/.cache/

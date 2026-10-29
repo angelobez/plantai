@@ -1,7 +1,8 @@
 import type { INestApplication } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
+import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import type { Env } from './config/env';
 import { DomainError } from './errors/domain-error';
@@ -10,6 +11,7 @@ import {
   sendProblem,
 } from './errors/problem-details.filter';
 import { ZodValidationPipe } from './errors/validation';
+import { setupOpenApi } from './openapi/openapi';
 
 /**
  * Cross-cutting setup shared by every entry point (local HTTP server, Lambda
@@ -20,6 +22,10 @@ export async function configureApp(app: INestApplication): Promise<void> {
   app.setGlobalPrefix('v1');
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.useGlobalPipes(new ZodValidationPipe());
+  // Parses each response with its `@ZodResponse` schema, so what a route
+  // returns is exactly what the OpenAPI says.
+  app.useGlobalInterceptors(new ZodSerializerInterceptor(app.get(Reflector)));
+  setupOpenApi(app);
   await app.init();
 
   // Nest's own not-found handler only covers /v1; this answers everything else.

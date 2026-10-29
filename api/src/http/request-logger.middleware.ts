@@ -25,7 +25,10 @@ export function redactHeaders(
   );
 }
 
-/** One log line per request, written when the response finishes. */
+/**
+ * One log line per request, written when the response finishes. It never
+ * logs the body: the `/auth` ones carry passwords, codes and tokens.
+ */
 @Injectable()
 export class RequestLoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger('HTTP');

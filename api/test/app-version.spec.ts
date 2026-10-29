@@ -3,6 +3,7 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createTestApp } from './support/app';
+import { testEnv } from './support/env';
 import { startPostgis } from './support/postgis';
 
 describe('X-App-Version check (MIN_APP_VERSION=1.2.0)', () => {
@@ -11,11 +12,9 @@ describe('X-App-Version check (MIN_APP_VERSION=1.2.0)', () => {
 
   beforeAll(async () => {
     container = await startPostgis();
-    app = await createTestApp({
-      DATABASE_URL: container.getConnectionUri(),
-      PORT: 0,
-      MIN_APP_VERSION: '1.2.0',
-    });
+    app = await createTestApp(
+      testEnv(container.getConnectionUri(), { MIN_APP_VERSION: '1.2.0' }),
+    );
   });
 
   afterAll(async () => {

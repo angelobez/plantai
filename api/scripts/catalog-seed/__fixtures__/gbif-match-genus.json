@@ -1,0 +1,21 @@
+{
+  "usageKey": 2868125,
+  "scientificName": "Monstera Adans.",
+  "canonicalName": "Monstera",
+  "rank": "GENUS",
+  "status": "ACCEPTED",
+  "confidence": 98,
+  "matchType": "EXACT",
+  "kingdom": "Plantae",
+  "phylum": "Tracheophyta",
+  "order": "Alismatales",
+  "family": "Araceae",
+  "genus": "Monstera",
+  "kingdomKey": 6,
+  "phylumKey": 7707728,
+  "classKey": 196,
+  "orderKey": 551,
+  "familyKey": 6979,
+  "genusKey": 2868125,
+  "class": "Liliopsida"
+}

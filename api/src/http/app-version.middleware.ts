@@ -10,8 +10,8 @@ const HEADER = 'X-App-Version';
 
 /**
  * Compares the app's `X-App-Version` with `MIN_APP_VERSION`. Older apps get
- * `426 APP_UPDATE_REQUIRED`; requests without the header (curl, the future
- * `/docs`) pass.
+ * `426 APP_UPDATE_REQUIRED`; requests without the header (curl, for
+ * instance) pass. `/docs` sits outside Nest's router and never gets here.
  */
 @Injectable()
 export class AppVersionMiddleware implements NestMiddleware {

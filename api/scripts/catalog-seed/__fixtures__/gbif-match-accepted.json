@@ -1,0 +1,23 @@
+{
+  "usageKey": 2868323,
+  "scientificName": "Epipremnum aureum (Linden & André) G.S.Bunting",
+  "canonicalName": "Epipremnum aureum",
+  "rank": "SPECIES",
+  "status": "ACCEPTED",
+  "confidence": 100,
+  "matchType": "EXACT",
+  "kingdom": "Plantae",
+  "phylum": "Tracheophyta",
+  "order": "Alismatales",
+  "family": "Araceae",
+  "genus": "Epipremnum",
+  "species": "Epipremnum aureum",
+  "kingdomKey": 6,
+  "phylumKey": 7707728,
+  "classKey": 196,
+  "orderKey": 551,
+  "familyKey": 6979,
+  "genusKey": 2868270,
+  "speciesKey": 2868323,
+  "class": "Liliopsida"
+}

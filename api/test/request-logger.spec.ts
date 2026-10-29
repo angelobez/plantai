@@ -3,6 +3,7 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createTestApp } from './support/app';
+import { testEnv } from './support/env';
 import { startPostgis } from './support/postgis';
 
 /** Keeps every log line so the test can read what would reach CloudWatch. */
@@ -27,14 +28,9 @@ describe('request logger', () => {
 
   beforeAll(async () => {
     container = await startPostgis();
-    app = await createTestApp(
-      {
-        DATABASE_URL: container.getConnectionUri(),
-        PORT: 0,
-        MIN_APP_VERSION: '0.0.0',
-      },
-      { logger },
-    );
+    app = await createTestApp(testEnv(container.getConnectionUri()), {
+      logger,
+    });
   });
 
   afterAll(async () => {
@@ -61,5 +57,45 @@ describe('request logger', () => {
     expect(everything).not.toContain('secret-access-token');
     expect(everything).not.toContain('-23.5505');
     expect(everything).not.toContain('secret-cookie');
+  });
+
+  it('never logs the body of /auth nor the Authorization', async () => {
+    const server = app.getHttpServer();
+    await request(server)
+      .post('/v1/auth/signup')
+      .set('Authorization', 'Bearer secret-access-token')
+      .send({
+        name: 'Pessoa Secreta',
+        email: 'secret-email@email.com',
+        password: 'secret-password',
+      })
+      .expect(202);
+    await request(server)
+      .post('/v1/auth/verify-email')
+      .send({ email: 'secret-email@email.com', code: '987654' })
+      .expect(400);
+    await request(server)
+      .post('/v1/auth/refresh')
+      .send({ refreshToken: 'secret-refresh-token' })
+      .expect(401);
+
+    expect(
+      logger.lines.find((l) => l.includes('POST /v1/auth/signup 202')),
+    ).toBeDefined();
+    expect(
+      logger.lines.find((l) => l.includes('POST /v1/auth/refresh 401')),
+    ).toBeDefined();
+
+    const everything = logger.lines.join('\n');
+    for (const secret of [
+      'secret-access-token',
+      'Pessoa Secreta',
+      'secret-email',
+      'secret-password',
+      '987654',
+      'secret-refresh-token',
+    ]) {
+      expect(everything).not.toContain(secret);
+    }
   });
 });
