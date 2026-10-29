@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Detect changed folders
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: filter
+        name: Compare against the base
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$PR_BASE...$PR_HEAD"
+          else
+            range="$PUSH_BEFORE..$PUSH_AFTER"
+          fi
+          if ! files=$(git diff --name-only "$range" 2>/dev/null); then
+            # Unknown base (e.g. the first push of a branch): run everything.
+            echo "Could not diff $range; running both parts"
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "app=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Changed files:"
+          echo "$files"
+          # A change to the workflow itself runs both parts.
+          workflow=false
+          if echo "$files" | grep -q '^\.github/workflows/'; then workflow=true; fi
+          api=$workflow
+          app=$workflow
+          if echo "$files" | grep -q '^api/'; then api=true; fi
+          if echo "$files" | grep -q '^app/'; then app=true; fi
+          echo "api=$api app=$app"
+          echo "api=$api" >> "$GITHUB_OUTPUT"
+          echo "app=$app" >> "$GITHUB_OUTPUT"
+
+  api:
+    name: API
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      # Testcontainers starts PostGIS on the runner's Docker.
+      - run: npm test
+
+  app:
+    name: App
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+          cache: true
+      - run: flutter pub get
+      - run: dart format --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test
+
+  # The only required check on `main`. It always runs, so a docs-only PR is not
+  # left waiting for a job the folder filter skipped.
+  ci:
+    name: ci
+    needs: [changes, api, app]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if a job that ran failed or was cancelled
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for result in $RESULTS; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "A job ended as '$result'"; exit 1 ;;
+            esac
+          done

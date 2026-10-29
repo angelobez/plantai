@@ -1,12 +1,13 @@
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
+import { isSemanticVersion } from '../semantic-version';
 
 const envSchema = z.object({
   DATABASE_URL: z.url(),
   PORT: z.coerce.number().int().positive().default(3000),
   MIN_APP_VERSION: z
     .string()
-    .regex(/^\d+\.\d+\.\d+$/, 'must be a version like 1.2.3'),
+    .refine(isSemanticVersion, 'must be a semantic version like 1.2.3'),
   PLANTNET_API_KEY: z.string().min(1).optional(),
 });
 

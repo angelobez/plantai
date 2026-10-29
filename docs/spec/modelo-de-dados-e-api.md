@@ -17,8 +17,9 @@ Decisões que este documento pressupõe:
 - **"Hoje":** o dia vira à meia-noite de `America/Sao_Paulo`. É o que vale para os limites diários.
 - **Contrato:** REST com JSON e prefixo `/v1`. Os schemas Zod são a fonte única de verdade; deles sai o OpenAPI, servido em `/docs`. No CI, um teste compara o OpenAPI com o snapshot versionado.
 - **No app:** models Dart escritos à mão, com `json_serializable`.
-- **Erros:** `application/problem+json` (RFC 9457) com um campo `code` estável. A mensagem para a pessoa fica no app, não na API.
-- **Versão do app:** o app manda `X-App-Version` em toda requisição. Abaixo da versão mínima configurada, a API responde `426` com `APP_UPDATE_REQUIRED`, e o app mostra "atualize o PlantAí" com o link do GitHub Release.
+- **Erros:** `application/problem+json` (RFC 9457) com `type` (`about:blank`), `title`, `status` e um campo `code` estável. A mensagem para a pessoa fica no app, não na API. Todo erro sai nesse formato, inclusive os que não são de domínio. Dos erros HTTP do framework, só três têm tradução: o `400` (JSON malformado, por exemplo) vira `VALIDATION_FAILED` com uma mensagem genérica, sem o texto interno do Nest; o `404` (rota inexistente) vira `NOT_FOUND`; e o `429` vira `TOO_MANY_REQUESTS`. Qualquer outro erro, inclusive outro erro HTTP do framework (um `401` ou `403` sem código de domínio, por exemplo), vira `INTERNAL_ERROR`, sem stack trace nem mensagem interna no corpo, e vai para o log como erro sem mapeamento.
+- **Versão do app:** o app manda `X-App-Version` (semver) em toda requisição. Abaixo da versão mínima configurada (`MIN_APP_VERSION`), a API responde `426` com `APP_UPDATE_REQUIRED`, e o app mostra "atualize o PlantAí" com o link do GitHub Release. Vale para todas as rotas, inclusive o `GET /health`. **Sem o cabeçalho, a requisição passa**, para que `curl` e o `/docs` funcionem. Um valor que não é semver responde `400 VALIDATION_FAILED`.
+- **Logs:** o logger de requisições nunca registra o valor dos cabeçalhos `Authorization`, `Cookie`, `Proxy-Authorization`, `Set-Cookie` e `X-Search-Location`; eles aparecem como `[REDACTED]`.
 
 ## Modelo de dados
 
@@ -193,7 +194,13 @@ Não tem tabela própria:
 
 ## Endpoints
 
-Todos ficam sob `/v1`, e todos exigem `Authorization: Bearer <access token>`, exceto os de `/auth`.
+Todos ficam sob `/v1`, e todos exigem `Authorization: Bearer <access token>`, exceto os de `/auth` e o `GET /health`.
+
+### Saúde
+
+| Método e caminho | O que faz |
+|---|---|
+| `GET /health` | Público. Lê a versão do PostGIS no banco e responde `{ status: "ok", apiVersion, postgisVersion }`, com `apiVersion` vindo do `package.json`. Com o banco fora, `HEALTH_CHECK_FAILED` |
 
 ### Autenticação (ADR 0001)
 
@@ -271,12 +278,12 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 | `code` | HTTP | Quando |
 |---|---|---|
 | `APP_UPDATE_REQUIRED` | 426 | `X-App-Version` abaixo da mínima |
-| `VALIDATION_FAILED` | 400 | Zod rejeitou a requisição (detalhes em `errors[]`) |
+| `VALIDATION_FAILED` | 400 | Zod rejeitou a requisição, o JSON veio malformado (ou outro `400` do framework) ou o `X-App-Version` não é semver. Detalhes em `errors[]`, de `{ path, message }`, com `path` no formato `tags.1` (vazio quando o problema é a requisição inteira; `X-App-Version` para o cabeçalho). Para o `400` do framework, a mensagem é genérica |
 | `INVALID_CREDENTIALS` | 401 | Mensagem genérica, igual para e-mail inexistente e senha errada |
 | `EMAIL_NOT_VERIFIED` | 403 | Login antes de confirmar o código |
 | `INVALID_CODE` | 400 | Código errado, expirado ou com tentativas esgotadas |
 | `GOOGLE_ACCOUNT_LINK_REFUSED` | 409 | E-mail do Google sem as garantias do ADR 0001: "entre com a senha" |
-| `TOO_MANY_REQUESTS` | 429 | Throttler da autenticação |
+| `TOO_MANY_REQUESTS` | 429 | Throttler da autenticação; também todo `429` do framework |
 | `PHOTO_DAILY_LIMIT` | 429 | Mais de 50 fotos no dia |
 | `IDENTIFICATION_DAILY_LIMIT` | 429 | 10 identificações no dia |
 | `IDENTIFICATION_SERVICE_UNAVAILABLE` | 503 | Falha ou timeout do Pl@ntNet (não conta no limite) |
@@ -289,7 +296,9 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 | `INVALID_DONATION_COUNT` | 400 | "Doei algumas" acima da quantidade |
 | `RENEWAL_NOT_ALLOWED` | 409 | Renovar fora dos últimos 7 dias |
 | `OWN_LISTING` | 409 | Interesse no próprio anúncio |
-| `NOT_FOUND` | 404 | Também para recurso de outro usuário, para não revelar que existe |
+| `NOT_FOUND` | 404 | Também para recurso de outro usuário, para não revelar que existe, e para rota inexistente |
+| `HEALTH_CHECK_FAILED` | 503 | O `GET /health` não conseguiu ler o banco |
+| `INTERNAL_ERROR` | 500 | Erro inesperado, inclusive erro HTTP do framework sem mapeamento (qualquer um fora de `400`, `404` e `429`). O corpo não traz stack trace nem mensagem interna; o detalhe fica só no log |
 
 "Foto não reconhecida" não é erro: é `result: "not_recognized"` na resposta de `POST /identifications`, com `remainingToday`.
 
