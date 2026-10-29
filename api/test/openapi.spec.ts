@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createTestApp } from './support/app';
+import { testEnv, UNUSED_DATABASE_URL } from './support/env';
 
 /** The versioned contract. Refresh it with `npm run openapi:update`. */
 const SNAPSHOT_PATH = join(__dirname, '..', 'openapi.json');
@@ -24,11 +25,9 @@ describe('OpenAPI at /docs', () => {
   let app: INestApplication<App>;
 
   beforeAll(async () => {
-    app = await createTestApp({
-      DATABASE_URL: 'postgres://unused:unused@localhost:1/unused',
-      PORT: 0,
-      MIN_APP_VERSION: '1.0.0',
-    });
+    app = await createTestApp(
+      testEnv(UNUSED_DATABASE_URL, { MIN_APP_VERSION: '1.0.0' }),
+    );
   });
 
   afterAll(async () => {

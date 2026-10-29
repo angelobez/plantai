@@ -9,6 +9,17 @@ const envSchema = z.object({
     .string()
     .refine(isSemanticVersion, 'must be a semantic version like 1.2.3'),
   PLANTNET_API_KEY: z.string().min(1).optional(),
+  /** Signs the access tokens (HS256). */
+  JWT_SECRET: z.string().min(32),
+  /** The Google Cloud OAuth Web client: the audience of the Google ID tokens. */
+  GOOGLE_WEB_CLIENT_ID: z.string().min(1),
+  /** Without it, e-mails are written to the API log instead of sent. */
+  RESEND_API_KEY: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(1).optional(),
+  ),
+  /** Sender of every e-mail, such as `PlantAí <onboarding@resend.dev>`. */
+  EMAIL_FROM: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

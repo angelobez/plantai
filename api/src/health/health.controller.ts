@@ -2,11 +2,13 @@ import { Controller, Get, Inject } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { ZodResponse } from 'nestjs-zod';
 import { API_VERSION } from '../app-version';
+import { Public } from '../auth/public.decorator';
 import { DATABASE, type Database } from '../database/database.module';
 import { DomainError } from '../errors/domain-error';
 import { ApiProblems } from '../openapi/api-problems.decorator';
 import { HealthResponse } from './health.dto';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(@Inject(DATABASE) private readonly db: Database) {}

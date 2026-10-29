@@ -3,6 +3,7 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createTestApp } from './support/app';
+import { testEnv } from './support/env';
 import { startPostgis } from './support/postgis';
 
 /** Keeps every log line so the test can read what would reach CloudWatch. */
@@ -27,14 +28,9 @@ describe('request logger', () => {
 
   beforeAll(async () => {
     container = await startPostgis();
-    app = await createTestApp(
-      {
-        DATABASE_URL: container.getConnectionUri(),
-        PORT: 0,
-        MIN_APP_VERSION: '0.0.0',
-      },
-      { logger },
-    );
+    app = await createTestApp(testEnv(container.getConnectionUri()), {
+      logger,
+    });
   });
 
   afterAll(async () => {

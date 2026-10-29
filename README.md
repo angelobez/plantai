@@ -47,13 +47,22 @@ curl localhost:3000/v1/health
 
 **Google Sign-In:** `scripts/google-oauth-wizard.sh` walks through recreating the Google Cloud project, the consent screen and the OAuth clients (two Android, one Web) from scratch, reading both SHA-1s with `keytool`, and writes `GOOGLE_WEB_CLIENT_ID` to `api/.env`. The Web client secret is never stored.
 
+### Authentication
+Every route requires `Authorization: Bearer <access token>` (a 15-minute JWT signed with `JWT_SECRET`); without a valid one it answers `401 UNAUTHENTICATED`. The pieces live in `api/src/auth/`:
+- `@Public()` on a route or controller lets it through without a token (`/health` and the `/auth` routes use it). `/docs` sits outside Nest's router and is always public.
+- `@CurrentUser() user: AuthenticatedUser` gives the controller the signed-in User (`{ id }`).
+- Each way in has its own folder (`auth/signup/`), and all of them end in `Sessions.start(user)`, which answers `{ accessToken, refreshToken, user }`.
+
+Without `RESEND_API_KEY`, e-mails are not sent: the API log shows them, sign-up code included. With the key and `EMAIL_FROM=onboarding@resend.dev`, Resend delivers in test mode, only to the e-mail of the Resend account.
+
 ### API contract (OpenAPI)
 `http://localhost:3000/docs` shows the Swagger UI, and `/docs/openapi.json` the document, generated from the routes' Zod schemas by `nestjs-zod`. Both are public. The document is versioned in `api/openapi.json`, and `test/openapi.spec.ts` fails when the generated one differs, so every contract change shows up in the PR diff.
 
 To document a route:
 - Response: a `createZodDto` class, named as the schema should appear (no `Dto` suffix, no `.meta({ id })`, which breaks `cleanupOpenApiDoc`), used with `@ZodResponse({ status, type })`. The global serializer parses the return value with it, so the docs cannot drift from what the route sends.
 - Body or query: a `createZodDto` class as the parameter type; the global pipe validates it.
-- Errors: `@ApiProblems('CODE_A', 'CODE_B')` with the route's own codes. It adds the shared ones (`VALIDATION_FAILED`, `APP_UPDATE_REQUIRED`, `INTERNAL_ERROR`) and the `X-App-Version` header.
+- Errors: `@ApiProblems('CODE_A', 'CODE_B')` with the route's own codes. It adds the shared ones (`VALIDATION_FAILED`, `APP_UPDATE_REQUIRED`, `INTERNAL_ERROR`) and the `X-App-Version` header. A protected route also lists `UNAUTHENTICATED`, and its controller takes `@ApiBearerAuth()`.
+- A nullable primitive needs some metadata on the inner schema (`z.string().meta({ example }).nullable()`); a bare `z.string().nullable()` comes out as an array.
 
 Then run `npm run openapi:update` (from `api/`) and commit `api/openapi.json` with the change.
 
@@ -78,7 +87,7 @@ The app reads the API address from `--dart-define=API_BASE_URL`; release builds 
   flutter build apk --release --dart-define=API_BASE_URL=http://192.168.0.10:3000
   ```
 
-Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). The app opens on the Por perto tab; if the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
+Then install with `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or use `flutter run --release --dart-define=...` instead of building). Without a session the app opens on Login; "Entrar com e-mail" creates the account, and without `RESEND_API_KEY` the 6-digit code shows up in the API log. With a session (kept in `flutter_secure_storage` between runs) it opens on the Por perto tab. If the API refuses its version (`426`), it shows "Atualize o PlantAí" instead.
 
 Plain HTTP is allowed only to `localhost`, `127.0.0.1`, `10.0.2.2` (emulator) and, when `API_BASE_URL` is a private IPv4 address (10/8, 172.16/12, 192.168/16), that address; the build generates the network security config from it. Change the Wi-Fi IP and you must rebuild.
 

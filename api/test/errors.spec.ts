@@ -14,7 +14,9 @@ import { createZodDto } from 'nestjs-zod';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { z } from 'zod';
+import { Public } from '../src/auth/public.decorator';
 import { createTestApp } from './support/app';
+import { testEnv } from './support/env';
 import { startPostgis } from './support/postgis';
 
 class CreateProbeDto extends createZodDto(
@@ -26,6 +28,7 @@ class CreateProbeDto extends createZodDto(
 ) {}
 
 /** Registered only in the test module: no real route of v0.0 takes a body. */
+@Public()
 @Controller('test-probe')
 class ProbeController {
   @Post()
@@ -67,14 +70,10 @@ describe('error contract', () => {
 
   beforeAll(async () => {
     container = await startPostgis();
-    app = await createTestApp(
-      {
-        DATABASE_URL: container.getConnectionUri(),
-        PORT: 0,
-        MIN_APP_VERSION: '0.0.0',
-      },
-      { controllers: [ProbeController], logger },
-    );
+    app = await createTestApp(testEnv(container.getConnectionUri()), {
+      controllers: [ProbeController],
+      logger,
+    });
   });
 
   afterAll(async () => {

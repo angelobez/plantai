@@ -2,6 +2,13 @@
 /// (docs/spec/modelo-de-dados-e-api.md, "Códigos de erro").
 abstract final class ApiErrorCode {
   static const appUpdateRequired = 'APP_UPDATE_REQUIRED';
+  static const validationFailed = 'VALIDATION_FAILED';
+  static const tooManyRequests = 'TOO_MANY_REQUESTS';
+  static const unauthenticated = 'UNAUTHENTICATED';
+  static const invalidCredentials = 'INVALID_CREDENTIALS';
+  static const emailNotVerified = 'EMAIL_NOT_VERIFIED';
+  static const invalidCode = 'INVALID_CODE';
+  static const googleAccountLinkRefused = 'GOOGLE_ACCOUNT_LINK_REFUSED';
 }
 
 /// The API answered with an error status.
