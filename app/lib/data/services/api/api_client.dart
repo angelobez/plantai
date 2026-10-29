@@ -103,14 +103,14 @@ class ApiClient {
     return ApiException(status: status, code: problemCode(response.data));
   }
 
-  /// The `code` of an `application/problem+json` body, or null when [body] is
-  /// not one.
-  static String? problemCode(Object? body) {
-    if (body is! Map<String, dynamic>) return null;
+  /// The `code` of an `application/problem+json` body, parsed once here;
+  /// [ApiErrorCode.unknown] when [body] is not one or the code is not known.
+  static ApiErrorCode problemCode(Object? body) {
+    if (body is! Map<String, dynamic>) return ApiErrorCode.unknown;
     try {
-      return ProblemDetails.fromJson(body).code;
+      return ApiErrorCode.parse(ProblemDetails.fromJson(body).code);
     } on Object {
-      return null;
+      return ApiErrorCode.unknown;
     }
   }
 }
