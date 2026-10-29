@@ -2,7 +2,7 @@
   "name": "plantai-api",
   "version": "0.0.0",
   "private": true,
-  "description": "PlantA\u00ed API (NestJS + PostgreSQL/PostGIS)",
+  "description": "PlantAí API (NestJS + PostgreSQL/PostGIS)",
   "engines": {
     "node": ">=24"
   },
@@ -15,6 +15,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "openapi:update": "UPDATE_OPENAPI_SNAPSHOT=1 npm test -- test/openapi.spec.ts",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
@@ -25,6 +26,7 @@
     "@nestjs/common": "^12.3.2",
     "@nestjs/core": "^12.3.2",
     "@nestjs/platform-express": "^12.3.2",
+    "@nestjs/swagger": "^12.0.5",
     "drizzle-orm": "^0.45.4",
     "nestjs-zod": "^5.5.0",
     "postgres": "^3.4.9",
@@ -58,7 +60,8 @@
   },
   "overrides": {
     "nestjs-zod": {
-      "@nestjs/common": "$@nestjs/common"
+      "@nestjs/common": "$@nestjs/common",
+      "@nestjs/swagger": "$@nestjs/swagger"
     }
   }
 }
