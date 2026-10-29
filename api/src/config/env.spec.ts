@@ -26,4 +26,19 @@ describe('parseEnv', () => {
       parseEnv({ ...validEnv, PORT: 'abc', MIN_APP_VERSION: 'latest' }),
     ).toThrow(/PORT[\s\S]*MIN_APP_VERSION/);
   });
+
+  it.each(['1.2.0-beta.1', '1.2.0+7'])(
+    'accepts the semantic version %p as MIN_APP_VERSION',
+    (version) => {
+      expect(parseEnv({ ...validEnv, MIN_APP_VERSION: version })).toMatchObject(
+        { MIN_APP_VERSION: version },
+      );
+    },
+  );
+
+  it.each(['v1.2.0', '1.2'])('rejects %p as MIN_APP_VERSION', (version) => {
+    expect(() => parseEnv({ ...validEnv, MIN_APP_VERSION: version })).toThrow(
+      /MIN_APP_VERSION/,
+    );
+  });
 });

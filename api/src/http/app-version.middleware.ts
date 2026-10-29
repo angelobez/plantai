@@ -4,6 +4,7 @@ import semver from 'semver';
 import { ENV } from '../config/config.module';
 import type { Env } from '../config/env';
 import { DomainError } from '../errors/domain-error';
+import { isSemanticVersion } from '../semantic-version';
 
 const HEADER = 'X-App-Version';
 
@@ -23,7 +24,7 @@ export class AppVersionMiddleware implements NestMiddleware {
       return;
     }
 
-    if (semver.valid(version) !== version.split('+')[0]) {
+    if (!isSemanticVersion(version)) {
       throw new DomainError('VALIDATION_FAILED', {
         errors: [
           { path: HEADER, message: 'must be a semantic version like 1.2.3' },
