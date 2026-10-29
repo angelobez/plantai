@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '../../errors/domain-error';
-import { EmailSender } from '../../email/email-sender';
-import { signupCodeEmail } from '../../email/emails';
 import { Users } from '../../users/users';
 import type { AuthTokens } from '../auth-tokens.dto';
-import { EmailCodes } from '../email-codes';
+import { AuthEmails } from '../auth-emails';
 import { hashSecret, verifySecret } from '../secrets';
 import { Sessions } from '../sessions';
 import type { LoginRequest } from './login.dto';
@@ -19,8 +17,7 @@ let dummyHash: Promise<string> | undefined;
 export class LoginService {
   constructor(
     private readonly users: Users,
-    private readonly emailCodes: EmailCodes,
-    private readonly emailSender: EmailSender,
+    private readonly authEmails: AuthEmails,
     private readonly sessions: Sessions,
   ) {}
 
@@ -41,8 +38,7 @@ export class LoginService {
     }
 
     if (!user.emailVerifiedAt) {
-      const code = await this.emailCodes.issue(user.id, 'signup');
-      await this.emailSender.send(user.email, signupCodeEmail(user.name, code));
+      await this.authEmails.sendSignupCode(user);
       throw new DomainError('EMAIL_NOT_VERIFIED');
     }
 
