@@ -20,7 +20,8 @@
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "catalog:build": "tsx scripts/build-catalog-seed.ts"
+    "catalog:build": "tsx scripts/build-catalog-seed.ts",
+    "catalog:load": "tsx scripts/load-catalog.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1160.0",
