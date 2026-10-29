@@ -6,9 +6,13 @@ import sharp from 'sharp';
 import { CatalogLoader } from '../src/catalog/catalog-loader';
 import type { CatalogSeedSpecies } from '../src/catalog/catalog-seed';
 import { DATABASE, type Database } from '../src/database/database.module';
-import { species, speciesNames } from '../src/database/schema';
+import { careGuides, species, speciesNames } from '../src/database/schema';
 import { createTestCatalogLoad } from './support/catalog-load';
 import { testEnv } from './support/env';
+import {
+  careGuideContent,
+  FakeCareGuideWriter,
+} from './support/fake-care-guide-writer';
 import { FakePhotoStorage } from './support/fake-photo-storage';
 import { FakeReferencePhotoDownloader } from './support/fake-reference-photo-downloader';
 import { startPostgis } from './support/postgis';
@@ -65,6 +69,7 @@ describe('catalog load (npm run catalog:load)', () => {
   let db: Database;
   let photoStorage: FakePhotoStorage;
   let photoDownloader: FakeReferencePhotoDownloader;
+  let careGuideWriter: FakeCareGuideWriter;
 
   // Every test starts from an empty Catalog in its own database.
   beforeEach(async () => {
@@ -84,9 +89,11 @@ describe('catalog load (npm run catalog:load)', () => {
     photoDownloader = new FakeReferencePhotoDownloader()
       .serves(jiboia.referencePhoto.imageUrl, await photo(2400, 1600))
       .serves(avenca.referencePhoto.imageUrl, await photo(800, 1000));
+    careGuideWriter = new FakeCareGuideWriter();
     context = await createTestCatalogLoad(testEnv(url.toString()), {
       photoStorage,
       photoDownloader,
+      careGuideWriter,
     });
     db = context.get<Database>(DATABASE);
   });
@@ -95,7 +102,7 @@ describe('catalog load (npm run catalog:load)', () => {
     await context.close();
   });
 
-  const load = () => context.get(CatalogLoader).load(seed);
+  const load = (items = seed) => context.get(CatalogLoader).load(items);
 
   async function speciesRow(gbifKey: number) {
     const row = await db.query.species.findFirst({
@@ -236,5 +243,97 @@ describe('catalog load (npm run catalog:load)', () => {
     expect(summary.failures).toMatchObject([
       { scientificName: 'Epipremnum aureum', step: 'photo' },
     ]);
+  });
+
+  describe('care guides', () => {
+    async function guideOf(gbifKey: number) {
+      const { id } = await speciesRow(gbifKey);
+      const [row] = await db
+        .select()
+        .from(careGuides)
+        .where(eq(careGuides.speciesId, id));
+      return row;
+    }
+
+    it('writes the care guide of each species, caused by no User', async () => {
+      const summary = await load();
+
+      expect(summary).toMatchObject({ careGuidesGenerated: 2, failures: [] });
+      expect(careGuideWriter.asked.sort()).toEqual([
+        'Adiantum raddianum',
+        'Epipremnum aureum',
+      ]);
+      expect(await guideOf(jiboia.gbifKey)).toMatchObject({
+        status: 'ready',
+        requestedBy: null,
+        promptVersion: 1,
+        content: careGuideContent({ commonName: 'jiboia' }),
+      });
+    });
+
+    it('does not ask Claude again on the next run', async () => {
+      await load();
+      careGuideWriter.requests.length = 0;
+
+      const summary = await load();
+
+      expect(summary.careGuidesGenerated).toBe(0);
+      expect(careGuideWriter.requests).toEqual([]);
+    });
+
+    it('writes on the next run a care guide that failed', async () => {
+      careGuideWriter.failingFor.add('Adiantum raddianum');
+
+      const first = await load();
+
+      expect(first.careGuidesGenerated).toBe(1);
+      expect(first.failures).toEqual([
+        {
+          scientificName: 'Adiantum raddianum',
+          step: 'careGuide',
+          reason: 'The fake Claude is down',
+        },
+      ]);
+      expect((await guideOf(avenca.gbifKey))?.status).toBe('failed');
+
+      careGuideWriter.failingFor.clear();
+      careGuideWriter.requests.length = 0;
+      const second = await load();
+
+      expect(second).toMatchObject({ careGuidesGenerated: 1, failures: [] });
+      expect(careGuideWriter.asked).toEqual(['Adiantum raddianum']);
+      expect((await guideOf(avenca.gbifKey))?.status).toBe('ready');
+    });
+
+    it("keeps the seed's primary name, with Claude's as an alternative one", async () => {
+      careGuideWriter.writes(
+        'Epipremnum aureum',
+        careGuideContent({ commonName: 'jiboia-dourada' }),
+      );
+
+      await load();
+
+      expect(await namesOf(jiboia.gbifKey)).toEqual([
+        { name: 'hera-do-diabo', isPrimary: false },
+        { name: 'jiboia', isPrimary: true },
+        { name: 'jiboia-amarela', isPrimary: false },
+        { name: 'jiboia-dourada', isPrimary: false },
+      ]);
+    });
+
+    it('asks Claude for at most 3 care guides at once', async () => {
+      const many = Array.from({ length: 7 }, (_, index) => ({
+        ...avenca,
+        gbifKey: 9000 + index,
+        scientificName: `Adiantum species${String(index)}`,
+        commonName: `avenca-${String(index)}`,
+      }));
+      careGuideWriter.delayMs = 100;
+
+      const summary = await load(many);
+
+      expect(summary.careGuidesGenerated).toBe(7);
+      expect(careGuideWriter.maxConcurrent).toBe(3);
+    });
   });
 });

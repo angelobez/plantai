@@ -1,6 +1,8 @@
 /**
  * Loads catalog/catalog-seed.json into the Catalog: species and names in the
- * database, reference photos copied from Wikimedia to the photo storage.
+ * database, reference photos copied from Wikimedia to the photo storage, and
+ * the care guides Claude writes (only the missing or failed ones; it needs
+ * ANTHROPIC_API_KEY).
  *
  *   npm run db:up && npm run db:migrate   # PostGIS and the S3 emulator
  *   npm run catalog:load
@@ -29,13 +31,19 @@ async function main(): Promise<void> {
   );
   try {
     console.log(`Loading ${String(seed.length)} species from the seed...`);
-    const summary = await context
-      .get(CatalogLoader)
-      .load(seed, (item, index) => {
+    const summary = await context.get(CatalogLoader).load(
+      seed,
+      (item, index) => {
         process.stdout.write(
           `\r[${String(index + 1)}/${String(seed.length)}] ${item.scientificName.padEnd(40)}`,
         );
-      });
+      },
+      (done, total) => {
+        process.stdout.write(
+          `\rCare guides: ${String(done)}/${String(total)}`.padEnd(48),
+        );
+      },
+    );
     process.stdout.write('\n');
     console.log(formatCatalogLoadSummary(summary));
     if (summary.failures.length > 0) process.exitCode = 1;

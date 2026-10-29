@@ -9,6 +9,9 @@ const optional = <T extends z.ZodType>(schema: T) =>
     schema.optional(),
   );
 
+/** Writes the care guides when `CARE_GUIDE_MODEL` is not set. */
+export const DEFAULT_CARE_GUIDE_MODEL = 'claude-sonnet-5-5';
+
 const envSchema = z
   .object({
     DATABASE_URL: z.url(),
@@ -33,6 +36,13 @@ const envSchema = z
     /** Only for the emulator; on Lambda the credentials come from its role. */
     S3_ACCESS_KEY_ID: optional(z.string().min(1)),
     S3_SECRET_ACCESS_KEY: optional(z.string().min(1)),
+    /** Claude writes the care guides (the API and `npm run catalog:load`). */
+    ANTHROPIC_API_KEY: z.string().min(1),
+    /** The model that writes the care guides. */
+    CARE_GUIDE_MODEL: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(1).default(DEFAULT_CARE_GUIDE_MODEL),
+    ),
   })
   .superRefine((env, context) => {
     const keys = ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;

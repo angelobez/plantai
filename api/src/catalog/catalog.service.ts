@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { asc, eq, sql } from 'drizzle-orm';
+import type { CareGuideFieldsResponse } from '../care-guides/care-guide.dto';
 import { DATABASE, type Database } from '../database/database.module';
 import { normalized, species, speciesNames } from '../database/schema';
 import { DomainError } from '../errors/domain-error';
@@ -131,8 +132,13 @@ export class CatalogService {
     );
   }
 
-  /** One species with all its names; `NOT_FOUND` when there is none. */
-  async get(id: string): Promise<SpeciesResponse> {
+  /**
+   * One species with all its names, without the care guide (the controller
+   * adds it); `NOT_FOUND` when there is none.
+   */
+  async get(
+    id: string,
+  ): Promise<Omit<SpeciesResponse, keyof CareGuideFieldsResponse>> {
     const [row] = await this.db
       .select()
       .from(species)

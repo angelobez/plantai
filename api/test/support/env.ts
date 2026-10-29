@@ -21,6 +21,9 @@ export function testEnv(
     // The photo storage is a fake in the test app; these only satisfy the type.
     S3_BUCKET: 'plantai-photos-test',
     S3_REGION: 'us-east-1',
+    // The care-guide writer is a fake in the test app; never a real key.
+    ANTHROPIC_API_KEY: 'test-anthropic-key',
+    CARE_GUIDE_MODEL: 'claude-sonnet-5-5',
     ...overrides,
   };
 }

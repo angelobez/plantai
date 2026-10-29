@@ -12,6 +12,8 @@ export const ERROR_STATUS = {
   GOOGLE_ACCOUNT_LINK_REFUSED: HttpStatus.CONFLICT,
   TOO_MANY_REQUESTS: HttpStatus.TOO_MANY_REQUESTS,
   PHOTO_DAILY_LIMIT: HttpStatus.TOO_MANY_REQUESTS,
+  /** Not a failure: another request is writing the care guide; try again. */
+  CARE_GUIDE_GENERATING: HttpStatus.ACCEPTED,
   INTERNAL_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
   HEALTH_CHECK_FAILED: HttpStatus.SERVICE_UNAVAILABLE,
 } as const satisfies Record<string, number>;
@@ -28,6 +30,8 @@ export interface FieldError {
 export interface DomainErrorOptions extends ErrorOptions {
   /** Per-field details, sent as the `errors` extension member. */
   errors?: FieldError[];
+  /** Sent as `Retry-After`: when the client should try again. */
+  retryAfterSeconds?: number;
 }
 
 /**
@@ -39,6 +43,7 @@ export class DomainError extends Error {
   override readonly name = 'DomainError';
   readonly status: number;
   readonly errors: FieldError[] | undefined;
+  readonly retryAfterSeconds: number | undefined;
 
   constructor(
     readonly code: ErrorCode,
@@ -47,5 +52,6 @@ export class DomainError extends Error {
     super(code, options);
     this.status = ERROR_STATUS[code];
     this.errors = options?.errors;
+    this.retryAfterSeconds = options?.retryAfterSeconds;
   }
 }

@@ -1,0 +1,42 @@
+{
+  "id": "msg_01CareGuideMonstera",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-5-5",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "EqQBCkYIBxgCKkBsignature"
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_01CareGuide",
+      "name": "record_care_guide",
+      "input": {
+        "commonName": "costela-de-adão",
+        "watering": {
+          "summary": "1x por semana",
+          "details": "Regue quando os 2 a 3 cm de cima da terra estiverem secos. No inverno, espace as regas. Nunca deixe água parada no pratinho."
+        },
+        "light": {
+          "summary": "Meia-sombra",
+          "details": "Gosta de muita claridade, mas sem sol direto, que queima as folhas. Perto de uma janela com cortina fica ótima."
+        },
+        "propagation": {
+          "summary": "Estaca",
+          "details": "Corte um pedaço do caule com um nó e uma raiz aérea e deixe na água até enraizar. Depois plante num vaso com terra fofa."
+        }
+      }
+    }
+  ],
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 512,
+    "output_tokens": 310,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+  }
+}

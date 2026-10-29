@@ -6,9 +6,11 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
 import type { Env } from '../../src/config/env';
 import { GoogleTokenVerifier } from '../../src/auth/google/google-token-verifier';
+import { CareGuideWriter } from '../../src/care-guides/care-guide-writer';
 import { EmailSender } from '../../src/email/email-sender';
 import { GbifNames } from '../../src/gbif/gbif-names';
 import { PhotoStorage } from '../../src/photo-storage/photo-storage';
+import { FakeCareGuideWriter } from './fake-care-guide-writer';
 import { FakeGbifNames } from './fake-gbif-names';
 import { FakeGoogleVerifier } from './fake-google-verifier';
 import { FakeOutbox } from './fake-outbox';
@@ -40,6 +42,12 @@ export interface TestAppOptions {
    */
   gbifNames?: FakeGbifNames;
   /**
+   * Writes the care guides instead of Claude. Pass one to teach answers, hold
+   * or fail the calls, or see what was asked; without it, a throwaway one
+   * writes a valid guide for every species.
+   */
+  careGuideWriter?: FakeCareGuideWriter;
+  /**
    * Keeps the real `/auth` rate limits. Without it no request is ever limited,
    * so a test may call `/auth` as often as it needs.
    */
@@ -59,7 +67,7 @@ const unlimitedStorage: ThrottlerStorage = {
 
 /**
  * The whole Nest app, configured exactly like the real entry points. Only the
- * ports to external services (e-mail, Google, photo storage, GBIF) are swapped for fakes, and the
+ * ports to external services (e-mail, Google, photo storage, GBIF, Claude) are swapped for fakes, and the
  * rate limits are off unless a test asks for them.
  */
 export async function createTestApp(
@@ -71,6 +79,7 @@ export async function createTestApp(
     googleVerifier = new FakeGoogleVerifier(),
     photoStorage = new FakePhotoStorage(),
     gbifNames = new FakeGbifNames(),
+    careGuideWriter = new FakeCareGuideWriter(),
     realRateLimits = false,
   }: TestAppOptions = {},
 ): Promise<INestApplication<App>> {
@@ -85,7 +94,9 @@ export async function createTestApp(
     .overrideProvider(PhotoStorage)
     .useValue(photoStorage)
     .overrideProvider(GbifNames)
-    .useValue(gbifNames);
+    .useValue(gbifNames)
+    .overrideProvider(CareGuideWriter)
+    .useValue(careGuideWriter);
   if (!realRateLimits) {
     builder = builder
       .overrideProvider(ThrottlerStorage)

@@ -39,7 +39,7 @@ npm install
 cp .env.example .env   # then fill in the values; the API refuses to start if one is invalid
 npm run db:up          # PostGIS and the S3 emulator in Docker (compose.yaml), waits until both are healthy
 npm run db:migrate     # applies the Drizzle migrations in drizzle/
-npm run catalog:load   # loads the Catalog seed: species, names and reference photos
+npm run catalog:load   # loads the Catalog seed: species, names, reference photos and care guides
 npm run start:dev      # http://localhost:3000, with reload on change
 curl localhost:3000/v1/health
 ```
@@ -56,7 +56,7 @@ Photos live in a private S3 bucket and are only served through presigned GET URL
 The `PhotoStorage` port (`src/photo-storage/`) is what the rest of the API uses; tests swap it for `FakePhotoStorage` (`createTestApp(env, { photoStorage })`), which keeps the objects and their tags in memory.
 
 ### Catalog
-The Catalog (species, names, reference photos) lives in the database. `npm run catalog:load` loads `catalog/catalog-seed.json` (built by `npm run catalog:build`; see `docs/spec/modelo-de-dados-e-api.md`, "Semente do Catálogo"): it upserts each species by `gbifKey`, syncs its names, downloads its Wikimedia photo (with an identifying `User-Agent`), shrinks it to 1200 px and stores it without the `unattached` tag. It mounts only the modules it needs (`CatalogLoadModule`), not the HTTP server, and ends with a summary of species, photos copied and failures. Running it again duplicates nothing and only retries what failed; until its photo is copied, a species shows the Wikimedia one by URL. `-- --seed <file>` loads another seed file.
+The Catalog (species, names, reference photos) lives in the database. `npm run catalog:load` loads `catalog/catalog-seed.json` (built by `npm run catalog:build`; see `docs/spec/modelo-de-dados-e-api.md`, "Semente do Catálogo"): it upserts each species by `gbifKey`, syncs its names, downloads its Wikimedia photo (with an identifying `User-Agent`), shrinks it to 1200 px and stores it without the `unattached` tag. It mounts only the modules it needs (`CatalogLoadModule`), not the HTTP server, then has Claude write the missing or failed care guides through the same code as the API (`CareGuideService.ensure`, at most 3 at a time; it needs `ANTHROPIC_API_KEY` in `api/.env`), and ends with a summary of species, photos copied, care guides written and failures. Running it again duplicates nothing and only retries what failed; until its photo is copied, a species shows the Wikimedia one by URL. `-- --seed <file>` loads another seed file.
 
 GBIF name resolution (`species/match`) is the `GbifNames` port (`src/gbif/`), used by the API and by `catalog:build`; tests swap it for `FakeGbifNames` (`createTestApp(env, { gbifNames })`).
 

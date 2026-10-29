@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { careGuideFields } from '../care-guides/care-guide.dto';
 
 /** The shortest and longest search term, after the trim. */
 export const SEARCH_TERM_LENGTH = { min: 2, max: 50 } as const;
@@ -68,6 +69,7 @@ export const speciesSchema = z.object({
   otherNames: z
     .array(z.string())
     .describe('The alternative common names, in alphabetical order'),
+  ...careGuideFields,
 });
 
 export type SpeciesResponse = z.infer<typeof speciesSchema>;

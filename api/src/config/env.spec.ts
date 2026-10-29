@@ -9,6 +9,7 @@ const validEnv = {
   EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
   S3_BUCKET: 'plantai-photos',
   S3_REGION: 'us-east-1',
+  ANTHROPIC_API_KEY: 'sk-ant-test',
 };
 
 describe('parseEnv', () => {
@@ -22,7 +23,25 @@ describe('parseEnv', () => {
       EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
       S3_BUCKET: 'plantai-photos',
       S3_REGION: 'us-east-1',
+      ANTHROPIC_API_KEY: 'sk-ant-test',
+      CARE_GUIDE_MODEL: 'claude-sonnet-5-5',
     });
+  });
+
+  it('takes the care-guide model from CARE_GUIDE_MODEL when set', () => {
+    expect(
+      parseEnv({ ...validEnv, CARE_GUIDE_MODEL: 'claude-opus-5-5' })
+        .CARE_GUIDE_MODEL,
+    ).toBe('claude-opus-5-5');
+    expect(
+      parseEnv({ ...validEnv, CARE_GUIDE_MODEL: '' }).CARE_GUIDE_MODEL,
+    ).toBe('claude-sonnet-5-5');
+  });
+
+  it('fails without ANTHROPIC_API_KEY', () => {
+    expect(() =>
+      parseEnv({ ...validEnv, ANTHROPIC_API_KEY: undefined }),
+    ).toThrow(/ANTHROPIC_API_KEY/);
   });
 
   it('keeps the S3 emulator endpoint and its keys when they are set', () => {

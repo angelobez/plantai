@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CareGuidesModule } from '../care-guides/care-guides.module';
 import { CatalogService } from './catalog.service';
 import { SpeciesController } from './species.controller';
 
@@ -8,6 +9,7 @@ import { SpeciesController } from './species.controller';
  * way.
  */
 @Module({
+  imports: [CareGuidesModule],
   controllers: [SpeciesController],
   providers: [CatalogService],
   exports: [CatalogService],

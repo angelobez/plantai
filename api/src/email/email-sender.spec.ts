@@ -12,6 +12,8 @@ const env = {
   EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
   S3_BUCKET: 'unused',
   S3_REGION: 'us-east-1',
+  ANTHROPIC_API_KEY: 'unused',
+  CARE_GUIDE_MODEL: 'claude-sonnet-5-5',
 };
 
 describe('createEmailSender', () => {

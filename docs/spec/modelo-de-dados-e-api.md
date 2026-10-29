@@ -235,7 +235,7 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 | `POST /identifications` | `{ photoId }` → `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Se `result = not_recognized`, vem `candidates: []` |
 | `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }` → `{ species }` ou `204`. Faz o upsert da Espécie no Catálogo |
 | `GET /species?q=` | Busca sem diferenciar acento nem maiúscula: `lower(unaccent(q))` com `ILIKE '%termo%'` em `name_normalized` e no nome científico normalizado. `q` de 2 a 50 caracteres depois do trim (fora disso, `VALIDATION_FAILED`); `%` e `_` valem como letras. Responde uma lista com uma linha por espécie, até 20: primeiro as que têm um nome que começa pelo termo, depois as outras, cada grupo em ordem alfabética do nome principal. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }`; `matchedAlternativeName` é o nome alternativo que bateu, quando o termo não bateu no principal nem no científico |
-| `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide }`, com `otherNames` em ordem alfabética. Espécie inexistente: `NOT_FOUND`; `id` que não é UUID: `VALIDATION_FAILED` |
+| `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide, careGuideStatus }`, com `otherNames` em ordem alfabética. Espécie inexistente: `NOT_FOUND`; `id` que não é UUID: `VALIDATION_FAILED` |
 
 **Espécie nas respostas do Catálogo:** a espécie sem nome principal usa o nome científico como `commonName`. A `referencePhoto` é `{ url, author, license, sourceUrl }`; a `url` é pré-assinada (1 h) quando a foto está no armazenamento (`reference_photo_s3_key`) e é a URL externa nos outros casos.
 
@@ -246,6 +246,13 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 - **O Claude falha:** a linha fica `failed`, a resposta vem com `careGuide: null` e `careGuideStatus: "unavailable"`, e a próxima abertura tenta outra vez.
 
 Um `generating` com mais de 60 s é tratado como `failed`.
+
+**Geração das dicas** (uma só função na API, usada pelo `GET /species/:id`, pelo `GET /plants/:id` e pela carga da semente):
+- **Reserva:** um único `INSERT … ON CONFLICT (species_id) DO UPDATE … WHERE status = 'failed' OR (status = 'generating' AND started_at < now() - 60 s)`, que já grava `model`, `prompt_version`, `requested_by` e `started_at`. Só quem ganha a linha chama o Claude.
+- **O que o Claude recebe:** o nome científico e os nomes que o Catálogo já tem (o principal primeiro). Responde por um tool estrito, cujo JSON Schema sai do schema Zod do `content`; a resposta passa pelo Zod de novo, e uma resposta inválida, uma recusa ou um corte por `max_tokens` contam como falha. Modelo de `CARE_GUIDE_MODEL` (padrão `claude-sonnet-5-5`), `prompt_version` 1, timeout de 25 s com uma nova tentativa, para terminar antes dos 60 s.
+- **Sucesso:** `ready`, com `content`, `generated_at` e o `model` que respondeu (o de reserva, se o Claude recusou e o fallback do servidor respondeu).
+- **O nome do Claude:** comparado sem acento nem maiúscula. Numa espécie sem nome principal, vira o principal (ou promove o alternativo igual a ele). Numa espécie com principal, entra como alternativo só se a espécie ainda não tem um nome igual.
+- **`202 CARE_GUIDE_GENERATING`:** é um `application/problem+json` com `Retry-After: 3`, sem a espécie. O app tenta de novo e, depois de 60 s, mostra "dicas indisponíveis no momento".
 
 ### Meu jardim
 
@@ -315,5 +322,5 @@ Um `generating` com mais de 60 s é tratado como `failed`.
   3. Busca os nomes populares na Flora e Funga do Brasil, com o GBIF (`por`) de reserva.
   4. Escolhe uma foto do Wikimedia Commons com licença livre (nunca NC) e registra autor, licença e URL de origem.
 - **Revisão:** o Ângelo revisa o JSON no PR.
-- **`npm run catalog:load`:** roda à mão, uma vez por ambiente. Lê o JSON, faz o upsert pela `gbif_key`, copia as fotos para o S3 e gera, pelo mesmo código da API, as dicas que faltam. É idempotente: rodar de novo só completa o que falhou.
+- **`npm run catalog:load`:** roda à mão, uma vez por ambiente. Lê o JSON, faz o upsert pela `gbif_key`, copia as fotos para o S3 e gera, pelo mesmo código da API, as dicas que faltam (inexistentes ou `failed`), no máximo 3 em paralelo, com `requested_by` nulo. É idempotente: rodar de novo só completa o que falhou. O resumo traz as dicas geradas e as que falharam. A chave do Claude (`ANTHROPIC_API_KEY`) vem do mesmo `api/.env` da API, também no `catalog:build`.
 - **Não é uma migration:** a carga chama serviços externos e pode parar no meio, e as migrations do Drizzle ficam só com o schema.

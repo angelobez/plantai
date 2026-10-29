@@ -11,6 +11,10 @@ import {
   signUpAndVerify,
 } from './support/auth';
 import { testEnv } from './support/env';
+import {
+  careGuideContent,
+  FakeCareGuideWriter,
+} from './support/fake-care-guide-writer';
 import { FakeOutbox } from './support/fake-outbox';
 import { FakePhotoStorage } from './support/fake-photo-storage';
 import { startPostgis } from './support/postgis';
@@ -36,6 +40,8 @@ interface SpeciesBody {
   scientificName: string;
   referencePhoto: ReferencePhotoBody;
   otherNames: string[];
+  careGuide: unknown;
+  careGuideStatus: string;
 }
 
 interface NewSpecies {
@@ -52,6 +58,7 @@ describe('species (Catálogo)', () => {
   let app: INestApplication<App>;
   const outbox = new FakeOutbox();
   const photoStorage = new FakePhotoStorage();
+  const careGuideWriter = new FakeCareGuideWriter();
   let session: AuthTokensBody;
   let gbifKeys = 1000;
 
@@ -60,6 +67,7 @@ describe('species (Catálogo)', () => {
     app = await createTestApp(testEnv(container.getConnectionUri()), {
       outbox,
       photoStorage,
+      careGuideWriter,
     });
     session = await signUpAndVerify(app, outbox);
   });
@@ -72,6 +80,7 @@ describe('species (Catálogo)', () => {
   // Every test starts from an empty Catalog, so results never mix.
   beforeEach(async () => {
     await databaseOf(app).execute(sql`TRUNCATE ${species} CASCADE`);
+    careGuideWriter.failing = false;
   });
 
   async function addSpecies({
@@ -396,6 +405,8 @@ describe('species (Catálogo)', () => {
           ) as string,
         },
         otherNames: ['banana-de-macaco', 'imbé-de-folha-furada'],
+        careGuide: careGuideContent({ commonName: 'Costela-de-adão' }),
+        careGuideStatus: 'ready',
       });
     });
 
@@ -414,6 +425,8 @@ describe('species (Catálogo)', () => {
 
     it('shows the scientific name for a species without a primary name', async () => {
       const id = await addSpecies({ scientificName: 'Calathea orbifolia' });
+      // Without a care guide, the species has no name from Claude either.
+      careGuideWriter.failing = true;
 
       const response = await getSpecies(id).expect(200);
 
