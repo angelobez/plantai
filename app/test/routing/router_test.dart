@@ -9,6 +9,7 @@ import 'package:plantai/routing/router.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
 
 import '../testing/fake_auth_repository.dart';
+import '../testing/fake_catalog_repository.dart';
 import '../testing/fake_photo_picker.dart';
 import '../testing/fake_photo_repository.dart';
 import '../testing/fake_profile_repository.dart';
@@ -18,6 +19,7 @@ void main() {
   late FakeAuthRepository authRepository;
   late FakePhotoRepository photoRepository;
   late FakePhotoPicker photoPicker;
+  late FakeCatalogRepository catalogRepository;
   late List<Uri> openedUrls;
 
   setUp(() {
@@ -25,6 +27,7 @@ void main() {
     authRepository = FakeAuthRepository(signedIn: true);
     photoRepository = FakePhotoRepository();
     photoPicker = FakePhotoPicker();
+    catalogRepository = FakeCatalogRepository();
     openedUrls = [];
   });
 
@@ -36,6 +39,7 @@ void main() {
         profileRepository: FakeProfileRepository(),
         photoRepository: photoRepository,
         photoPicker: photoPicker,
+        catalogRepository: catalogRepository,
         openUrl: (url) async {
           openedUrls.add(url);
           return true;
@@ -186,6 +190,71 @@ void main() {
       expect(find.textContaining('não tem acesso à câmera'), findsNothing);
       expect(find.byKey(const Key('photo-preview')), findsOneWidget);
       expect(photoRepository.uploads, hasLength(1));
+    });
+  });
+
+  group('"Buscar pelo nome"', () {
+    Future<void> openSearch(WidgetTester tester) async {
+      await pumpApp(tester);
+      await tester.tap(cameraButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Escolher da galeria'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> search(WidgetTester tester, String term) async {
+      await tester.enterText(find.byType(TextField), term);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('opens Busca over Foto, and back keeps the same photo', (
+      tester,
+    ) async {
+      await openSearch(tester);
+
+      expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
+      expect(find.text('Que planta é essa?'), findsNothing);
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Que planta é essa?'), findsOneWidget);
+      expect(find.byKey(const Key('photo-preview')), findsOneWidget);
+      expect(photoPicker.asked, [PhotoSource.gallery]);
+      expect(photoRepository.uploads, hasLength(1));
+    });
+
+    testWidgets('a result opens the Tela da espécie, and back is Busca', (
+      tester,
+    ) async {
+      await openSearch(tester);
+      await search(tester, 'costela');
+
+      await tester.tap(find.text('Costela-de-adão'));
+      await tester.pumpAndSettle();
+
+      expect(catalogRepository.speciesAsked, [monstera.id]);
+      expect(
+        find.text(
+          'Monstera deliciosa · também chamada de banana-de-macaco, imbé',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.textContaining('Foto de referência', findRichText: true),
+      );
+      expect(openedUrls, [Uri.parse(monsteraPhoto.sourceUrl)]);
+
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Buscar espécie pelo nome'), findsOneWidget);
+      expect(find.text('Costela-de-adão'), findsOneWidget);
+      expect(catalogRepository.searches, ['costela']);
     });
   });
 

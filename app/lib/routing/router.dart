@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/repositories/auth/auth_repository.dart';
+import '../data/repositories/catalog/catalog_repository.dart';
 import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/update_required.dart';
@@ -17,6 +18,10 @@ import '../ui/auth/signup/view_models/signup_view_model.dart';
 import '../ui/auth/signup/widgets/signup_screen.dart';
 import '../ui/auth/verify_email/view_models/verify_email_view_model.dart';
 import '../ui/auth/verify_email/widgets/verify_email_screen.dart';
+import '../ui/catalog/view_models/search_view_model.dart';
+import '../ui/catalog/view_models/species_view_model.dart';
+import '../ui/catalog/widgets/search_screen.dart';
+import '../ui/catalog/widgets/species_screen.dart';
 import '../ui/core/url_opener.dart';
 import '../ui/core/widgets/coming_soon.dart';
 import '../ui/core/widgets/leaf_icon.dart';
@@ -56,6 +61,36 @@ abstract final class Routes {
 
   static const _photoSourceParam = 'fonte';
 
+  /// Busca no Catálogo, inside the photo flow. [photoId] is the photo already
+  /// sent, which "Salvar só com o nome" saves with the plant.
+  static String searchByName({String? photoId}) =>
+      _withPhoto('$identify/$_searchPath', photoId);
+
+  /// Tela da espécie, inside the photo flow, with the photo "Salvar no meu
+  /// jardim" saves with the plant ([photoId]), when there is one.
+  static String species(String speciesId, {String? photoId}) => _withPhoto(
+    '$identify/$_speciesPath/${Uri.encodeComponent(speciesId)}',
+    photoId,
+  );
+
+  static const _searchPath = 'busca';
+  static const _speciesPath = 'especie';
+  static const _speciesIdParam = 'id';
+  static const _photoIdParam = 'foto';
+
+  /// The photo of a [searchByName] or [species] location, if any.
+  static String? photoIdOf(GoRouterState state) =>
+      state.uri.queryParameters[_photoIdParam];
+
+  /// The species of a [species] location.
+  static String speciesIdOf(GoRouterState state) =>
+      state.pathParameters[_speciesIdParam]!;
+
+  static String _withPhoto(String path, String? photoId) => Uri(
+    path: path,
+    queryParameters: photoId == null ? null : {_photoIdParam: photoId},
+  ).toString();
+
   /// The source in a [identifyFrom] location; the gallery when there is none,
   /// since it needs no permission.
   static PhotoSource photoSourceOf(GoRouterState state) =>
@@ -79,6 +114,7 @@ GoRouter router({
   required ProfileRepository profileRepository,
   required PhotoRepository photoRepository,
   required PhotoPicker photoPicker,
+  required CatalogRepository catalogRepository,
   UrlOpener openUrl = openExternally,
 }) {
   /// The way into the photo flow from anywhere (the camera button, and later
@@ -221,8 +257,9 @@ GoRouter router({
           ),
         ],
       ),
-      // The next screens of the flow ("Buscar pelo nome", candidates) go in
-      // as its child routes and get the uploaded photo from the callbacks.
+      // The next screens of the flow (Busca, Tela da espécie, candidates) are
+      // its child routes, pushed over Foto, so going back finds the same
+      // photo. They get the uploaded photo's id in the query.
       GoRoute(
         path: Routes.identify,
         builder: (context, state) => ViewModelScope(
@@ -234,8 +271,39 @@ GoRouter router({
             viewModel: viewModel,
             initialSource: Routes.photoSourceOf(state),
             onClose: () => context.pop(),
+            onSearchByName: (photo) =>
+                context.push(Routes.searchByName(photoId: photo.id)),
           ),
         ),
+        routes: [
+          GoRoute(
+            path: Routes._searchPath,
+            builder: (context, state) {
+              final photoId = Routes.photoIdOf(state);
+              return ViewModelScope(
+                create: () =>
+                    SearchViewModel(catalogRepository: catalogRepository),
+                builder: (viewModel) => SearchScreen(
+                  viewModel: viewModel,
+                  onSpecies: (species) => context.push(
+                    Routes.species(species.id, photoId: photoId),
+                  ),
+                ),
+              );
+            },
+          ),
+          GoRoute(
+            path: '${Routes._speciesPath}/:${Routes._speciesIdParam}',
+            builder: (context, state) => ViewModelScope(
+              create: () => SpeciesViewModel(
+                catalogRepository: catalogRepository,
+                speciesId: Routes.speciesIdOf(state),
+              )..load(),
+              builder: (viewModel) =>
+                  SpeciesScreen(viewModel: viewModel, openUrl: openUrl),
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: Routes.about,

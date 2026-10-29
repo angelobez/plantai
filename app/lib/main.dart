@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'config/app_config.dart';
 import 'data/repositories/auth/auth_repository.dart';
 import 'data/repositories/auth/auth_repository_remote.dart';
+import 'data/repositories/catalog/catalog_repository.dart';
+import 'data/repositories/catalog/catalog_repository_remote.dart';
 import 'data/repositories/photo/photo_repository.dart';
 import 'data/repositories/photo/photo_repository_remote.dart';
 import 'data/repositories/profile/profile_repository.dart';
@@ -40,6 +42,7 @@ Future<void> main() async {
   );
   final profileRepository = ProfileRepositoryRemote(apiClient: apiClient);
   final photoRepository = PhotoRepositoryRemote(apiClient: apiClient);
+  final catalogRepository = CatalogRepositoryRemote(apiClient: apiClient);
 
   runApp(
     // Repositories go here, built on the shared ApiClient.
@@ -49,6 +52,7 @@ Future<void> main() async {
         ChangeNotifierProvider<AuthRepository>.value(value: authRepository),
         Provider<ProfileRepository>.value(value: profileRepository),
         Provider<PhotoRepository>.value(value: photoRepository),
+        Provider<CatalogRepository>.value(value: catalogRepository),
       ],
       child: PlantaiApp(
         updateRequired: updateRequired,
@@ -56,6 +60,7 @@ Future<void> main() async {
         profileRepository: profileRepository,
         photoRepository: photoRepository,
         photoPicker: ImagePickerPhotoPicker(),
+        catalogRepository: catalogRepository,
       ),
     ),
   );
@@ -69,6 +74,7 @@ class PlantaiApp extends StatefulWidget {
     required this.profileRepository,
     required this.photoRepository,
     required this.photoPicker,
+    required this.catalogRepository,
     this.openUrl = openExternally,
   });
 
@@ -77,6 +83,7 @@ class PlantaiApp extends StatefulWidget {
   final ProfileRepository profileRepository;
   final PhotoRepository photoRepository;
   final PhotoPicker photoPicker;
+  final CatalogRepository catalogRepository;
   final UrlOpener openUrl;
 
   @override
@@ -90,6 +97,7 @@ class _PlantaiAppState extends State<PlantaiApp> {
     profileRepository: widget.profileRepository,
     photoRepository: widget.photoRepository,
     photoPicker: widget.photoPicker,
+    catalogRepository: widget.catalogRepository,
     openUrl: widget.openUrl,
   );
 
