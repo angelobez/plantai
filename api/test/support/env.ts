@@ -18,6 +18,9 @@ export function testEnv(
     JWT_SECRET: TEST_JWT_SECRET,
     GOOGLE_WEB_CLIENT_ID: 'test-web-client.apps.googleusercontent.com',
     EMAIL_FROM: 'PlantAí <test@plantai.test>',
+    // The photo storage is a fake in the test app; these only satisfy the type.
+    S3_BUCKET: 'plantai-photos-test',
+    S3_REGION: 'us-east-1',
     ...overrides,
   };
 }

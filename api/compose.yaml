@@ -1,5 +1,6 @@
-# Local database for development. Keep the image in sync with POSTGIS_IMAGE in
-# test/support/postgis.ts, so tests run against the same PostGIS major version.
+# Local services for development: PostGIS and the S3 emulator for the photos.
+# Keep each image in sync with the one its tests use: POSTGIS_IMAGE in
+# test/support/postgis.ts and S3_EMULATOR_IMAGE in test/support/s3.ts.
 name: plantai
 
 services:
@@ -19,5 +20,47 @@ services:
       timeout: 5s
       retries: 15
 
+  # S3 emulator (RustFS; why this one is in the README). The keys and the
+  # bucket match .env.example. Only the S3 API is published; the web console
+  # stays off. The entrypoint starts the server and then creates the private
+  # bucket (PUT is a no-op for a bucket that already exists), and the service
+  # is only healthy once the bucket exists, so `npm run db:up` waits for it.
+  # curl comes with the image and signs with SigV4.
+  s3:
+    image: rustfs/rustfs:1.0.4
+    environment:
+      RUSTFS_ACCESS_KEY: plantai
+      RUSTFS_SECRET_KEY: plantai-local-secret
+      RUSTFS_CONSOLE_ENABLE: 'false'
+      BUCKET_URL: http://localhost:9000/plantai-photos
+      SIGV4: aws:amz:us-east-1:s3
+    ports:
+      - '9000:9000'
+    volumes:
+      - s3-data:/data
+    entrypoint:
+      - sh
+      - -c
+      - |
+        /entrypoint.sh rustfs &
+        server=$$!
+        trap 'kill -TERM $$server' TERM INT
+        until curl -fsS -o /dev/null http://localhost:9000/health; do sleep 1; done
+        curl -fsS -X PUT --aws-sigv4 "$$SIGV4" \
+          --user "$$RUSTFS_ACCESS_KEY:$$RUSTFS_SECRET_KEY" "$$BUCKET_URL" \
+          && echo "Bucket ready: $$BUCKET_URL"
+        wait $$server
+        wait $$server
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS -o /dev/null -I --aws-sigv4 "$$SIGV4"
+          --user "$$RUSTFS_ACCESS_KEY:$$RUSTFS_SECRET_KEY" "$$BUCKET_URL"
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
 volumes:
   db-data:
+  s3-data:
