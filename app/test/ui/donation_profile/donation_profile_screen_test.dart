@@ -10,6 +10,14 @@ import '../../testing/fake_location_service.dart';
 import '../../testing/fake_profile_repository.dart';
 import '../../testing/pump_screen.dart';
 
+const marinaWithDonationProfile = UserProfile(
+  id: 'id',
+  name: 'Marina Souza',
+  email: 'marina@email.com',
+  phone: '+5511987654321',
+  donationLocation: DonationLocation(neighborhood: 'Vila Mariana'),
+);
+
 void main() {
   late FakeProfileRepository profileRepository;
   late FakeLocationService locationService;
@@ -249,12 +257,17 @@ void main() {
       '(11) 98765-4321',
     );
     expect(
+      tester.widget<TextField>(textFieldUnder('Bairro')).controller?.text,
+      'Vila Mariana',
+    );
+    expect(
       find.text(
-        'Hoje: Vila Mariana. Se você mudou de lugar, use a localização de '
-        'novo.',
+        'Corrija o nome se precisar. Se você mudou de lugar, use a '
+        'localização de novo.',
       ),
       findsOneWidget,
     );
+    expect(find.text('Usar minha localização'), findsOneWidget);
 
     await tapText(tester, 'Salvar');
     final sent = profileRepository.donationProfiles.single;
@@ -262,6 +275,54 @@ void main() {
     expect(sent.neighborhood, 'Vila Mariana');
     expect(saved, hasLength(1));
     expect(locationService.asked, 0);
+  });
+
+  testWidgets('editing an existing profile corrects only the neighborhood, '
+      'without the GPS', (tester) async {
+    await pump(tester, profile: marinaWithDonationProfile);
+
+    await tester.enterText(textFieldUnder('Bairro'), 'Vila Clementino');
+    await tapText(tester, 'Salvar');
+
+    final sent = profileRepository.donationProfiles.single;
+    expect(sent.latitude, isNull);
+    expect(sent.longitude, isNull);
+    expect(sent.neighborhood, 'Vila Clementino');
+    expect(saved.single.donationLocation?.neighborhood, 'Vila Clementino');
+    expect(locationService.asked, 0);
+  });
+
+  testWidgets('editing an existing profile, the location replaces the '
+      'neighborhood and sends the position', (tester) async {
+    await pump(tester, profile: marinaWithDonationProfile);
+    await tester.enterText(textFieldUnder('Bairro'), 'Vila Clementino');
+
+    await tapText(tester, 'Usar minha localização');
+
+    expect(find.text('Localização encontrada pelo GPS'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(textFieldUnder('Bairro')).controller?.text,
+      'Vila Mariana',
+    );
+    await tapText(tester, 'Salvar');
+    final sent = profileRepository.donationProfiles.single;
+    expect(sent.latitude, vilaMariana.latitude);
+    expect(sent.longitude, vilaMariana.longitude);
+    expect(sent.neighborhood, 'Vila Mariana');
+  });
+
+  testWidgets('without a saved location, the neighborhood shows only after '
+      'the location', (tester) async {
+    await pump(tester, firstListing: true);
+
+    expect(find.text('Bairro'), findsNothing);
+
+    await tapText(tester, 'Usar minha localização');
+
+    expect(
+      tester.widget<TextField>(textFieldUnder('Bairro')).controller?.text,
+      'Vila Mariana',
+    );
   });
 
   testWidgets('without a saved location, saving asks for the location', (

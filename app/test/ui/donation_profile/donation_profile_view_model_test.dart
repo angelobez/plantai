@@ -47,6 +47,7 @@ void main() {
       expect(viewModel.neighborhood, '');
       expect(viewModel.hasPosition, isFalse);
       expect(viewModel.currentNeighborhood, isNull);
+      expect(viewModel.showsNeighborhood, isFalse);
       expect(locationService.asked, 0);
     });
 
@@ -58,6 +59,8 @@ void main() {
         expect(viewModel.phone, '(11) 98765-4321');
         expect(viewModel.neighborhood, 'Vila Mariana');
         expect(viewModel.currentNeighborhood, 'Vila Mariana');
+        // The saved neighborhood can be corrected without the GPS.
+        expect(viewModel.showsNeighborhood, isTrue);
         // The API never sends the point back; saving keeps the saved one.
         expect(viewModel.hasPosition, isFalse);
       },
@@ -331,6 +334,31 @@ void main() {
       expect(sent.longitude, isNull);
       expect(sent.neighborhood, 'Vila Mariana');
       expect(locationService.asked, 0);
+    });
+
+    test('with a saved location, saves an edited neighborhood without a '
+        'position', () async {
+      final viewModel = build(profile: marinaWithDonationProfile)
+        ..updateNeighborhood('  Vila Clementino  ');
+
+      final saved = await viewModel.save();
+
+      expect(saved?.donationLocation?.neighborhood, 'Vila Clementino');
+      final sent = profileRepository.donationProfiles.single;
+      expect(sent.latitude, isNull);
+      expect(sent.longitude, isNull);
+      expect(sent.neighborhood, 'Vila Clementino');
+      expect(locationService.asked, 0);
+    });
+
+    test('with a saved location, an emptied neighborhood is refused', () async {
+      final viewModel = build(profile: marinaWithDonationProfile)
+        ..updateNeighborhood('   ');
+
+      expect(await viewModel.save(), isNull);
+
+      expect(viewModel.neighborhoodError, 'Digite o seu bairro.');
+      expect(profileRepository.calls, isEmpty);
     });
 
     test('with a saved location, sends the position found here', () async {

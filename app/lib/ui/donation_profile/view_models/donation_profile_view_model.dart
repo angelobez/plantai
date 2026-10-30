@@ -29,8 +29,9 @@ enum LocationProblem {
 /// same screen serves the Perfil and, before the form, the Primeiro anúncio.
 ///
 /// The API never sends the point back. Saving sends a position only when one
-/// was found here by [useMyLocation]; without it the saved location stays,
-/// and with no saved location (the Primeiro anúncio) a position is required.
+/// was found here by [useMyLocation]; without it the saved point stays (with
+/// the neighborhood as typed), and with no saved location (the Primeiro
+/// anúncio) a position is required.
 class DonationProfileViewModel extends ChangeNotifier with SafeNotify {
   DonationProfileViewModel({
     required this._profileRepository,
@@ -76,6 +77,11 @@ class DonationProfileViewModel extends ChangeNotifier with SafeNotify {
   /// Whether a position was found here; without one, only a profile with a
   /// saved location can be saved.
   bool get hasPosition => _position != null;
+
+  /// Whether the neighborhood field shows: after a position is found here,
+  /// or right away when a location was saved before, so the User can
+  /// correct just the name without the GPS.
+  bool get showsNeighborhood => hasPosition || currentNeighborhood != null;
 
   bool _isLocating = false;
   bool get isLocating => _isLocating;

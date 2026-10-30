@@ -159,11 +159,22 @@ class _DonationProfileScreenState extends State<DonationProfileScreen> {
               const SizedBox(height: 8),
               if (_viewModel.hasPosition)
                 _FoundLocation(controller: _neighborhood, viewModel: _viewModel)
-              else
+              else ...[
+                if (_viewModel.showsNeighborhood) ...[
+                  _NeighborhoodField(
+                    controller: _neighborhood,
+                    viewModel: _viewModel,
+                    helperText:
+                        'Corrija o nome se precisar. Se você mudou de lugar, '
+                        'use a localização de novo.',
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 _AskLocation(
                   viewModel: _viewModel,
                   onUseMyLocation: _useMyLocation,
                 ),
+              ],
               const SizedBox(height: 18),
               const _PrivacyNote(),
             ],
@@ -197,8 +208,8 @@ class _DonationProfileScreenState extends State<DonationProfileScreen> {
   }
 }
 
-/// Before a position: "Usar minha localização", the neighborhood saved
-/// before (if any) and why the last try found nothing.
+/// Before a position: "Usar minha localização" and why the last try found
+/// nothing.
 class _AskLocation extends StatelessWidget {
   const _AskLocation({required this.viewModel, required this.onUseMyLocation});
 
@@ -207,20 +218,11 @@ class _AskLocation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final current = viewModel.currentNeighborhood;
     final error = viewModel.locationError;
     final problem = viewModel.locationProblem;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (current != null) ...[
-          Text(
-            'Hoje: $current. Se você mudou de lugar, use a localização de '
-            'novo.',
-            style: const TextStyle(fontSize: 14, color: AppColors.inkMuted),
-          ),
-          const SizedBox(height: 10),
-        ],
         OutlinedButton.icon(
           onPressed: viewModel.isLocating ? null : onUseMyLocation,
           icon: viewModel.isLocating
@@ -287,20 +289,43 @@ class _FoundLocation extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          LabeledTextField(
-            label: 'Bairro',
+          _NeighborhoodField(
             controller: controller,
-            errorText: viewModel.neighborhoodError,
+            viewModel: viewModel,
             helperText: viewModel.neighborhoodNotFound
                 ? 'Não achamos o bairro. Digite o seu.'
                 : 'Se não for o seu, corrija.',
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            enabled: !viewModel.isSaving,
-            onChanged: viewModel.updateNeighborhood,
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The editable neighborhood: the geocoder's suggestion or the one saved
+/// before.
+class _NeighborhoodField extends StatelessWidget {
+  const _NeighborhoodField({
+    required this.controller,
+    required this.viewModel,
+    required this.helperText,
+  });
+
+  final TextEditingController controller;
+  final DonationProfileViewModel viewModel;
+  final String helperText;
+
+  @override
+  Widget build(BuildContext context) {
+    return LabeledTextField(
+      label: 'Bairro',
+      controller: controller,
+      errorText: viewModel.neighborhoodError,
+      helperText: helperText,
+      textCapitalization: TextCapitalization.words,
+      textInputAction: TextInputAction.done,
+      enabled: !viewModel.isSaving,
+      onChanged: viewModel.updateNeighborhood,
     );
   }
 }
