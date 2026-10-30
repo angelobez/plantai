@@ -5,6 +5,7 @@ import '../../../data/services/api/models/identification.dart';
 import '../../../data/services/api/models/species_summary.dart';
 import '../../../domain/models/identification_failure.dart';
 import '../../core/view_models/safe_notify.dart';
+import '../identification_failure_message.dart';
 
 /// Which screen the identification leads to.
 enum IdentificationStage {
@@ -81,7 +82,7 @@ class CandidatesViewModel extends ChangeNotifier with SafeNotify {
         _stage = IdentificationStage.dailyLimit;
       } else {
         _stage = IdentificationStage.failed;
-        _error = _message(failure);
+        _error = identificationFailureMessage(failure);
         _canRetry = failure != IdentificationFailure.notFound;
       }
     } finally {
@@ -123,27 +124,11 @@ class CandidatesViewModel extends ChangeNotifier with SafeNotify {
     try {
       return await call();
     } on IdentificationFailure catch (failure) {
-      _choiceError = _message(failure);
+      _choiceError = identificationFailureMessage(failure);
       return null;
     } finally {
       _isChoosing = false;
       notify();
     }
   }
-
-  static String _message(IdentificationFailure failure) => switch (failure) {
-    IdentificationFailure.noConnection =>
-      'Sem conexão com a internet. Confira a rede e tente de novo.',
-    IdentificationFailure.serviceUnavailable =>
-      'O Pl@ntNet, que identifica as plantas, não respondeu. Tente de novo em '
-          'instantes; esta tentativa não contou.',
-    IdentificationFailure.notFound =>
-      'Essa foto não está mais disponível. Tire outra foto.',
-    IdentificationFailure.alreadyChosen =>
-      'Você já escolheu uma opção para esta foto. Identifique de novo para '
-          'escolher outra.',
-    IdentificationFailure.dailyLimit =>
-      'Você usou suas 10 identificações de hoje; amanhã tem mais.',
-    IdentificationFailure.unknown => 'Algo deu errado. Tente de novo.',
-  };
 }

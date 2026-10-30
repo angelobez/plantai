@@ -5,6 +5,7 @@ import '../../../data/services/api/models/photo.dart';
 import '../../../data/services/photo_picker/photo_picker.dart';
 import '../../../domain/models/photo_failure.dart';
 import '../../core/view_models/safe_notify.dart';
+import '../photo_failure_message.dart';
 
 /// Foto: the photo the User took or picked, sent to the API at once while
 /// they decide between "Identificar pela foto" and "Buscar pelo nome". Both
@@ -116,7 +117,7 @@ class PhotoViewModel extends ChangeNotifier with SafeNotify {
       _photo = photo;
     } on PhotoFailure catch (failure) {
       if (run != _uploadRun) return;
-      _uploadError = _message(failure);
+      _uploadError = photoFailureMessage(failure);
       _canRetryUpload =
           failure == PhotoFailure.noConnection ||
           failure == PhotoFailure.unknown;
@@ -127,14 +128,4 @@ class PhotoViewModel extends ChangeNotifier with SafeNotify {
       }
     }
   }
-
-  static String _message(PhotoFailure failure) => switch (failure) {
-    PhotoFailure.noConnection =>
-      'Sem conexão com a internet. Confira a rede e tente de novo.',
-    PhotoFailure.dailyLimit =>
-      'Você já enviou 50 fotos hoje, o limite do dia. Amanhã tem mais.',
-    PhotoFailure.notAnImage =>
-      'Não deu para ler esta foto. Tire ou escolha outra foto.',
-    PhotoFailure.unknown => 'Algo deu errado. Tente de novo.',
-  };
 }

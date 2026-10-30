@@ -6,6 +6,7 @@ import '../../../domain/models/care_guide_generating.dart';
 import '../../../domain/models/catalog_failure.dart';
 import '../../core/care_guide/wait_for_care_guide.dart';
 import '../../core/view_models/safe_notify.dart';
+import '../catalog_failure_message.dart';
 
 /// Tela da espécie: reads one species of the Catalog, with its care guide.
 ///
@@ -52,7 +53,10 @@ class SpeciesViewModel extends ChangeNotifier with SafeNotify {
         isCancelled: () => isDisposed,
       );
     } on CatalogFailure catch (failure) {
-      _loadError = _message(failure);
+      _loadError = catalogFailureMessage(
+        failure,
+        notFound: 'Não achei essa espécie no Catálogo.',
+      );
       _canRetry = failure != CatalogFailure.notFound;
     } on CareGuideGenerating {
       _loadError = careGuideUnavailableMessage;
@@ -63,11 +67,4 @@ class SpeciesViewModel extends ChangeNotifier with SafeNotify {
       notify();
     }
   }
-
-  static String _message(CatalogFailure failure) => switch (failure) {
-    CatalogFailure.noConnection =>
-      'Sem conexão com a internet. Confira a rede e tente de novo.',
-    CatalogFailure.notFound => 'Não achei essa espécie no Catálogo.',
-    CatalogFailure.unknown => 'Algo deu errado. Tente de novo.',
-  };
 }

@@ -6,6 +6,7 @@ import '../../../data/services/api/models/user_profile.dart';
 import '../../../domain/models/profile_failure.dart';
 import '../../auth/validators.dart';
 import '../../core/view_models/safe_notify.dart';
+import '../../core/failure_messages.dart';
 
 /// Perfil: shows the profile, changes the name and signs out. Once signed
 /// out, the router takes the User to Login.
@@ -94,8 +95,7 @@ class ProfileViewModel extends ChangeNotifier with SafeNotify {
   }
 
   static String _message(ProfileFailure failure) => switch (failure) {
-    ProfileFailure.noConnection =>
-      'Sem conexão com a internet. Confira a rede e tente de novo.',
-    ProfileFailure.unknown => 'Algo deu errado. Tente de novo.',
+    ProfileFailure.noConnection => noConnectionMessage,
+    ProfileFailure.unknown => unknownFailureMessage,
   };
 }

@@ -6,6 +6,7 @@ import '../../../data/repositories/catalog/catalog_repository.dart';
 import '../../../data/services/api/models/species_summary.dart';
 import '../../../domain/models/catalog_failure.dart';
 import '../../core/view_models/safe_notify.dart';
+import '../catalog_failure_message.dart';
 
 /// Busca no Catálogo: searches as the User types, [debounce] after the last
 /// change, and keeps the answer of the latest term only.
@@ -113,7 +114,7 @@ class SearchViewModel extends ChangeNotifier with SafeNotify {
       _searchedTerm = term;
     } on CatalogFailure catch (failure) {
       if (run != _run) return;
-      _error = _message(failure);
+      _error = catalogFailureMessage(failure);
       _canRetry = true;
     } finally {
       if (run == _run) {
@@ -122,13 +123,6 @@ class SearchViewModel extends ChangeNotifier with SafeNotify {
       }
     }
   }
-
-  static String _message(CatalogFailure failure) => switch (failure) {
-    CatalogFailure.noConnection =>
-      'Sem conexão com a internet. Confira a rede e tente de novo.',
-    CatalogFailure.notFound ||
-    CatalogFailure.unknown => 'Algo deu errado. Tente de novo.',
-  };
 
   @override
   void dispose() {
