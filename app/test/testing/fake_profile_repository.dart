@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:plantai/data/repositories/profile/profile_repository.dart';
 import 'package:plantai/data/services/api/models/user_profile.dart';
+import 'package:plantai/domain/models/donation_profile.dart';
 import 'package:plantai/domain/models/profile_failure.dart';
 
 const marina = UserProfile(
@@ -50,6 +51,26 @@ class FakeProfileRepository implements ProfileRepository {
       email: profile.email,
       phone: profile.phone,
       donationLocation: profile.donationLocation,
+    );
+  }
+
+  /// The donation profiles saved, in order.
+  final donationProfiles = <DonationProfile>[];
+
+  /// What [updateDonationProfile] stores as the phone, in place of the
+  /// API's E.164.
+  String savedPhone = '+5511987654321';
+
+  @override
+  Future<UserProfile> updateDonationProfile(DonationProfile changes) async {
+    await _answer('updateDonationProfile(${changes.neighborhood})');
+    donationProfiles.add(changes);
+    return profile = UserProfile(
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      phone: savedPhone,
+      donationLocation: DonationLocation(neighborhood: changes.neighborhood),
     );
   }
 }

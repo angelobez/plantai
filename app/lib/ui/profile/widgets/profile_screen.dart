@@ -5,17 +5,20 @@ import '../../auth/widgets/form_message.dart';
 import '../../auth/widgets/labeled_text_field.dart';
 import '../../core/themes/colors.dart';
 import '../../core/widgets/tab_page.dart';
+import '../../donation_profile/brazilian_phone.dart';
 import '../view_models/profile_view_model.dart';
 
 /// The Perfil tab, as in the Claude Design screen (`M-perfil`): the avatar,
 /// name and e-mail (read only), the rows Nome, WhatsApp and Localização de
-/// doação, "Sobre e créditos" and "Sair". Only the name is edited here; the
-/// other two are asked in the first listing (v0.3).
+/// doação, "Sobre e créditos" and "Sair". The name is edited here; the phone
+/// and the location open the donation-profile screen
+/// ([onEditDonationProfile]).
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     super.key,
     required this.viewModel,
     required this.onAbout,
+    required this.onEditDonationProfile,
   });
 
   static const notInformed = 'Não informado';
@@ -24,6 +27,10 @@ class ProfileScreen extends StatelessWidget {
 
   /// Opens "Sobre e créditos".
   final VoidCallback onAbout;
+
+  /// Opens the donation-profile screen for [UserProfile]'s phone and
+  /// location.
+  final ValueChanged<UserProfile> onEditDonationProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +44,7 @@ class ProfileScreen extends StatelessWidget {
               profile: profile,
               viewModel: viewModel,
               onEditName: () => _editName(context, profile),
+              onEditDonationProfile: () => onEditDonationProfile(profile),
               onAbout: onAbout,
             );
           }
@@ -65,12 +73,14 @@ class _ProfileView extends StatelessWidget {
     required this.profile,
     required this.viewModel,
     required this.onEditName,
+    required this.onEditDonationProfile,
     required this.onAbout,
   });
 
   final UserProfile profile;
   final ProfileViewModel viewModel;
   final VoidCallback onEditName;
+  final VoidCallback onEditDonationProfile;
   final VoidCallback onAbout;
 
   @override
@@ -136,13 +146,18 @@ class _ProfileView extends StatelessWidget {
         _InfoRow(label: 'Nome', value: profile.name, onEdit: onEditName),
         _InfoRow(
           label: 'WhatsApp',
-          value: profile.phone ?? ProfileScreen.notInformed,
+          value: switch (profile.phone) {
+            final phone? => displayPhone(phone),
+            null => ProfileScreen.notInformed,
+          },
+          onEdit: onEditDonationProfile,
         ),
         _InfoRow(
           label: 'Localização de doação',
           value:
               profile.donationLocation?.neighborhood ??
               ProfileScreen.notInformed,
+          onEdit: onEditDonationProfile,
         ),
         const SizedBox(height: 18),
         _AboutRow(onTap: onAbout),

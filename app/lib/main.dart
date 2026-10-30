@@ -11,6 +11,8 @@ import 'data/repositories/garden/garden_repository.dart';
 import 'data/repositories/garden/garden_repository_remote.dart';
 import 'data/repositories/identification/identification_repository.dart';
 import 'data/repositories/identification/identification_repository_remote.dart';
+import 'data/repositories/listing/listing_repository.dart';
+import 'data/repositories/listing/listing_repository_remote.dart';
 import 'data/repositories/photo/photo_repository.dart';
 import 'data/repositories/photo/photo_repository_remote.dart';
 import 'data/repositories/profile/profile_repository.dart';
@@ -18,6 +20,8 @@ import 'data/repositories/profile/profile_repository_remote.dart';
 import 'data/services/api/api_client.dart';
 import 'data/services/api/update_required.dart';
 import 'data/services/google/google_id_tokens.dart';
+import 'data/services/location/geolocator_location_service.dart';
+import 'data/services/location/location_service.dart';
 import 'data/services/photo_picker/image_picker_photo_picker.dart';
 import 'data/services/photo_picker/photo_picker.dart';
 import 'data/services/session/session_store.dart';
@@ -51,6 +55,7 @@ Future<void> main() async {
     apiClient: apiClient,
   );
   final gardenRepository = GardenRepositoryRemote(apiClient: apiClient);
+  final listingRepository = ListingRepositoryRemote(apiClient: apiClient);
 
   runApp(
     // Repositories go here, built on the shared ApiClient.
@@ -65,6 +70,9 @@ Future<void> main() async {
           value: identificationRepository,
         ),
         ChangeNotifierProvider<GardenRepository>.value(value: gardenRepository),
+        ChangeNotifierProvider<ListingRepository>.value(
+          value: listingRepository,
+        ),
       ],
       child: PlantaiApp(
         updateRequired: updateRequired,
@@ -75,6 +83,8 @@ Future<void> main() async {
         catalogRepository: catalogRepository,
         identificationRepository: identificationRepository,
         gardenRepository: gardenRepository,
+        locationService: GeolocatorLocationService(),
+        listingRepository: listingRepository,
       ),
     ),
   );
@@ -91,6 +101,8 @@ class PlantaiApp extends StatefulWidget {
     required this.catalogRepository,
     required this.identificationRepository,
     required this.gardenRepository,
+    required this.locationService,
+    required this.listingRepository,
     this.openUrl = openExternally,
   });
 
@@ -102,6 +114,8 @@ class PlantaiApp extends StatefulWidget {
   final CatalogRepository catalogRepository;
   final IdentificationRepository identificationRepository;
   final GardenRepository gardenRepository;
+  final LocationService locationService;
+  final ListingRepository listingRepository;
   final UrlOpener openUrl;
 
   @override
@@ -118,6 +132,8 @@ class _PlantaiAppState extends State<PlantaiApp> {
     catalogRepository: widget.catalogRepository,
     identificationRepository: widget.identificationRepository,
     gardenRepository: widget.gardenRepository,
+    locationService: widget.locationService,
+    listingRepository: widget.listingRepository,
     openUrl: widget.openUrl,
   );
 

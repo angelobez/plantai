@@ -4,6 +4,8 @@ import '../themes/colors.dart';
 
 /// The empty-state layout of the Claude Design screens: an icon in a mist
 /// tile, [title], [message] and, when given, an [action] under them.
+/// [tileColor] and [iconColor] replace the mist and forest of the tile (the
+/// Localização negada screen draws it in sand).
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -11,12 +13,16 @@ class EmptyState extends StatelessWidget {
     required this.title,
     required this.message,
     this.action,
+    this.tileColor = AppColors.mist,
+    this.iconColor = AppColors.forest,
   });
 
   final Widget icon;
   final String title;
   final String message;
   final Widget? action;
+  final Color tileColor;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +38,12 @@ class EmptyState extends StatelessWidget {
               width: 112,
               height: 112,
               decoration: BoxDecoration(
-                color: AppColors.mist,
+                color: tileColor,
                 borderRadius: BorderRadius.circular(32),
               ),
               alignment: Alignment.center,
               child: IconTheme(
-                data: const IconThemeData(color: AppColors.forest, size: 52),
+                data: IconThemeData(color: iconColor, size: 52),
                 child: icon,
               ),
             ),

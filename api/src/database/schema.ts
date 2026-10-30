@@ -11,12 +11,15 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
+  smallint,
   text,
   timestamp,
   type AnyPgColumn,
   unique,
   uniqueIndex,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 
 /** Case-insensitive text (the `citext` extension), for e-mails. */
@@ -300,4 +303,77 @@ export const plants = pgTable(
     createdAt: createdAt(),
   },
   (table) => [index('plants_user_id_idx').on(table.userId)],
+);
+
+// Donation -------------------------------------------------------------------
+
+/**
+ * The stored status, which only the donor's actions change. Never answered
+ * as it is: `src/listings/listing-status.ts` turns an expired `active` into
+ * `closed` (the effective status).
+ */
+export const listingStatus = pgEnum('listing_status', [
+  'active',
+  'donated',
+  'closed',
+]);
+
+export type ListingStatus = (typeof listingStatus.enumValues)[number];
+
+/** Anúncio: seedlings a User gives away to the neighbors. */
+export const listings = pgTable(
+  'listings',
+  {
+    id: id(),
+    /** The donor. */
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** The plant it came from; unused in the MVP (seedling lineage). */
+    plantId: uuid('plant_id').references(() => plants.id, {
+      onDelete: 'set null',
+    }),
+    /** No cascade: the listing's photo must not go with its plant. */
+    photoId: uuid('photo_id')
+      .notNull()
+      .references(() => photos.id),
+    /** Copied from the plant, editable when publishing. */
+    commonName: text('common_name').notNull(),
+    speciesId: uuid('species_id').references(() => species.id),
+    /** Only reaches 0 through "Doei algumas". */
+    quantity: smallint('quantity').notNull(),
+    note: varchar('note', { length: 200 }),
+    status: listingStatus('status').notNull().default('active'),
+    /** A copy of the donor's donation location when publishing (ADR 0002). */
+    location: geographyPoint('location').notNull(),
+    /** A copy of the donor's donation neighborhood when publishing. */
+    neighborhood: text('neighborhood').notNull(),
+    /** Publishing or renewing + 30 days. */
+    expiresAt: timestamptz('expires_at').notNull(),
+    createdAt: createdAt(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    check('listings_quantity_range', sql`${table.quantity} BETWEEN 0 AND 99`),
+    index('listings_user_id_idx').on(table.userId),
+    index('listings_location_idx').using('gist', table.location),
+    index('listings_photo_id_idx').on(table.photoId),
+  ],
+);
+
+/** Interesse: a User tapped "Tenho interesse" on a listing. */
+export const interests = pgTable(
+  'interests',
+  {
+    listingId: uuid('listing_id')
+      .notNull()
+      .references(() => listings.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+    /** Tapping again only moves this; the donor sees the number of rows. */
+    lastOpenedAt: timestamptz('last_opened_at').notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.listingId, table.userId] })],
 );

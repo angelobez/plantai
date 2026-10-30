@@ -133,6 +133,18 @@ export class CatalogService {
   }
 
   /**
+   * Whether [id] is a Catalog species; the features that take a `speciesId`
+   * (garden, listings) answer `VALIDATION_FAILED` when it is not.
+   */
+  async exists(id: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: species.id })
+      .from(species)
+      .where(eq(species.id, id));
+    return row !== undefined;
+  }
+
+  /**
    * One species with all its names, without the care guide (the controller
    * adds it); `NOT_FOUND` when there is none.
    */

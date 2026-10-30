@@ -5,12 +5,17 @@ import '../data/repositories/auth/auth_repository.dart';
 import '../data/repositories/catalog/catalog_repository.dart';
 import '../data/repositories/garden/garden_repository.dart';
 import '../data/repositories/identification/identification_repository.dart';
+import '../data/repositories/listing/listing_repository.dart';
 import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
+import '../data/services/api/models/user_profile.dart';
+import '../data/services/location/location_service.dart';
 import '../data/services/api/models/photo.dart';
+import '../data/services/api/models/species.dart';
 import '../data/services/api/models/species_summary.dart';
 import '../data/services/api/update_required.dart';
 import '../data/services/photo_picker/photo_picker.dart';
+import '../domain/models/listing_draft.dart';
 import '../domain/models/new_plant.dart';
 import '../ui/about/widgets/about_screen.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
@@ -28,8 +33,6 @@ import '../ui/catalog/view_models/species_view_model.dart';
 import '../ui/catalog/widgets/search_screen.dart';
 import '../ui/catalog/widgets/species_screen.dart';
 import '../ui/core/url_opener.dart';
-import '../ui/core/widgets/coming_soon.dart';
-import '../ui/core/widgets/tab_page.dart';
 import '../ui/core/widgets/view_model_scope.dart';
 import '../ui/garden/view_models/garden_view_model.dart';
 import '../ui/garden/view_models/plant_view_model.dart';
@@ -38,10 +41,22 @@ import '../ui/garden/widgets/plant_name_dialog.dart';
 import '../ui/garden/widgets/plant_screen.dart';
 import '../ui/garden/widgets/save_plant.dart';
 import '../ui/identification/view_models/candidates_view_model.dart';
+import '../ui/listings/view_models/listing_detail_view_model.dart';
+import '../ui/listings/view_models/my_listings_view_model.dart';
+import '../ui/listings/view_models/nearby_view_model.dart';
+import '../ui/listings/view_models/new_listing_view_model.dart';
+import '../ui/listings/widgets/listings_tab_page.dart';
+import '../ui/listings/widgets/listing_detail_screen.dart';
+import '../ui/listings/widgets/my_listings_screen.dart';
+import '../ui/listings/widgets/nearby_screen.dart';
+import '../ui/listings/widgets/new_listing_screen.dart';
+import '../ui/listings/widgets/start_listing.dart';
 import '../ui/identification/widgets/candidates_screen.dart';
 import '../ui/photo/view_models/photo_view_model.dart';
 import '../ui/photo/widgets/photo_screen.dart';
 import '../ui/photo/widgets/photo_source_sheet.dart';
+import '../ui/donation_profile/view_models/donation_profile_view_model.dart';
+import '../ui/donation_profile/widgets/donation_profile_screen.dart';
 import '../ui/profile/view_models/profile_view_model.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/tabs/widgets/tabs_shell.dart';
@@ -50,6 +65,7 @@ import '../ui/update_required/widgets/update_required_screen.dart';
 part 'entry_routes.dart';
 part 'garden_routes.dart';
 part 'identify_routes.dart';
+part 'listing_routes.dart';
 part 'photo_flow.dart';
 
 abstract final class Routes {
@@ -91,8 +107,37 @@ abstract final class Routes {
   static const _defineSpeciesPath = 'especie';
   static const _photoPath = 'foto';
 
+  /// The Por perto tab, on its "Por perto" inner tab.
   static const nearby = '/perto';
+
+  /// Detalhe do anúncio of [listingId], over the whole shell.
+  static String listing(String listingId) =>
+      '/anuncio/${Uri.encodeComponent(listingId)}';
+
+  static const listingPattern = '/anuncio/:$_listingIdParam';
+  static const _listingIdParam = 'id';
+
+  /// The listing of a [listing] location.
+  static String listingIdOf(GoRouterState state) =>
+      state.pathParameters[_listingIdParam]!;
+
+  /// The Por perto tab, on its "Meus anúncios" inner tab.
+  static const myListings = '/meus-anuncios';
+
+  /// Novo anúncio, over the whole shell. Pushed with the [ListingDraft] it
+  /// starts from as `extra`; publishing goes to [myListings].
+  static const newListing = '/anunciar';
+
+  /// Primeiro anúncio: the donation profile before a first listing, over
+  /// the whole shell. Pushed with a [FirstListingArgs] as `extra`.
+  static const firstListing = '/antes-de-doar';
   static const profile = '/perfil';
+
+  /// The phone and the donation location, over Perfil. Pushed with the
+  /// [UserProfile] as `extra` (to fill the fields); completes with the
+  /// profile as saved, or null when the User goes back.
+  static const donationProfile = '$profile/$_donationProfilePath';
+  static const _donationProfilePath = 'doacao';
 
   /// Foto, the start of the flow to identify a plant. Takes the source of
   /// the first photo in the `fonte` query parameter ([identifyFrom]).
@@ -108,32 +153,50 @@ abstract final class Routes {
   static const passwordReset = '$login/esqueci-a-senha';
 
   /// Foto, opening the camera or the gallery as it appears.
-  static String identifyFrom(PhotoSource source) => Uri(
-    path: identify,
+  static String identifyFrom(PhotoSource source) =>
+      _photoFlowFrom(identify, source);
+
+  /// Foto of the photo flow opened by "Doar mudas" in Meus anúncios: the
+  /// same screens as [identify] under this path, ending in Novo anúncio.
+  /// Takes the source in the `fonte` query parameter ([donateFrom]).
+  static const donate = '/doar';
+
+  /// Foto of [donate], opening the camera or the gallery as it appears.
+  static String donateFrom(PhotoSource source) =>
+      _photoFlowFrom(donate, source);
+
+  static String _photoFlowFrom(String root, PhotoSource source) => Uri(
+    path: root,
     queryParameters: {_photoSourceParam: source.name},
   ).toString();
 
   static const _photoSourceParam = 'fonte';
 
-  /// Busca no Catálogo, inside the photo flow. [photoId] is the photo already
-  /// sent, which "Salvar só com o nome" saves with the plant.
-  static String searchByName({String? photoId}) =>
-      _withPhoto('$identify/$_searchPath', photoId);
+  /// Busca no Catálogo, inside the photo flow under [root] ([identify] or
+  /// [donate]). [photoId] is the photo already sent, which "Salvar só com o
+  /// nome" saves with the plant (or the listing).
+  static String searchByName({String? photoId, String root = identify}) =>
+      _withPhoto('$root/$_searchPath', photoId);
 
-  /// Tela da espécie, inside the photo flow, with the photo "Salvar no meu
-  /// jardim" saves with the plant ([photoId]), when there is one.
-  static String species(String speciesId, {String? photoId}) => _withPhoto(
-    '$identify/$_speciesPath/${Uri.encodeComponent(speciesId)}',
+  /// Tela da espécie, inside the photo flow under [root], with the photo
+  /// "Salvar no meu jardim" (or "Doar mudas") takes ([photoId]), when there
+  /// is one.
+  static String species(
+    String speciesId, {
+    String? photoId,
+    String root = identify,
+  }) => _withPhoto(
+    '$root/$_speciesPath/${Uri.encodeComponent(speciesId)}',
     photoId,
   );
 
-  /// Candidatos, inside the photo flow: identifies the photo [photoId],
-  /// already sent, and leads to Candidatos, Foto não reconhecida or Limite
-  /// diário. Pushed with the [Photo] as `extra`, for its thumbnail; the
-  /// push completes with the source of another photo when the User asks for
-  /// one ("Tirar outra foto").
-  static String candidates(String photoId) =>
-      '$identify/$_candidatesPath/${Uri.encodeComponent(photoId)}';
+  /// Candidatos, inside the photo flow under [root]: identifies the photo
+  /// [photoId], already sent, and leads to Candidatos, Foto não reconhecida
+  /// or Limite diário. Pushed with the [Photo] as `extra`, for its
+  /// thumbnail; the push completes with the source of another photo when
+  /// the User asks for one ("Tirar outra foto").
+  static String candidates(String photoId, {String root = identify}) =>
+      '$root/$_candidatesPath/${Uri.encodeComponent(photoId)}';
 
   static const _candidatesPath = 'candidatos';
   static const _searchPath = 'busca';
@@ -184,6 +247,8 @@ GoRouter router({
   required CatalogRepository catalogRepository,
   required IdentificationRepository identificationRepository,
   required GardenRepository gardenRepository,
+  required LocationService locationService,
+  required ListingRepository listingRepository,
   UrlOpener openUrl = openExternally,
 }) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -193,6 +258,14 @@ GoRouter router({
     catalogRepository: catalogRepository,
     identificationRepository: identificationRepository,
     gardenRepository: gardenRepository,
+    openUrl: openUrl,
+  );
+  final listingFlow = _ListingFlow(
+    listingRepository: listingRepository,
+    profileRepository: profileRepository,
+    photoRepository: photoRepository,
+    photoPicker: photoPicker,
+    locationService: locationService,
     openUrl: openUrl,
   );
 
@@ -238,21 +311,15 @@ GoRouter router({
         // Same order as AppTab.
         branches: [
           StatefulShellBranch(
-            routes: [_gardenRoute(flow, rootNavigatorKey: rootNavigatorKey)],
-          ),
-          StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: Routes.nearby,
-                builder: (context, state) => const TabPage(
-                  body: ComingSoon(
-                    icon: Icon(Icons.location_on_outlined),
-                    title: 'Mudas por perto',
-                  ),
-                ),
+              _gardenRoute(
+                flow,
+                listingFlow,
+                rootNavigatorKey: rootNavigatorKey,
               ),
             ],
           ),
+          StatefulShellBranch(routes: listingFlow.tabRoutes()),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -265,14 +332,43 @@ GoRouter router({
                   builder: (viewModel) => ProfileScreen(
                     viewModel: viewModel,
                     onAbout: () => context.push(Routes.about),
+                    onEditDonationProfile: (profile) async {
+                      final saved = await context.push<UserProfile>(
+                        Routes.donationProfile,
+                        extra: profile,
+                      );
+                      if (saved != null) viewModel.showProfile(saved);
+                    },
                   ),
                 ),
+                routes: [
+                  // Over the whole shell, like the other forms.
+                  GoRoute(
+                    parentNavigatorKey: rootNavigatorKey,
+                    path: Routes._donationProfilePath,
+                    builder: (context, state) => ViewModelScope(
+                      create: () => DonationProfileViewModel(
+                        profileRepository: profileRepository,
+                        locationService: locationService,
+                        openUrl: openUrl,
+                        profile: state.extra as UserProfile?,
+                      ),
+                      builder: (viewModel) => DonationProfileScreen.profile(
+                        viewModel: viewModel,
+                        onSaved: (profile) => context.pop(profile),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ],
       ),
-      _identifyRoute(flow),
+      _photoFlowRoute(flow, root: Routes.identify, end: flow.savePlantEnd),
+      _photoFlowRoute(flow, root: Routes.donate, end: listingFlow.donateEnd),
+      ...listingFlow.formRoutes(),
+      listingFlow.detailRoute(),
       GoRoute(
         path: Routes.about,
         builder: (context, state) => AboutScreen(openUrl: openUrl),

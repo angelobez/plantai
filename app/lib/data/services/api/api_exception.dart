@@ -16,6 +16,13 @@ enum ApiErrorCode {
   identificationServiceUnavailable('IDENTIFICATION_SERVICE_UNAVAILABLE'),
   identificationAlreadyChosen('IDENTIFICATION_ALREADY_CHOSEN'),
   speciesAlreadySet('SPECIES_ALREADY_SET'),
+  invalidPhone('INVALID_PHONE'),
+  donationProfileRequired('DONATION_PROFILE_REQUIRED'),
+  listingNotActive('LISTING_NOT_ACTIVE'),
+  locationRequired('LOCATION_REQUIRED'),
+  invalidDonationCount('INVALID_DONATION_COUNT'),
+  renewalNotAllowed('RENEWAL_NOT_ALLOWED'),
+  ownListing('OWN_LISTING'),
 
   /// `202`: another request is writing the care guide; try again after
   /// [ApiException.retryAfter].

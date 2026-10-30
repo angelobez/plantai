@@ -1,7 +1,8 @@
 part of 'router.dart';
 
 /// The photo flow's dependencies and the screens it shares: the flow that
-/// saves a new plant (under /identificar, [_identifyRoute]) and "Definir
+/// saves a new plant (under /identificar, [_photoFlowRoute] with
+/// [savePlantEnd]), the one that starts a listing (under /doar) and "Definir
 /// espécie" (under the Tela da planta, [_gardenRoute]) differ only in where
 /// each choice leads.
 class _PhotoFlow {
@@ -31,24 +32,25 @@ class _PhotoFlow {
     await context.push(Routes.identifyFrom(source));
   }
 
-  /// Saves the plant from the photo flow, then opens it: the flow leaves the
-  /// stack, and back from the Tela da planta is the Jardim tab.
-  void saveAndOpen(BuildContext context, NewPlant plant) => savePlant(
-    context,
-    gardenRepository: gardenRepository,
-    plant: plant,
-    onSaved: (saved) {
-      if (context.mounted) context.go(Routes.plant(saved.id));
-    },
+  /// The end of the flow under /identificar: saves the plant, then opens
+  /// it. The flow leaves the stack, and back from the Tela da planta is the
+  /// Jardim tab.
+  late final savePlantEnd = _PhotoFlowEnd(
+    saveLabel: 'Salvar no meu jardim',
+    nameTitle: 'Nome da planta',
+    save: (context, choice) => savePlant(
+      context,
+      gardenRepository: gardenRepository,
+      plant: NewPlant(
+        photoId: choice.photoId,
+        commonName: choice.commonName,
+        speciesId: choice.species?.id,
+      ),
+      onSaved: (saved) {
+        if (context.mounted) context.go(Routes.plant(saved.id));
+      },
+    ),
   );
-
-  /// "Salvar só com o nome" where there is no name yet (Foto não reconhecida,
-  /// Limite diário): asks it first.
-  Future<void> askNameAndSave(BuildContext context, String photoId) async {
-    final name = await showPlantNameDialog(context);
-    if (name == null || !context.mounted) return;
-    saveAndOpen(context, NewPlant(photoId: photoId, commonName: name));
-  }
 
   Widget photoScreen(
     BuildContext context,

@@ -175,7 +175,7 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 | `expires_at` | timestamptz | Criação ou renovação + 30 dias |
 | `created_at`, `updated_at` | timestamptz | |
 
-**Expiração sem job:** um anúncio com `status = active` e `expires_at` no passado é tratado como **Encerrado** em todas as consultas e em toda resposta da API. O status efetivo é calculado numa só função no repositório. Renovar só é permitido nos últimos 7 dias (e não depois de expirado) e faz `expires_at = now() + 30 dias`.
+**Expiração sem job:** um anúncio com `status = active` e `expires_at` no passado é tratado como **Encerrado** em todas as consultas e em toda resposta da API. O status efetivo é calculado numa só função (`api/src/listings/listing-status.ts`), que toda consulta e toda resposta usam. Renovar só é permitido nos últimos 7 dias (e não depois de expirado) e faz `expires_at = now() + 30 dias`.
 
 **`interests`**: PK (`listing_id`, `user_id`), `created_at`, `last_opened_at`. Tocar de novo em "Tenho interesse" só atualiza `last_opened_at`. A contagem que o doador vê é o número de linhas.
 
@@ -225,7 +225,14 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 |---|---|
 | `GET /me` | `{ id, name, email, phone, donationLocation: { neighborhood } \| null }`. As coordenadas não voltam |
 | `PATCH /me` | `{ name }` |
-| `PUT /me/donation-profile` | `{ phone, lat, lng, neighborhood }`. A API valida o telefone e arredonda o ponto antes de salvar. É usado no primeiro anúncio e no Perfil |
+| `PUT /me/donation-profile` | `{ phone, lat?, lng?, neighborhood }` → `200` com o corpo do `GET /me`. `phone` e `neighborhood` são obrigatórios; `lat` e `lng` vêm juntos ou nenhum dos dois. Sem eles, fica a localização já salva e só mudam telefone e bairro; sem eles e sem localização salva, `VALIDATION_FAILED` em `lat` e `lng`. A API valida o telefone e arredonda o ponto antes de salvar. É usado no primeiro anúncio e no Perfil. Trocar o perfil não muda os anúncios já criados |
+
+**`PUT /me/donation-profile`, campo a campo:**
+- **`phone`:** `libphonenumber-js` com país padrão `BR`; aceita com ou sem `+55`, máscara ou espaços. Precisa ser celular brasileiro válido (tipo `MOBILE`); senão, `INVALID_PHONE`. Guardado em E.164 (`+5511987654321`).
+- **`lat` e `lng`:** números em `-90..90` e `-180..180`; fora disso, `VALIDATION_FAILED`. Só um dos dois: `VALIDATION_FAILED` no que faltou.
+- **`neighborhood`:** de 1 a 60 caracteres depois do trim; fora disso, `VALIDATION_FAILED`.
+
+**Grade de ~1 km (ADR 0002):** o ponto recebido vira o centro da sua célula antes de salvar, e só o centro é guardado; o ponto recebido não vai para o banco nem para o log. As linhas de latitude têm passo fixo de `1 / 111,32` grau (~1 km): linha `i = floor(lat / passo)`, centro `(i + 0,5) × passo`. Dentro da linha, o passo de longitude é o mesmo passo dividido pelo cosseno da latitude do centro da linha, e o centro da coluna sai do mesmo jeito; assim a célula tem ~1 km nos dois sentidos em qualquer latitude, e o centro fica a menos de ~0,71 km do ponto. A função é pura e determinística: dois pontos da mesma célula dão exatamente o mesmo centro.
 
 ### Fotos, identificação e Catálogo
 
@@ -274,25 +281,27 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 | `POST /plants` | `{ photoId, commonName, speciesId? }` → `201` com a planta no formato da lista. `commonName` de 1 a 80 caracteres depois de tirar os espaços das pontas. Anexa a foto (`attached_at`, tira a tag) e grava `photos.plant_id`. Foto de outro Usuário: `NOT_FOUND`. Foto que já é de outra planta ou `speciesId` que não existe: `VALIDATION_FAILED`. Não gera as dicas |
 | `GET /plants/:id` | `{ id, commonName, photo, species }`, com `species` igual ao corpo do `GET /species/:id` (nomes, foto de referência, `careGuide` e `careGuideStatus`, pela mesma função de geração, inclusive o `202`), ou `null` na planta salva só com o nome. Planta de outro Usuário: `NOT_FOUND` |
 | `PATCH /plants/:id` | `{ commonName? , speciesId? }`, com pelo menos um dos dois (senão, `VALIDATION_FAILED`), e responde a planta no formato da lista; com os dois, aplica os dois. `commonName` segue a regra do `POST`. Só aceita `speciesId` se a planta ainda não tiver espécie (`SPECIES_ALREADY_SET`, inclusive com o mesmo `speciesId`); `speciesId` que não existe: `VALIDATION_FAILED`. A espécie é conferida primeiro: se ela falha, o nome também não muda. Não gera as dicas. Planta de outro Usuário: `NOT_FOUND` |
-| `DELETE /plants/:id` | `204`. Apaga a planta e as linhas das fotos dela numa transação e depois os objetos no armazenamento; uma falha ao apagar o objeto vai para o log e não falha a resposta. Planta de outro Usuário: `NOT_FOUND` |
+| `DELETE /plants/:id` | `204`. Apaga a planta e as linhas das fotos dela numa transação e depois os objetos no armazenamento; uma falha ao apagar o objeto vai para o log e não falha a resposta. A foto que algum anúncio usa fica, com `plant_id = null`, e os anúncios ficam (ver "Remover a planta"). Planta de outro Usuário: `NOT_FOUND` |
 
 ### Anúncios e interesse
 
 | Método e caminho | O que faz |
 |---|---|
-| `GET /listings/nearby?page=` | Usa a localização de quem procura (abaixo). Lista os anúncios efetivamente ativos até 30 km (`ST_DWithin`), exceto os do próprio usuário, ordenados por distância, 30 por página. Cada item: `{ id, commonName, scientificName \| null, photo, quantity, distanceKm, neighborhood }` |
-| `GET /listings/:id` | `{ ...item, note, donorFirstName, createdAt, careGuide \| null }`. Usa a localização de quem procura para calcular a distância. **Sem telefone** |
-| `POST /listings` | `{ photoId, commonName, speciesId?, plantId?, quantity (1..99), note? }`. Sem telefone ou sem localização no perfil: `DONATION_PROFILE_REQUIRED` |
-| `GET /me/listings` | Os anúncios do usuário: `{ id, commonName, photo, status, quantity, interestCount, expiresAt, canRenew }` |
-| `PATCH /listings/:id` | `{ quantity? (1..99), note? }`. Só se o anúncio estiver ativo |
-| `POST /listings/:id/donations` | `{ count }`. Desconta da quantidade e, se chegar a 0, o anúncio vira `donated`. `count` maior que a quantidade: `INVALID_DONATION_COUNT` |
-| `POST /listings/:id/close` | Vira `closed` |
-| `POST /listings/:id/renew` | Só nos últimos 7 dias (`RENEWAL_NOT_ALLOWED`) |
-| `POST /listings/:id/interest` | Registra ou atualiza o Interesse e devolve `{ whatsappUrl }`, o `https://wa.me/<telefone sem +>?text=...` com a mensagem padrão. Não aceita o próprio anúncio (`OWN_LISTING`) nem anúncio que não esteja ativo (`LISTING_NOT_ACTIVE`) |
+| `GET /listings/nearby?page=` | Usa a localização de quem procura (abaixo). Lista os anúncios efetivamente ativos até 30 km (`ST_DWithin` sobre `geography`, até o centro da célula do anúncio), exceto os do próprio usuário, ordenados pela distância e, no empate (anúncios da mesma célula), do mais novo ao mais antigo. `page` é inteiro a partir de 1 (padrão 1; fora disso, `VALIDATION_FAILED`), com 30 itens por página; responde a lista crua, sem total, e o app pede a próxima página enquanto recebe 30. Cada item: `{ id, commonName, scientificName \| null, photo, quantity, distanceKm, neighborhood }` |
+| `GET /listings/:id` | `{ ...item, status, note \| null, donorFirstName, createdAt, careGuide \| null }`. Usa a localização de quem procura para calcular a distância. Responde qualquer anúncio, também o doado, o encerrado e o expirado, com o `status` efetivo, para o app mostrar que não está mais disponível. `donorFirstName` é a primeira palavra do nome do doador. `careGuide` é o `content` das dicas `ready` da espécie, ou `null` (sem espécie, ou dicas ainda não prontas): o detalhe **nunca gera** dicas, como a lista do jardim, e por isso não tem `202`. Inexistente: `NOT_FOUND`; `id` que não é UUID: `VALIDATION_FAILED`. **Sem telefone** |
+| `POST /listings` | `{ photoId, commonName, speciesId?, plantId?, quantity (1..99), note? }` → `201` com o anúncio no formato de `GET /me/listings`. Sem telefone ou sem localização no perfil: `DONATION_PROFILE_REQUIRED`, antes de qualquer outra regra. `commonName` de 1 a 80 caracteres depois do trim, como na planta; `note` até 200 depois do trim, e vazia vira `null`. Foto de outro Usuário ou inexistente: `NOT_FOUND`; a foto pode ser a de uma planta (que continua com ela) ou uma nova, e é anexada como no `POST /plants`, sem gravar `photos.plant_id`. `plantId` que não é do Usuário ou `speciesId` que não existe: `VALIDATION_FAILED`. Copia `donation_location` e `donation_neighborhood` do perfil; `expires_at = now() + 30 dias` |
+| `GET /me/listings` | Todos os anúncios do usuário, do mais novo ao mais antigo: `{ id, commonName, photo, status, quantity, note \| null, interestCount, expiresAt, canRenew }`. A `note` vem para o Editar começar da observação atual. `canRenew` só é `true` no anúncio efetivamente ativo com `expires_at` nos próximos 7 dias |
+| `PATCH /listings/:id` | `{ quantity? (1..99), note? }`, com pelo menos um dos dois (senão, `VALIDATION_FAILED`). `note` segue a regra do `POST`; `null`, vazia ou só com espaços limpa a observação. Responde o anúncio no formato de `GET /me/listings`. Regras comuns do doador (abaixo) |
+| `POST /listings/:id/donations` | `{ count }`, inteiro ≥ 1 (senão, `VALIDATION_FAILED`). Desconta da quantidade e, se chegar a 0, o anúncio vira `donated`, no mesmo `UPDATE` (`quantity = quantity - count`, `WHERE quantity >= count`), então duas baixas ao mesmo tempo nunca passam da quantidade. `count` maior que a quantidade: `INVALID_DONATION_COUNT`. Responde `200` com o anúncio no formato de `GET /me/listings`. Regras comuns do doador (abaixo) |
+| `POST /listings/:id/close` | Vira `closed` e responde `200` com o anúncio no formato de `GET /me/listings`. O encerrado continua em Meus anúncios, sai do `nearby` e não reabre. Regras comuns do doador (abaixo) |
+| `POST /listings/:id/renew` | `expires_at = now() + 30 dias`. Só nos últimos 7 dias, a mesma janela do `canRenew` (senão, `409 RENEWAL_NOT_ALLOWED`). Responde `200` com o anúncio no formato de `GET /me/listings`. Regras comuns do doador (abaixo) |
+| `POST /listings/:id/interest` | Registra o Interesse (a primeira vez cria a linha; as seguintes só atualizam `last_opened_at`, sem contar outra pessoa) e responde `200` com `{ whatsappUrl }`: `https://wa.me/<telefone E.164 sem +>?text=<mensagem codificada com encodeURIComponent>`, com a mensagem *"Oi, [primeiro nome do doador]! Vi no PlantAí seu anúncio de [nome popular do anúncio] e tenho interesse."*. É a única resposta com o telefone do doador. Verifica nesta ordem: inexistente, `NOT_FOUND`; próprio anúncio (de qualquer situação), `OWN_LISTING`; anúncio que não esteja efetivamente ativo (expirado incluído), `LISTING_NOT_ACTIVE`. Nenhum dos três grava Interesse |
 
-**Localização de quem procura:** vai no cabeçalho `X-Search-Location: <lat>,<lng>` e não na query string, para não parar em log de acesso (CloudFront e Lambda). O logger da API não registra esse cabeçalho. Sem ele, a resposta é `LOCATION_REQUIRED`.
+**Localização de quem procura:** vai no cabeçalho `X-Search-Location: <lat>,<lng>` e não na query string, para não parar em log de acesso (CloudFront e Lambda). O logger da API não registra esse cabeçalho. Sem ele, a resposta é `LOCATION_REQUIRED`; fora do formato (`<lat>,<lng>` em graus decimais, com espaços opcionais em volta da vírgula) ou dos limites (`-90..90`, `-180..180`), `VALIDATION_FAILED` com `path` `X-Search-Location`, sem repetir o valor na mensagem. O ponto de quem procura não é arredondado, porque não é guardado.
 
 **`distanceKm`:** distância entre a localização de quem procura e o centro da célula do anúncio, arredondada para inteiro. `0` significa "menos de 1 km", e o app monta o texto ("a cerca de 2 km").
+
+**Regras comuns das rotas do doador** (`PATCH /listings/:id`, `donations`, `close`, `renew`): anúncio de outro Usuário ou inexistente responde `NOT_FOUND` (o anúncio não existe para ele nessas rotas); anúncio que não está efetivamente ativo responde `409 LISTING_NOT_ACTIVE`, inclusive o expirado, e por isso renovar depois de expirar não é possível. A conferência e a alteração são um único `UPDATE ... WHERE id AND user_id AND efetivamente ativo` (mais a regra própria da ação, como a quantidade em `donations` ou a janela em `renew`), para que duas ações ao mesmo tempo não passem pela conferência; sem linha alterada, uma segunda consulta diz qual regra falhou, nessa ordem: `NOT_FOUND`, `LISTING_NOT_ACTIVE` e o erro da ação. Todas respondem o anúncio no formato de `GET /me/listings`.
 
 **Situação em todas as respostas:** o `status` é sempre o efetivo, com o anúncio expirado aparecendo como `closed`.
 

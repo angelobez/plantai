@@ -5,6 +5,7 @@ import 'package:plantai/data/repositories/profile/profile_repository_remote.dart
 import 'package:plantai/data/services/api/api_client.dart';
 import 'package:plantai/data/services/api/update_required.dart';
 import 'package:plantai/data/services/session/session_store.dart';
+import 'package:plantai/domain/models/donation_profile.dart';
 import 'package:plantai/domain/models/profile_failure.dart';
 
 import '../../../testing/fake_http_client_adapter.dart';
@@ -78,6 +79,67 @@ void main() {
     await expectLater(
       repository.updateName(''),
       throwsA(ProfileFailure.unknown),
+    );
+  });
+
+  const donationProfile = DonationProfile(
+    phone: '(11) 98765-4321',
+    latitude: -23.5874,
+    longitude: -46.6345,
+    neighborhood: 'Vila Mariana',
+  );
+
+  test('updateDonationProfile puts /v1/me/donation-profile', () async {
+    adapter.respond = (_) async => jsonResponse(200, {
+      ...profileJson(),
+      'phone': '+5511987654321',
+      'donationLocation': {'neighborhood': 'Vila Mariana'},
+    });
+
+    final profile = await repository.updateDonationProfile(donationProfile);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PUT');
+    expect(request.path, '/v1/me/donation-profile');
+    expect(request.data, {
+      'phone': '(11) 98765-4321',
+      'lat': -23.5874,
+      'lng': -46.6345,
+      'neighborhood': 'Vila Mariana',
+    });
+    expect(profile.phone, '+5511987654321');
+    expect(profile.donationLocation?.neighborhood, 'Vila Mariana');
+  });
+
+  test(
+    'updateDonationProfile without a position leaves lat and lng out',
+    () async {
+      adapter.respond = (_) async => jsonResponse(200, {
+        ...profileJson(),
+        'phone': '+5511987654321',
+        'donationLocation': {'neighborhood': 'Vila Mariana'},
+      });
+
+      await repository.updateDonationProfile(
+        const DonationProfile(
+          phone: '(11) 98765-4321',
+          neighborhood: 'Vila Mariana',
+        ),
+      );
+
+      expect(adapter.requests.single.data, {
+        'phone': '(11) 98765-4321',
+        'neighborhood': 'Vila Mariana',
+      });
+    },
+  );
+
+  test('INVALID_PHONE becomes ProfileFailure.invalidPhone', () async {
+    adapter.respond = (_) async => problemResponse(400, 'INVALID_PHONE');
+
+    await expectLater(
+      repository.updateDonationProfile(donationProfile),
+      throwsA(ProfileFailure.invalidPhone),
     );
   });
 }

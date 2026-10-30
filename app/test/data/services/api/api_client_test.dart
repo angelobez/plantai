@@ -346,4 +346,64 @@ void main() {
       );
     },
   );
+
+  test('put sends the JSON body and parses the answer', () async {
+    adapter.respond = (_) async => jsonResponse(200, {'phone': '+55'});
+
+    final phone = await client.put('/v1/me/donation-profile', {
+      'phone': '11987654321',
+    }, (json) => json['phone']);
+
+    expect(phone, '+55');
+    final request = adapter.requests.single;
+    expect(request.method, 'PUT');
+    expect(request.path, '/v1/me/donation-profile');
+    expect(jsonDecode(jsonEncode(request.data)), {'phone': '11987654321'});
+  });
+
+  test('put turns an error answer into an ApiException', () async {
+    adapter.respond = (_) async => problemResponse(400, 'INVALID_PHONE');
+
+    await expectLater(
+      client.put('/v1/me/donation-profile', {}, (json) => json),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 400)
+            .having((e) => e.code, 'code', ApiErrorCode.invalidPhone),
+      ),
+    );
+  });
+
+  test('get and getList send per-call headers, not in the URL', () async {
+    const headers = {'X-Search-Location': '-23.5874,-46.6345'};
+
+    await client.get('/v1/listings/1', (json) => json, headers: headers);
+    adapter.respond = (_) async => jsonResponse(200, <Object>[]);
+    await client.getList(
+      '/v1/listings/nearby',
+      (json) => json,
+      queryParameters: {'page': '2'},
+      headers: headers,
+    );
+
+    for (final request in adapter.requests) {
+      expect(request.headers['X-Search-Location'], '-23.5874,-46.6345');
+      expect(request.uri.toString(), isNot(contains('23.5874')));
+      expect(request.headers['X-App-Version'], '0.1.0');
+    }
+  });
+
+  test('post, patch and put send per-call headers', () async {
+    const headers = {'X-Test': 'yes'};
+
+    await client.post('/v1/a', {}, (json) => json, headers: headers);
+    await client.patch('/v1/b', {}, (json) => json, headers: headers);
+    await client.put('/v1/c', {}, (json) => json, headers: headers);
+
+    expect(adapter.requests.map((r) => r.headers['X-Test']), [
+      'yes',
+      'yes',
+      'yes',
+    ]);
+  });
 }

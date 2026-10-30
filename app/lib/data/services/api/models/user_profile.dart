@@ -25,6 +25,10 @@ class UserProfile {
 
   /// Null until the first listing (v0.3).
   final DonationLocation? donationLocation;
+
+  /// Whether the User can publish a listing: the phone and the donation
+  /// location are both set. Without them, the Primeiro anúncio comes first.
+  bool get hasDonationProfile => phone != null && donationLocation != null;
 }
 
 @JsonSerializable(createToJson: false)
