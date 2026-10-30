@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:plantai/data/services/api/models/user_profile.dart';
 import 'package:plantai/data/services/api/update_required.dart';
 import 'package:plantai/data/services/photo_picker/photo_picker.dart';
 import 'package:plantai/domain/models/auth_failure.dart';
 import 'package:plantai/domain/models/identification_failure.dart';
+import 'package:plantai/domain/models/listing_failure.dart';
 import 'package:plantai/main.dart';
 import 'package:plantai/routing/router.dart';
 import 'package:plantai/ui/core/widgets/photo_image.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
+import 'package:plantai/ui/listings/widgets/listings_tab_page.dart';
 
 import '../testing/fake_auth_repository.dart';
 import '../testing/fake_catalog_repository.dart';
 import '../testing/fake_garden_repository.dart';
 import '../testing/fake_identification_repository.dart';
+import '../testing/fake_listing_repository.dart';
 import '../testing/fake_location_service.dart';
 import '../testing/fake_photo_picker.dart';
 import '../testing/fake_photo_repository.dart';
@@ -28,6 +32,7 @@ void main() {
   late FakeIdentificationRepository identificationRepository;
   late FakeGardenRepository gardenRepository;
   late FakeProfileRepository profileRepository;
+  late FakeListingRepository listingRepository;
   late List<Uri> openedUrls;
 
   setUp(() {
@@ -39,6 +44,7 @@ void main() {
     identificationRepository = FakeIdentificationRepository();
     gardenRepository = FakeGardenRepository();
     profileRepository = FakeProfileRepository();
+    listingRepository = FakeListingRepository();
     openedUrls = [];
   });
 
@@ -54,6 +60,7 @@ void main() {
         identificationRepository: identificationRepository,
         gardenRepository: gardenRepository,
         locationService: FakeLocationService(),
+        listingRepository: listingRepository,
         openUrl: (url) async {
           openedUrls.add(url);
           return true;
@@ -1002,6 +1009,130 @@ void main() {
       expect(find.text('marina@email.com'), findsOneWidget);
       expect(find.text('Não informado'), findsNWidgets(2));
       expect(profileRepository.donationProfiles, isEmpty);
+    });
+  });
+
+  group('Doação', () {
+    /// [marina] with the phone and the donation location already set.
+    const marinaDonor = UserProfile(
+      id: '0190d6b4-0000-7000-8000-000000000001',
+      name: 'Marina Souza',
+      email: 'marina@email.com',
+      phone: '+5511987654321',
+      donationLocation: DonationLocation(neighborhood: 'Vila Mariana'),
+    );
+
+    Finder innerTab(String label) => find.descendant(
+      of: find.byType(ListingsTabPage),
+      matching: find.text(label),
+    );
+
+    /// Jardim → Monstera da sala → "Doar mudas".
+    Future<void> donateFromPlant(WidgetTester tester) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Jardim'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Monstera da sala'));
+      await tester.pumpAndSettle();
+      final donate = find.widgetWithText(FilledButton, 'Doar mudas');
+      await tester.ensureVisible(donate);
+      await tester.tap(donate);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the Por perto tab has the inner tabs Por perto ("em breve") '
+        'and Meus anúncios', (tester) async {
+      listingRepository.mine = [costelaAtiva, espadaDoada];
+      await pumpApp(tester);
+
+      expect(innerTab('Por perto'), findsOneWidget);
+      expect(find.text('até 30 km'), findsOneWidget);
+      expect(find.text('Em breve'), findsOneWidget);
+
+      await tester.tap(innerTab('Meus anúncios'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Em breve'), findsNothing);
+      expect(find.text('Costela-de-adão'), findsOneWidget);
+      expect(find.text('Espada-de-são-jorge'), findsOneWidget);
+      expect(tab('Por perto'), findsOneWidget);
+
+      await tester.tap(innerTab('Por perto'));
+      await tester.pumpAndSettle();
+      expect(find.text('Em breve'), findsOneWidget);
+    });
+
+    testWidgets('"Doar mudas" on a plant opens the form with its photo, name '
+        'and species, and publishing opens Meus anúncios', (tester) async {
+      profileRepository.profile = marinaDonor;
+      await donateFromPlant(tester);
+
+      expect(find.text('Antes de doar'), findsNothing);
+      expect(find.text('Foto da planta do seu jardim'), findsOneWidget);
+      expect(find.text('Monstera deliciosa'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'Monstera da sala'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byTooltip('Mais uma'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Publicar anúncio'));
+      await tester.pumpAndSettle();
+
+      final sent = listingRepository.created.single;
+      expect(sent.plantId, monsteraDaSala.id);
+      expect(sent.photoId, jiboiaPhoto.id);
+      expect(sent.speciesId, monstera.id);
+      expect(sent.quantity, 2);
+      expect(innerTab('Meus anúncios'), findsOneWidget);
+      expect(find.text('Monstera da sala'), findsOneWidget);
+      expect(find.text('Ativo'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
+    });
+
+    testWidgets('without a donation profile, the Primeiro anúncio comes '
+        'before the form', (tester) async {
+      await donateFromPlant(tester);
+
+      expect(find.text('Antes de doar'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, '11987654321');
+      await tester.tap(find.text('Usar minha localização'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+
+      expect(profileRepository.donationProfiles, hasLength(1));
+      expect(find.text('Antes de doar'), findsNothing);
+      expect(find.text('Foto da planta do seu jardim'), findsOneWidget);
+
+      // Back from the form is the Tela da planta, not the Primeiro anúncio.
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(FilledButton, 'Doar mudas'), findsOneWidget);
+    });
+
+    testWidgets('DONATION_PROFILE_REQUIRED on publishing opens the Primeiro '
+        'anúncio, then publishes', (tester) async {
+      profileRepository.profile = marinaDonor;
+      listingRepository.createFailures.add(
+        ListingFailure.donationProfileRequired,
+      );
+      await donateFromPlant(tester);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Publicar anúncio'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Antes de doar'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, '11987654321');
+      await tester.tap(find.text('Usar minha localização'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+
+      expect(listingRepository.created, hasLength(2));
+      expect(innerTab('Meus anúncios'), findsOneWidget);
+      expect(find.text('Monstera da sala'), findsOneWidget);
     });
   });
 }

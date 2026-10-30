@@ -11,6 +11,8 @@ import 'data/repositories/garden/garden_repository.dart';
 import 'data/repositories/garden/garden_repository_remote.dart';
 import 'data/repositories/identification/identification_repository.dart';
 import 'data/repositories/identification/identification_repository_remote.dart';
+import 'data/repositories/listing/listing_repository.dart';
+import 'data/repositories/listing/listing_repository_remote.dart';
 import 'data/repositories/photo/photo_repository.dart';
 import 'data/repositories/photo/photo_repository_remote.dart';
 import 'data/repositories/profile/profile_repository.dart';
@@ -53,6 +55,7 @@ Future<void> main() async {
     apiClient: apiClient,
   );
   final gardenRepository = GardenRepositoryRemote(apiClient: apiClient);
+  final listingRepository = ListingRepositoryRemote(apiClient: apiClient);
 
   runApp(
     // Repositories go here, built on the shared ApiClient.
@@ -67,6 +70,9 @@ Future<void> main() async {
           value: identificationRepository,
         ),
         ChangeNotifierProvider<GardenRepository>.value(value: gardenRepository),
+        ChangeNotifierProvider<ListingRepository>.value(
+          value: listingRepository,
+        ),
       ],
       child: PlantaiApp(
         updateRequired: updateRequired,
@@ -78,6 +84,7 @@ Future<void> main() async {
         identificationRepository: identificationRepository,
         gardenRepository: gardenRepository,
         locationService: GeolocatorLocationService(),
+        listingRepository: listingRepository,
       ),
     ),
   );
@@ -95,6 +102,7 @@ class PlantaiApp extends StatefulWidget {
     required this.identificationRepository,
     required this.gardenRepository,
     required this.locationService,
+    required this.listingRepository,
     this.openUrl = openExternally,
   });
 
@@ -107,6 +115,7 @@ class PlantaiApp extends StatefulWidget {
   final IdentificationRepository identificationRepository;
   final GardenRepository gardenRepository;
   final LocationService locationService;
+  final ListingRepository listingRepository;
   final UrlOpener openUrl;
 
   @override
@@ -124,6 +133,7 @@ class _PlantaiAppState extends State<PlantaiApp> {
     identificationRepository: widget.identificationRepository,
     gardenRepository: widget.gardenRepository,
     locationService: widget.locationService,
+    listingRepository: widget.listingRepository,
     openUrl: widget.openUrl,
   );
 

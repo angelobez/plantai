@@ -1,0 +1,20 @@
+import 'package:flutter/foundation.dart';
+
+import '../../../domain/models/new_listing.dart';
+import '../../services/api/models/listing.dart';
+
+/// Donation listings in the API (`/v1/listings` and `/v1/me/listings`).
+///
+/// Every method throws a `ListingFailure` when it fails. It notifies its
+/// listeners after every change it makes to the User's listings (one
+/// published, and later edited, donated, closed or renewed), so Meus
+/// anúncios reads them again.
+abstract class ListingRepository extends ChangeNotifier {
+  /// Publishes [listing] for 30 days and answers it as in Meus anúncios.
+  /// Without a phone or a donation location, fails with
+  /// `ListingFailure.donationProfileRequired`.
+  Future<MyListing> create(NewListing listing);
+
+  /// The User's own listings, newest first, with the effective status.
+  Future<List<MyListing>> myListings();
+}

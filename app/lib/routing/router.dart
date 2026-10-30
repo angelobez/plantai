@@ -5,6 +5,7 @@ import '../data/repositories/auth/auth_repository.dart';
 import '../data/repositories/catalog/catalog_repository.dart';
 import '../data/repositories/garden/garden_repository.dart';
 import '../data/repositories/identification/identification_repository.dart';
+import '../data/repositories/listing/listing_repository.dart';
 import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/models/user_profile.dart';
@@ -13,6 +14,7 @@ import '../data/services/api/models/photo.dart';
 import '../data/services/api/models/species_summary.dart';
 import '../data/services/api/update_required.dart';
 import '../data/services/photo_picker/photo_picker.dart';
+import '../domain/models/listing_draft.dart';
 import '../domain/models/new_plant.dart';
 import '../ui/about/widgets/about_screen.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
@@ -31,7 +33,6 @@ import '../ui/catalog/widgets/search_screen.dart';
 import '../ui/catalog/widgets/species_screen.dart';
 import '../ui/core/url_opener.dart';
 import '../ui/core/widgets/coming_soon.dart';
-import '../ui/core/widgets/tab_page.dart';
 import '../ui/core/widgets/view_model_scope.dart';
 import '../ui/garden/view_models/garden_view_model.dart';
 import '../ui/garden/view_models/plant_view_model.dart';
@@ -40,6 +41,12 @@ import '../ui/garden/widgets/plant_name_dialog.dart';
 import '../ui/garden/widgets/plant_screen.dart';
 import '../ui/garden/widgets/save_plant.dart';
 import '../ui/identification/view_models/candidates_view_model.dart';
+import '../ui/listings/view_models/my_listings_view_model.dart';
+import '../ui/listings/view_models/new_listing_view_model.dart';
+import '../ui/listings/widgets/listings_tab_page.dart';
+import '../ui/listings/widgets/my_listings_screen.dart';
+import '../ui/listings/widgets/new_listing_screen.dart';
+import '../ui/listings/widgets/start_listing.dart';
 import '../ui/identification/widgets/candidates_screen.dart';
 import '../ui/photo/view_models/photo_view_model.dart';
 import '../ui/photo/widgets/photo_screen.dart';
@@ -54,6 +61,7 @@ import '../ui/update_required/widgets/update_required_screen.dart';
 part 'entry_routes.dart';
 part 'garden_routes.dart';
 part 'identify_routes.dart';
+part 'listing_routes.dart';
 part 'photo_flow.dart';
 
 abstract final class Routes {
@@ -95,7 +103,19 @@ abstract final class Routes {
   static const _defineSpeciesPath = 'especie';
   static const _photoPath = 'foto';
 
+  /// The Por perto tab, on its "Por perto" inner tab.
   static const nearby = '/perto';
+
+  /// The Por perto tab, on its "Meus anúncios" inner tab.
+  static const myListings = '/meus-anuncios';
+
+  /// Novo anúncio, over the whole shell. Pushed with the [ListingDraft] it
+  /// starts from as `extra`; publishing goes to [myListings].
+  static const newListing = '/anunciar';
+
+  /// Primeiro anúncio: the donation profile before a first listing, over
+  /// the whole shell. Pushed with a [FirstListingArgs] as `extra`.
+  static const firstListing = '/antes-de-doar';
   static const profile = '/perfil';
 
   /// The phone and the donation location, over Perfil. Pushed with the
@@ -195,6 +215,7 @@ GoRouter router({
   required IdentificationRepository identificationRepository,
   required GardenRepository gardenRepository,
   required LocationService locationService,
+  required ListingRepository listingRepository,
   UrlOpener openUrl = openExternally,
 }) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -204,6 +225,14 @@ GoRouter router({
     catalogRepository: catalogRepository,
     identificationRepository: identificationRepository,
     gardenRepository: gardenRepository,
+    openUrl: openUrl,
+  );
+  final listingFlow = _ListingFlow(
+    listingRepository: listingRepository,
+    profileRepository: profileRepository,
+    photoRepository: photoRepository,
+    photoPicker: photoPicker,
+    locationService: locationService,
     openUrl: openUrl,
   );
 
@@ -249,21 +278,15 @@ GoRouter router({
         // Same order as AppTab.
         branches: [
           StatefulShellBranch(
-            routes: [_gardenRoute(flow, rootNavigatorKey: rootNavigatorKey)],
-          ),
-          StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: Routes.nearby,
-                builder: (context, state) => const TabPage(
-                  body: ComingSoon(
-                    icon: Icon(Icons.location_on_outlined),
-                    title: 'Mudas por perto',
-                  ),
-                ),
+              _gardenRoute(
+                flow,
+                listingFlow,
+                rootNavigatorKey: rootNavigatorKey,
               ),
             ],
           ),
+          StatefulShellBranch(routes: listingFlow.tabRoutes()),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -310,6 +333,7 @@ GoRouter router({
         ],
       ),
       _identifyRoute(flow),
+      ...listingFlow.formRoutes(),
       GoRoute(
         path: Routes.about,
         builder: (context, state) => AboutScreen(openUrl: openUrl),

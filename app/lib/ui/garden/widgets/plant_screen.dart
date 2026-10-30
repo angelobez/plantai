@@ -33,6 +33,7 @@ class PlantScreen extends StatelessWidget {
     required this.onRemoved,
     this.onSearchSpecies,
     this.onIdentifySpecies,
+    this.onDonate,
   });
 
   final PlantViewModel viewModel;
@@ -106,6 +107,10 @@ class PlantScreen extends StatelessWidget {
   /// never becomes the plant's photo: completes as [onSearchSpecies].
   final Future<String?> Function()? onIdentifySpecies;
 
+  /// "Doar mudas": opens the Novo anúncio with the plant's photo, name and
+  /// species. Without it, the button does not show.
+  final ValueChanged<Plant>? onDonate;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,6 +124,10 @@ class PlantScreen extends StatelessWidget {
               plant: plant,
               openUrl: openUrl,
               isSaving: viewModel.isSaving,
+              onDonate: switch (onDonate) {
+                final onDonate? => () => onDonate(plant),
+                null => null,
+              },
               onEditName: () => _editName(context, plant),
               onRemove: () => _confirmRemove(context, plant),
               defineSpecies:
@@ -161,6 +170,7 @@ class _PlantView extends StatelessWidget {
     required this.onEditName,
     required this.onRemove,
     required this.defineSpecies,
+    required this.onDonate,
   });
 
   final Plant plant;
@@ -173,6 +183,9 @@ class _PlantView extends StatelessWidget {
 
   /// Shown instead of the species card while the plant has none.
   final Widget? defineSpecies;
+
+  /// "Doar mudas", when the screen offers it.
+  final VoidCallback? onDonate;
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +229,13 @@ class _PlantView extends StatelessWidget {
           defineSpecies,
         ],
         const SizedBox(height: 16),
+        if (onDonate case final onDonate?) ...[
+          FilledButton(
+            onPressed: isSaving ? null : onDonate,
+            child: const Text('Doar mudas'),
+          ),
+          const SizedBox(height: 6),
+        ],
         Center(
           child: TextButton(
             onPressed: isSaving ? null : onRemove,

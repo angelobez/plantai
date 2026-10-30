@@ -3,7 +3,8 @@ part of 'router.dart';
 /// The Jardim tab: the list, the Tela da planta over the whole shell
 /// ([rootNavigatorKey]), and its "Definir espécie" screens.
 GoRoute _gardenRoute(
-  _PhotoFlow flow, {
+  _PhotoFlow flow,
+  _ListingFlow listingFlow, {
   required GlobalKey<NavigatorState> rootNavigatorKey,
 }) => GoRoute(
   path: Routes.garden,
@@ -32,6 +33,8 @@ GoRoute _gardenRoute(
           return PlantScreen(
             viewModel: viewModel,
             openUrl: flow.openUrl,
+            onDonate: (plant) =>
+                listingFlow.donate(context, ListingDraft.fromPlant(plant)),
             // The list already left out the plant (the repository told it).
             onRemoved: () => context.go(Routes.garden),
             onSearchSpecies: () =>

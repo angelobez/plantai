@@ -30,6 +30,7 @@ void main() {
     bool settle = true,
     Future<String?> Function()? onSearchSpecies,
     Future<String?> Function()? onIdentifySpecies,
+    ValueChanged<Plant>? onDonate,
   }) async {
     final viewModel = PlantViewModel(
       gardenRepository: gardenRepository,
@@ -45,6 +46,7 @@ void main() {
       onRemoved: () => removedCalls += 1,
       onSearchSpecies: onSearchSpecies,
       onIdentifySpecies: onIdentifySpecies,
+      onDonate: onDonate,
     );
     if (settle) {
       await pumpScreen(tester, screen, below: const Text('Jardim'));
@@ -75,6 +77,36 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  group('Doar mudas', () {
+    testWidgets('gives the plant to the listing flow', (tester) async {
+      final donated = <Plant>[];
+      await pump(tester, onDonate: donated.add);
+
+      final donate = find.widgetWithText(FilledButton, 'Doar mudas');
+      await tester.ensureVisible(donate);
+      await tester.tap(donate);
+
+      expect(donated.single.id, monsteraDaSala.id);
+    });
+
+    testWidgets('a plant without a species can be donated too', (tester) async {
+      final donated = <Plant>[];
+      await pump(tester, plant: pimentaDaVo, onDonate: donated.add);
+
+      final donate = find.widgetWithText(FilledButton, 'Doar mudas');
+      await tester.ensureVisible(donate);
+      await tester.tap(donate);
+
+      expect(donated.single.id, pimentaDaVo.id);
+    });
+
+    testWidgets('does not show without the flow', (tester) async {
+      await pump(tester);
+
+      expect(find.text('Doar mudas'), findsNothing);
+    });
   });
 
   testWidgets('shows the care rows and the full text of each one', (
