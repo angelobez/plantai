@@ -5,10 +5,11 @@ import 'package:flutter/foundation.dart';
 import '../../../data/repositories/catalog/catalog_repository.dart';
 import '../../../data/services/api/models/species_summary.dart';
 import '../../../domain/models/catalog_failure.dart';
+import '../../core/view_models/safe_notify.dart';
 
 /// Busca no Catálogo: searches as the User types, [debounce] after the last
 /// change, and keeps the answer of the latest term only.
-class SearchViewModel extends ChangeNotifier {
+class SearchViewModel extends ChangeNotifier with SafeNotify {
   SearchViewModel({required this._catalogRepository});
 
   /// How long the term must stay unchanged before it is searched.
@@ -56,8 +57,6 @@ class SearchViewModel extends ChangeNotifier {
   /// Bumped on every new term, so a late answer for an older one is dropped.
   int _run = 0;
 
-  bool _disposed = false;
-
   /// The text field changed: searches [text] once it stays the same for
   /// [debounce].
   void onQueryChanged(String text) {
@@ -65,7 +64,7 @@ class SearchViewModel extends ChangeNotifier {
     if (!isTermTooShort) {
       _debounceTimer = Timer(debounce, () => _search(_term));
     }
-    _notify();
+    notify();
   }
 
   /// Searches [text] at once (the keyboard's search key).
@@ -73,7 +72,7 @@ class SearchViewModel extends ChangeNotifier {
     _debounceTimer?.cancel();
     _setTerm(text);
     if (isTermTooShort) {
-      _notify();
+      notify();
     } else {
       await _search(_term);
     }
@@ -106,7 +105,7 @@ class SearchViewModel extends ChangeNotifier {
     _isSearching = true;
     _error = null;
     _canRetry = false;
-    _notify();
+    notify();
     try {
       final results = await _catalogRepository.search(term);
       if (run != _run) return;
@@ -119,7 +118,7 @@ class SearchViewModel extends ChangeNotifier {
     } finally {
       if (run == _run) {
         _isSearching = false;
-        _notify();
+        notify();
       }
     }
   }
@@ -131,13 +130,8 @@ class SearchViewModel extends ChangeNotifier {
     CatalogFailure.unknown => 'Algo deu errado. Tente de novo.',
   };
 
-  void _notify() {
-    if (!_disposed) notifyListeners();
-  }
-
   @override
   void dispose() {
-    _disposed = true;
     _debounceTimer?.cancel();
     super.dispose();
   }

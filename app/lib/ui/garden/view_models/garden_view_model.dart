@@ -4,6 +4,7 @@ import '../../../data/repositories/garden/garden_repository.dart';
 import '../../../data/services/api/models/plant.dart';
 import '../../../domain/models/garden_failure.dart';
 import '../garden_failure_message.dart';
+import '../../core/view_models/safe_notify.dart';
 
 /// The Jardim tab: the User's plants, newest first.
 ///
@@ -11,7 +12,7 @@ import '../garden_failure_message.dart';
 /// list again while the old one stays on screen. A change made through the
 /// [GardenRepository] (a plant saved, renamed or removed) refreshes it too.
 /// Only the newest read counts: an older answer that comes late is dropped.
-class GardenViewModel extends ChangeNotifier {
+class GardenViewModel extends ChangeNotifier with SafeNotify {
   GardenViewModel({required this._gardenRepository}) {
     _gardenRepository.addListener(_onGardenChanged);
   }
@@ -38,7 +39,6 @@ class GardenViewModel extends ChangeNotifier {
   bool get canRetry => _canRetry;
 
   int _run = 0;
-  bool _disposed = false;
 
   /// Reads the garden, showing the loading state.
   Future<void> load() => _read(showLoading: true);
@@ -50,7 +50,7 @@ class GardenViewModel extends ChangeNotifier {
     final run = ++_run;
     _isLoading = showLoading;
     if (showLoading) _loadError = null;
-    _notify();
+    notify();
     try {
       final plants = await _gardenRepository.plants();
       if (!_isCurrent(run)) return;
@@ -64,25 +64,20 @@ class GardenViewModel extends ChangeNotifier {
     } finally {
       if (_isCurrent(run)) {
         _isLoading = false;
-        _notify();
+        notify();
       }
     }
   }
 
   /// Whether [run] is the newest read, on a ViewModel still in use.
-  bool _isCurrent(int run) => run == _run && !_disposed;
+  bool _isCurrent(int run) => run == _run && !isDisposed;
 
   void _onGardenChanged() {
-    if (!_disposed) refresh();
-  }
-
-  void _notify() {
-    if (!_disposed) notifyListeners();
+    if (!isDisposed) refresh();
   }
 
   @override
   void dispose() {
-    _disposed = true;
     _gardenRepository.removeListener(_onGardenChanged);
     super.dispose();
   }

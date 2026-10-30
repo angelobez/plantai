@@ -7,6 +7,7 @@ import '../../../domain/models/garden_failure.dart';
 import '../../../domain/models/plant_changes.dart';
 import '../../core/care_guide/wait_for_care_guide.dart';
 import '../garden_failure_message.dart';
+import '../../core/view_models/safe_notify.dart';
 
 /// Tela da planta: reads one of the User's plants, with its species and care
 /// guide.
@@ -21,7 +22,7 @@ import '../garden_failure_message.dart';
 /// and [canRetryAction] whether trying again makes sense. [defineSpecies],
 /// for a plant saved with only a name, has its own state and reads the plant
 /// again when done. The repository tells the Jardim list itself.
-class PlantViewModel extends ChangeNotifier {
+class PlantViewModel extends ChangeNotifier with SafeNotify {
   PlantViewModel({required this._gardenRepository, required this.plantId});
 
   final GardenRepository _gardenRepository;
@@ -72,21 +73,19 @@ class PlantViewModel extends ChangeNotifier {
   /// The species of the last [defineSpecies], for [retryDefineSpecies].
   String? _speciesId;
 
-  bool _disposed = false;
-
   Future<void> load() async {
     _isLoading = true;
     _loadError = null;
     _canRetry = false;
-    _notify();
+    notify();
     try {
       _plant = await waitForCareGuide(
         () => _gardenRepository.plant(plantId),
         onGenerating: () {
           _isGeneratingCareGuide = true;
-          _notify();
+          notify();
         },
-        isCancelled: () => _disposed,
+        isCancelled: () => isDisposed,
       );
     } on GardenFailure catch (failure) {
       _loadError = gardenFailureMessage(failure);
@@ -97,7 +96,7 @@ class PlantViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       _isGeneratingCareGuide = false;
-      _notify();
+      notify();
     }
   }
 
@@ -126,7 +125,7 @@ class PlantViewModel extends ChangeNotifier {
     _isSaving = true;
     _actionError = null;
     _canRetryAction = false;
-    _notify();
+    notify();
     try {
       await action();
       return true;
@@ -136,7 +135,7 @@ class PlantViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isSaving = false;
-      _notify();
+      notify();
     }
   }
 
@@ -153,7 +152,7 @@ class PlantViewModel extends ChangeNotifier {
     _isDefiningSpecies = true;
     _speciesError = null;
     _canRetrySpecies = false;
-    _notify();
+    notify();
     try {
       await _gardenRepository.update(
         plantId,
@@ -167,9 +166,9 @@ class PlantViewModel extends ChangeNotifier {
       }
     } finally {
       _isDefiningSpecies = false;
-      _notify();
+      notify();
     }
-    if (_disposed) return;
+    if (isDisposed) return;
     _plant = null;
     await load();
   }
@@ -178,15 +177,5 @@ class PlantViewModel extends ChangeNotifier {
   Future<void> retryDefineSpecies() async {
     final speciesId = _speciesId;
     if (speciesId != null) await defineSpecies(speciesId);
-  }
-
-  void _notify() {
-    if (!_disposed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
   }
 }

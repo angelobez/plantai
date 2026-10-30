@@ -4,6 +4,7 @@ import '../../../data/repositories/identification/identification_repository.dart
 import '../../../data/services/api/models/identification.dart';
 import '../../../data/services/api/models/species_summary.dart';
 import '../../../domain/models/identification_failure.dart';
+import '../../core/view_models/safe_notify.dart';
 
 /// Which screen the identification leads to.
 enum IdentificationStage {
@@ -25,7 +26,7 @@ enum IdentificationStage {
 
 /// Identifies the photo already sent ([photoId]) and holds the choice among
 /// the candidates. The screen follows [stage].
-class CandidatesViewModel extends ChangeNotifier {
+class CandidatesViewModel extends ChangeNotifier with SafeNotify {
   CandidatesViewModel({
     required this._identificationRepository,
     required this.photoId,
@@ -62,14 +63,12 @@ class CandidatesViewModel extends ChangeNotifier {
   String? _choiceError;
   String? get choiceError => _choiceError;
 
-  bool _disposed = false;
-
   /// Asks Pl@ntNet about the photo; also "Tentar de novo".
   Future<void> identify() async {
     _stage = IdentificationStage.identifying;
     _error = null;
     _canRetry = false;
-    _notify();
+    notify();
     try {
       final identification = await _identificationRepository.identify(photoId);
       _identification = identification;
@@ -86,7 +85,7 @@ class CandidatesViewModel extends ChangeNotifier {
         _canRetry = failure != IdentificationFailure.notFound;
       }
     } finally {
-      _notify();
+      notify();
     }
   }
 
@@ -120,7 +119,7 @@ class CandidatesViewModel extends ChangeNotifier {
   Future<T?> _choosing<T>(Future<T> Function() call) async {
     _isChoosing = true;
     _choiceError = null;
-    _notify();
+    notify();
     try {
       return await call();
     } on IdentificationFailure catch (failure) {
@@ -128,7 +127,7 @@ class CandidatesViewModel extends ChangeNotifier {
       return null;
     } finally {
       _isChoosing = false;
-      _notify();
+      notify();
     }
   }
 
@@ -147,14 +146,4 @@ class CandidatesViewModel extends ChangeNotifier {
       'Você usou suas 10 identificações de hoje; amanhã tem mais.',
     IdentificationFailure.unknown => 'Algo deu errado. Tente de novo.',
   };
-
-  void _notify() {
-    if (!_disposed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 }

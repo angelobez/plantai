@@ -5,6 +5,7 @@ import '../../../data/services/api/models/species.dart';
 import '../../../domain/models/care_guide_generating.dart';
 import '../../../domain/models/catalog_failure.dart';
 import '../../core/care_guide/wait_for_care_guide.dart';
+import '../../core/view_models/safe_notify.dart';
 
 /// Tela da espécie: reads one species of the Catalog, with its care guide.
 ///
@@ -12,7 +13,7 @@ import '../../core/care_guide/wait_for_care_guide.dart';
 /// CARE_GUIDE_GENERATING`), [isGeneratingCareGuide] is true and the read is
 /// tried again after each `Retry-After`; after 60 s it gives up with
 /// "Dicas indisponíveis no momento." ([waitForCareGuide]).
-class SpeciesViewModel extends ChangeNotifier {
+class SpeciesViewModel extends ChangeNotifier with SafeNotify {
   SpeciesViewModel({required this._catalogRepository, required this.speciesId});
 
   final CatalogRepository _catalogRepository;
@@ -36,21 +37,19 @@ class SpeciesViewModel extends ChangeNotifier {
   bool _canRetry = false;
   bool get canRetry => _canRetry;
 
-  bool _disposed = false;
-
   Future<void> load() async {
     _isLoading = true;
     _loadError = null;
     _canRetry = false;
-    _notify();
+    notify();
     try {
       _species = await waitForCareGuide(
         () => _catalogRepository.species(speciesId),
         onGenerating: () {
           _isGeneratingCareGuide = true;
-          _notify();
+          notify();
         },
-        isCancelled: () => _disposed,
+        isCancelled: () => isDisposed,
       );
     } on CatalogFailure catch (failure) {
       _loadError = _message(failure);
@@ -61,7 +60,7 @@ class SpeciesViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       _isGeneratingCareGuide = false;
-      _notify();
+      notify();
     }
   }
 
@@ -71,14 +70,4 @@ class SpeciesViewModel extends ChangeNotifier {
     CatalogFailure.notFound => 'Não achei essa espécie no Catálogo.',
     CatalogFailure.unknown => 'Algo deu errado. Tente de novo.',
   };
-
-  void _notify() {
-    if (!_disposed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 }

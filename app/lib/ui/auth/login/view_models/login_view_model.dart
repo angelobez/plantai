@@ -4,10 +4,12 @@ import '../../../../data/repositories/auth/auth_repository.dart';
 import '../../../../domain/models/auth_failure.dart';
 import '../../auth_failure_message.dart';
 import '../../retry_when_offline.dart';
+import '../../../core/view_models/safe_notify.dart';
 
 /// Login: "Entrar com Google". On success the router leaves for the tabs;
 /// canceling the account picker just stays here, with no message.
-class LoginViewModel extends ChangeNotifier with RetryWhenOffline<void> {
+class LoginViewModel extends ChangeNotifier
+    with RetryWhenOffline<void>, SafeNotify {
   LoginViewModel({required this._authRepository});
 
   final AuthRepository _authRepository;
@@ -17,9 +19,6 @@ class LoginViewModel extends ChangeNotifier with RetryWhenOffline<void> {
 
   String? _error;
   String? get error => _error;
-
-  /// Signing in leaves Login, which disposes this before the call returns.
-  bool _disposed = false;
 
   Future<void> signInWithGoogle() async {
     if (_isSigningInWithGoogle) return;
@@ -40,13 +39,8 @@ class LoginViewModel extends ChangeNotifier with RetryWhenOffline<void> {
       };
     } finally {
       _isSigningInWithGoogle = false;
-      if (!_disposed) notifyListeners();
+      // Signing in leaves Login, which disposes this before the call returns.
+      notify();
     }
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
   }
 }

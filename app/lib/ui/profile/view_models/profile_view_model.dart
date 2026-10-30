@@ -5,10 +5,11 @@ import '../../../data/repositories/profile/profile_repository.dart';
 import '../../../data/services/api/models/user_profile.dart';
 import '../../../domain/models/profile_failure.dart';
 import '../../auth/validators.dart';
+import '../../core/view_models/safe_notify.dart';
 
 /// Perfil: shows the profile, changes the name and signs out. Once signed
 /// out, the router takes the User to Login.
-class ProfileViewModel extends ChangeNotifier {
+class ProfileViewModel extends ChangeNotifier with SafeNotify {
   ProfileViewModel({
     required this._profileRepository,
     required this._authRepository,
@@ -37,19 +38,17 @@ class ProfileViewModel extends ChangeNotifier {
   bool _isSigningOut = false;
   bool get isSigningOut => _isSigningOut;
 
-  bool _disposed = false;
-
   Future<void> load() async {
     _isLoading = true;
     _loadError = null;
-    _notify();
+    notify();
     try {
       _profile = await _profileRepository.fetchProfile();
     } on ProfileFailure catch (failure) {
       _loadError = _message(failure);
     } finally {
       _isLoading = false;
-      _notify();
+      notify();
     }
   }
 
@@ -57,12 +56,12 @@ class ProfileViewModel extends ChangeNotifier {
   Future<bool> saveName(String name) async {
     _nameError = validateName(name);
     if (_nameError != null) {
-      _notify();
+      notify();
       return false;
     }
 
     _isSavingName = true;
-    _notify();
+    notify();
     try {
       _profile = await _profileRepository.updateName(name.trim());
       return true;
@@ -71,7 +70,7 @@ class ProfileViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isSavingName = false;
-      _notify();
+      notify();
     }
   }
 
@@ -79,18 +78,18 @@ class ProfileViewModel extends ChangeNotifier {
   void clearNameError() {
     if (_nameError == null) return;
     _nameError = null;
-    _notify();
+    notify();
   }
 
   Future<void> signOut() async {
     _isSigningOut = true;
-    _notify();
+    notify();
     try {
       await _authRepository.signOut();
     } finally {
       // The screen may be gone by now: the router left for Login.
       _isSigningOut = false;
-      _notify();
+      notify();
     }
   }
 
@@ -99,14 +98,4 @@ class ProfileViewModel extends ChangeNotifier {
       'Sem conexão com a internet. Confira a rede e tente de novo.',
     ProfileFailure.unknown => 'Algo deu errado. Tente de novo.',
   };
-
-  void _notify() {
-    if (!_disposed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 }

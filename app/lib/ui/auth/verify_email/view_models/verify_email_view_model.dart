@@ -6,12 +6,14 @@ import '../../auth_failure_message.dart';
 import '../../retry_when_offline.dart';
 import '../../resend_countdown.dart';
 import '../../validators.dart';
+import '../../../core/view_models/safe_notify.dart';
 
 /// "Confirme seu e-mail": takes the 6-digit code and asks for another one.
 ///
 /// A right code signs the User in; the router then leaves the entry screens,
 /// so there is nothing to do here on success.
-class VerifyEmailViewModel extends ChangeNotifier with RetryWhenOffline<void> {
+class VerifyEmailViewModel extends ChangeNotifier
+    with RetryWhenOffline<void>, SafeNotify {
   VerifyEmailViewModel({
     required this._authRepository,
     this.resendCooldown = const Duration(seconds: 45),
@@ -26,9 +28,8 @@ class VerifyEmailViewModel extends ChangeNotifier with RetryWhenOffline<void> {
 
   late final _countdown = ResendCountdown(
     duration: resendCooldown,
-    onTick: _notify,
+    onTick: notify,
   );
-  bool _disposed = false;
 
   /// Where the code went.
   String get email => _authRepository.pendingEmail ?? '';
@@ -60,12 +61,12 @@ class VerifyEmailViewModel extends ChangeNotifier with RetryWhenOffline<void> {
     _notice = null;
     clearRetry();
     if (_codeError != null) {
-      _notify();
+      notify();
       return;
     }
 
     _isSubmitting = true;
-    _notify();
+    notify();
     try {
       await _authRepository.verifyEmail(code);
     } on AuthFailure catch (failure) {
@@ -73,7 +74,7 @@ class VerifyEmailViewModel extends ChangeNotifier with RetryWhenOffline<void> {
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
-      _notify();
+      notify();
     }
   }
 
@@ -83,7 +84,7 @@ class VerifyEmailViewModel extends ChangeNotifier with RetryWhenOffline<void> {
     _error = null;
     _notice = null;
     clearRetry();
-    _notify();
+    notify();
     try {
       await _authRepository.resendCode();
       _notice = 'Enviamos um código novo.';
@@ -93,17 +94,12 @@ class VerifyEmailViewModel extends ChangeNotifier with RetryWhenOffline<void> {
       _error = authFailureMessage(failure);
     } finally {
       _isResending = false;
-      _notify();
+      notify();
     }
-  }
-
-  void _notify() {
-    if (!_disposed) notifyListeners();
   }
 
   @override
   void dispose() {
-    _disposed = true;
     _countdown.dispose();
     super.dispose();
   }

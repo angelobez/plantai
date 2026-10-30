@@ -4,6 +4,7 @@ import '../../../data/repositories/photo/photo_repository.dart';
 import '../../../data/services/api/models/photo.dart';
 import '../../../data/services/photo_picker/photo_picker.dart';
 import '../../../domain/models/photo_failure.dart';
+import '../../core/view_models/safe_notify.dart';
 
 /// Foto: the photo the User took or picked, sent to the API at once while
 /// they decide between "Identificar pela foto" and "Buscar pelo nome". Both
@@ -11,7 +12,7 @@ import '../../../domain/models/photo_failure.dart';
 ///
 /// The flows that follow (identification, search) take [photo]; "Tirar outra"
 /// is another [pick].
-class PhotoViewModel extends ChangeNotifier {
+class PhotoViewModel extends ChangeNotifier with SafeNotify {
   PhotoViewModel({required this._photoPicker, required this._photoRepository});
 
   final PhotoPicker _photoPicker;
@@ -55,8 +56,6 @@ class PhotoViewModel extends ChangeNotifier {
   /// picked changes nothing.
   int _uploadRun = 0;
 
-  bool _disposed = false;
-
   /// Opens the camera or the gallery and sends the photo it gives.
   ///
   /// Returns whether the screen has something to show: false only when the
@@ -64,7 +63,7 @@ class PhotoViewModel extends ChangeNotifier {
   /// Canceling is never an error; a later cancel keeps the photo there was.
   Future<bool> pick(PhotoSource source) async {
     _isPicking = true;
-    _notify();
+    notify();
     final PickResult result;
     try {
       result = await _photoPicker.pick(source);
@@ -79,15 +78,15 @@ class PhotoViewModel extends ChangeNotifier {
         _picked = photo;
         await _upload();
       case PickCancelled():
-        _notify();
+        notify();
       case CameraDenied():
         _cameraDenied = true;
         _pickError = cameraDeniedMessage;
-        _notify();
+        notify();
       case PickFailed():
         _cameraDenied = false;
         _pickError = 'Não deu para abrir a câmera ou a galeria. Tente de novo.';
-        _notify();
+        notify();
     }
     return _picked != null || _pickError != null;
   }
@@ -110,7 +109,7 @@ class PhotoViewModel extends ChangeNotifier {
     _uploadError = null;
     _canRetryUpload = false;
     _isUploading = true;
-    _notify();
+    notify();
     try {
       final photo = await _photoRepository.upload(picked);
       if (run != _uploadRun) return;
@@ -124,7 +123,7 @@ class PhotoViewModel extends ChangeNotifier {
     } finally {
       if (run == _uploadRun) {
         _isUploading = false;
-        _notify();
+        notify();
       }
     }
   }
@@ -138,14 +137,4 @@ class PhotoViewModel extends ChangeNotifier {
       'Não deu para ler esta foto. Tire ou escolha outra foto.',
     PhotoFailure.unknown => 'Algo deu errado. Tente de novo.',
   };
-
-  void _notify() {
-    if (!_disposed) notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    super.dispose();
-  }
 }
