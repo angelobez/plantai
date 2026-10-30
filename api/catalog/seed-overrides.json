@@ -1,0 +1,11 @@
+{
+  "Monstera adansonii": {
+    "commonName": "costela-de-eva",
+    "otherNames": ["costela-de-adão", "monstera-adansonii"]
+  },
+  "Monstera deliciosa": {
+    "commonName": "costela-de-adão",
+    "otherNames": ["monstera"],
+    "photoFile": "Monstera deliciosa foliage.JPG"
+  }
+}

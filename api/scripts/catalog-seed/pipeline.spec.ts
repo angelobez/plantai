@@ -111,6 +111,90 @@ describe('buildSeed', () => {
     ]);
   });
 
+  describe('with an override for the accepted name', () => {
+    it('takes its names instead of Flora and GBIF ones', async () => {
+      const result = await buildSeed(
+        ['Sansevieria trifasciata'],
+        fakeFetch(sansevieria),
+        {
+          overrides: {
+            'Dracaena trifasciata': {
+              commonName: 'espada-de-ogum',
+              otherNames: ['espada-de-são-jorge'],
+            },
+          },
+        },
+      );
+
+      expect(result.discards).toEqual([]);
+      expect(result.species).toEqual([
+        expect.objectContaining({
+          scientificName: 'Dracaena trifasciata',
+          commonName: 'espada-de-ogum',
+          otherNames: ['espada-de-são-jorge'],
+        }),
+      ]);
+    });
+
+    it('takes the photo from its Commons file instead of Wikidata', async () => {
+      const result = await buildSeed(
+        ['Sansevieria trifasciata'],
+        fakeFetch({
+          [gbifMatchUrl('Sansevieria trifasciata')]: 'gbif-match-synonym.json',
+          [commonsImageInfoUrl('Epipremnum aureum 31082012.jpg')]:
+            'commons-imageinfo-epipremnum-aureum.json',
+        }),
+        {
+          overrides: {
+            'Dracaena trifasciata': {
+              commonName: 'espada-de-são-jorge',
+              otherNames: [],
+              photoFile: 'Epipremnum aureum 31082012.jpg',
+            },
+          },
+        },
+      );
+
+      expect(result.discards).toEqual([]);
+      expect(result.species[0]?.referencePhoto).toEqual({
+        sourceUrl:
+          'https://commons.wikimedia.org/wiki/File:Epipremnum_aureum_31082012.jpg',
+        imageUrl:
+          'https://upload.wikimedia.org/wikipedia/commons/9/9d/Epipremnum_aureum_31082012.jpg',
+        author: 'Joydeep',
+        license: 'CC BY-SA 3.0',
+      });
+    });
+
+    it('discards the species when its Commons file is not free', async () => {
+      const result = await buildSeed(
+        ['Sansevieria trifasciata'],
+        fakeFetch({
+          [gbifMatchUrl('Sansevieria trifasciata')]: 'gbif-match-synonym.json',
+          [commonsImageInfoUrl('Missing.jpg')]: {
+            query: { pages: [{ missing: true }] },
+          },
+        }),
+        {
+          overrides: {
+            'Dracaena trifasciata': {
+              commonName: 'espada-de-são-jorge',
+              otherNames: [],
+              photoFile: 'Missing.jpg',
+            },
+          },
+        },
+      );
+
+      expect(result.discards).toEqual([
+        {
+          name: 'Sansevieria trifasciata',
+          reason: 'sem foto livre (Missing.jpg: arquivo não encontrado)',
+        },
+      ]);
+    });
+  });
+
   it('keeps going when a source fails, and reports the error', async () => {
     const result = await buildSeed(['Ficus lyrata'], fakeFetch({}));
     expect(result.discards).toEqual([
