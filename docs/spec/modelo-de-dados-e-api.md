@@ -12,7 +12,7 @@ Decisões que este documento pressupõe:
 
 ## Convenções
 
-- **Banco:** PostgreSQL com PostGIS (`postgis`, `unaccent` e `citext`), schema e migrations em Drizzle.
+- **Banco:** PostgreSQL com PostGIS (`postgis`, `unaccent`, `citext` e `pg_trgm`), schema e migrations em Drizzle.
 - **IDs:** UUIDv7 em tudo que aparece na API. Datas em `timestamptz`; na API, ISO 8601 em UTC.
 - **"Hoje":** o dia vira à meia-noite de `America/Sao_Paulo`. É o que vale para os limites diários.
 - **Contrato:** REST com JSON e prefixo `/v1`. Os schemas Zod são a fonte única de verdade; deles sai o OpenAPI, servido em `/docs`. No CI, um teste compara o OpenAPI com o snapshot versionado.
@@ -81,12 +81,13 @@ erDiagram
 | `origin` | `seed` \| `identification` | |
 | `created_at` | timestamptz | |
 
-Exatamente um dos dois campos de foto (`reference_photo_s3_key` ou `reference_photo_url`) tem valor (`CHECK`).
+Exatamente um dos dois campos de foto (`reference_photo_s3_key` ou `reference_photo_url`) tem valor (`CHECK`). Na carga da semente, a espécie nasce com a URL do Wikimedia em `reference_photo_url` e passa para `reference_photo_s3_key` quando a cópia para o armazenamento dá certo; se a cópia falhar, a foto continua pela URL externa até a próxima carga.
 
 **`species_names`**: `id`, `species_id`, `name`, `name_normalized` (coluna gerada com `lower(unaccent(name))`), `is_primary`.
-- Um índice único parcial garante um só `is_primary` por espécie.
-- **O nome principal da semente:** vem da Flora e Funga do Brasil.
-- **O nome principal de uma espécie nova:** vem do Claude.
+- Um índice único parcial garante um só `is_primary` por espécie, e `(species_id, name)` é único, para a carga da semente não duplicar nomes.
+- O `unaccent` não é `IMMUTABLE`; a coluna gerada e os índices usam o wrapper `public.immutable_unaccent`. A busca tem índices trigram (`pg_trgm`) em `name_normalized` e em `lower(immutable_unaccent(scientific_name))`.
+- **O nome principal da semente:** vem da Flora e Funga do Brasil, a não ser que o `api/catalog/seed-overrides.json` o corrija à mão.
+- **O nome principal de uma espécie nova:** o `commonName` que o candidato mostrou na identificação, exatamente como apareceu. Só quando o candidato não mostrou nome (`null`), o principal vem do Claude, nas primeiras dicas.
 - **O nome do Claude quando já existe um principal:** entra como nome alternativo, se for diferente.
 
 **`care_guides`** (Dicas de cuidado, uma por espécie)
@@ -133,9 +134,9 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 |---|---|---|
 | `id` | uuid | |
 | `user_id` | uuid | |
-| `photo_id` | uuid | |
+| `photo_id` | uuid, nulo | `ON DELETE SET NULL`: a foto some com a planta, mas a linha fica, porque conta o uso do Pl@ntNet |
 | `result` | `recognized` \| `not_recognized` | `not_recognized` quando o top 1 tem `score` < 0,2 ou não há candidatos |
-| `candidates` | jsonb | Até 3: `scientificName`, `commonName` (`pt`, cru do Pl@ntNet), `score`, `gbifKey`, `images[]` com `url`, `author` e `license` |
+| `candidates` | jsonb | Até 3: `scientificName`, `commonNames` (`pt`, crus do Pl@ntNet), `score`, `gbifKey`, `images[]` com `url`, `author`, `license` e `sourceUrl`. Numa `recognized`, são os candidatos mostrados, na mesma ordem (o `candidateIndex` aponta para eles), já com a `gbifKey` resolvida no GBIF; numa `not_recognized`, a lista crua do Pl@ntNet |
 | `chosen_species_id` | uuid, nulo | |
 | `chosen_none` | boolean | O usuário marcou "nenhuma destas" |
 | `chosen_at` | timestamptz, nulo | |
@@ -143,7 +144,7 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 
 **Limite diário:** toda linha de `identifications` conta no limite de 10 por usuário por dia, inclusive as `not_recognized`, porque gastam a cota do Pl@ntNet do mesmo jeito. A falha de rede e o 5xx do Pl@ntNet não geram linha, então não contam.
 
-**Espécie nova:** só nasce quando o usuário escolhe o candidato. Nesse momento, a API faz o upsert pela `gbif_key`, e a foto de referência passa a ser a primeira imagem que o Pl@ntNet mostrou daquele candidato.
+**Espécie nova:** só nasce quando o usuário escolhe o candidato. Nesse momento, a API faz o upsert pela `gbif_key`, e a foto de referência passa a ser a primeira imagem que o Pl@ntNet mostrou daquele candidato (`reference_photo_url`, com `origin = identification`). Ela nasce com o `commonName` que o candidato mostrou como nome principal em `species_names` (o primeiro nome do Pl@ntNet que passa no filtro, com o hífen corrigido); os outros nomes do Pl@ntNet não são guardados. Se o candidato não mostrou nome, ela nasce sem nome, o principal vem do Claude na primeira geração das dicas e, até lá, toda resposta usa o nome científico como `commonName`. Uma espécie que já existe fica com os nomes que tem.
 
 ### Jardim
 
@@ -190,7 +191,8 @@ Não tem tabela própria:
 2. **Envio:** `POST /v1/photos` em multipart. O teto do Lambda é 6 MB.
 3. **Na API:** o `sharp` gira a imagem conforme a orientação, remove todo o EXIF (inclusive o GPS) e grava no S3 com a tag `unattached=true`.
 4. **Nas respostas:** a foto aparece como `{ id, url, expiresAt }`, em que `url` é pré-assinada e vale 1 h. O app usa o `id` como chave de cache no `cached_network_image`.
-5. **Fotos de referência:** as do Catálogo e as dos candidatos vêm como `{ url, author, license, sourceUrl }`. A `url` é pré-assinada (S3) ou externa (Pl@ntNet).
+5. **Local:** em vez do S3, um emulador (RustFS) no `compose.yaml`, com o bucket privado criado ao subir. O mesmo código fala com os dois; muda só o `.env` (`S3_ENDPOINT` e as chaves só existem no local). A URL pré-assinada é assinada com `http://localhost:9000`, e o `npm run dev:phone` faz `adb reverse` dessa porta. A regra de ciclo de vida não existe no emulador.
+6. **Fotos de referência:** as do Catálogo e as dos candidatos vêm como `{ url, author, license, sourceUrl }`. A `url` é pré-assinada (S3) ou externa (Pl@ntNet).
 
 ## Endpoints
 
@@ -229,11 +231,25 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 
 | Método e caminho | O que faz |
 |---|---|
-| `POST /photos` | Multipart `file` → `{ id, url, expiresAt }`. Limite de 50 por dia (`PHOTO_DAILY_LIMIT`) |
-| `POST /identifications` | `{ photoId }` → `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Se `result = not_recognized`, vem `candidates: []` |
-| `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }` → `{ species }` ou `204`. Faz o upsert da Espécie no Catálogo |
-| `GET /species?q=` | Busca sem diferenciar acento nem maiúscula (`ILIKE '%termo%'` em `name_normalized`), até 20 resultados. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }` |
-| `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide }` |
+| `POST /photos` | Multipart `file` (até 6 MB) → `201` com `{ id, url, expiresAt }`. Limite de 50 por dia (`PHOTO_DAILY_LIMIT`). Arquivo que não é imagem, campo ausente, corpo que não é multipart ou arquivo acima de 6 MB: `VALIDATION_FAILED`, com `path` `file` |
+| `POST /identifications` | `{ photoId }` → `201` com `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Passos abaixo. Se `result = not_recognized`, vem `candidates: []`. Foto de outro usuário ou inexistente: `NOT_FOUND` |
+| `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }`, nunca os dois → `200` com `{ species }` (no formato do item da busca, com `matchedAlternativeName: null`) ou `204`. Faz o upsert da Espécie no Catálogo; a espécie nova ganha o `commonName` do candidato como nome principal. Uma escolha só: a segunda responde `IDENTIFICATION_ALREADY_CHOSEN`. Índice fora da lista, corpo inválido ou identificação `not_recognized`: `VALIDATION_FAILED`. Identificação de outro usuário: `NOT_FOUND` |
+| `GET /species?q=` | Busca sem diferenciar acento nem maiúscula: `lower(unaccent(q))` com `ILIKE '%termo%'` em `name_normalized` e no nome científico normalizado. `q` de 2 a 50 caracteres depois do trim (fora disso, `VALIDATION_FAILED`); `%` e `_` valem como letras. Responde uma lista com uma linha por espécie, até 20: primeiro as que têm um nome que começa pelo termo, depois as outras, cada grupo em ordem alfabética do nome principal. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }`; `matchedAlternativeName` é o nome alternativo que bateu, quando o termo não bateu no principal nem no científico |
+| `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide, careGuideStatus }`, com `otherNames` em ordem alfabética. Espécie inexistente: `NOT_FOUND`; `id` que não é UUID: `VALIDATION_FAILED` |
+
+**`POST /identifications`, passo a passo:**
+1. Confere o limite de 10 por dia (`IDENTIFICATION_DAILY_LIMIT`), sem chamar o Pl@ntNet.
+2. Lê a foto no armazenamento e chama o Pl@ntNet (`POST /v2/identify/all` com `lang=pt`, `nb-results=3`, `organs=auto` e `include-related-images=true`, timeout de 10 s). O `404` "Species not found" vale como lista vazia. Timeout, rede, `5xx` e qualquer outra resposta: `IDENTIFICATION_SERVICE_UNAVAILABLE`, sem linha.
+3. Candidato sem `gbif.id`: a API resolve o nome no GBIF; sem match (ou com o GBIF fora), ele é descartado. Candidato sem imagem cuja espécie não está no Catálogo também é descartado, porque uma Espécie nova precisa de foto de referência.
+4. `not_recognized` quando não sobra candidato ou quando o top 1 do Pl@ntNet (antes dos descartes) tem `score` < 0,2.
+5. Anexa a foto, grava a linha e responde.
+
+**Cada candidato:** `{ scientificName, commonName, score, images[] }`, com `images` no formato `{ url, author, license, sourceUrl }`: `url` é a imagem média do Pl@ntNet, `sourceUrl` é a original e a licença vem como `CC BY-SA`. O `commonName`:
+- **Espécie já no Catálogo (pela `gbifKey`):** o nome principal do Catálogo; enquanto ela não tem nome principal, o nome científico, como em toda resposta.
+- **Senão:** o primeiro nome do Pl@ntNet que passa no filtro de "parece nome": até 40 caracteres, sem dígitos, sem vírgula e sem ponto. O espaço antes da primeira palavra com hífen volta a ser hífen ("Costela de-adão" vira "Costela-de-adão").
+- **Nenhum passou:** `null`, e o app mostra o nome científico.
+
+**Espécie nas respostas do Catálogo:** a espécie sem nome principal usa o nome científico como `commonName`. A `referencePhoto` é `{ url, author, license, sourceUrl }`; a `url` é pré-assinada (1 h) quando a foto está no armazenamento (`reference_photo_s3_key`) e é a URL externa nos outros casos.
 
 **`careGuide` no `GET /species/:id`:**
 - **Já existe e está `ready`:** vem o conteúdo.
@@ -243,15 +259,22 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 
 Um `generating` com mais de 60 s é tratado como `failed`.
 
+**Geração das dicas** (uma só função na API, usada pelo `GET /species/:id`, pelo `GET /plants/:id` e pela carga da semente):
+- **Reserva:** um único `INSERT … ON CONFLICT (species_id) DO UPDATE … WHERE status = 'failed' OR (status = 'generating' AND started_at < now() - 60 s)`, que já grava `model`, `prompt_version`, `requested_by` e `started_at`. Só quem ganha a linha chama o Claude.
+- **O que o Claude recebe:** o nome científico e os nomes que o Catálogo já tem (o principal primeiro). O prompt pede que o `commonName` repita o primeiro desses nomes, exatamente como está; só sem nenhum nome o Claude escolhe o nome popular mais usado no Brasil. Responde por um tool estrito, cujo JSON Schema sai do schema Zod do `content`; a resposta passa pelo Zod de novo, e uma resposta inválida, uma recusa ou um corte por `max_tokens` contam como falha. Modelo de `CARE_GUIDE_MODEL` (padrão `claude-sonnet-5-5`), `prompt_version` 2, timeout de 25 s com uma nova tentativa, para terminar antes dos 60 s.
+- **Sucesso:** `ready`, com `content`, `generated_at` e o `model` que respondeu (o de reserva, se o Claude recusou e o fallback do servidor respondeu).
+- **O nome do Claude:** comparado sem acento nem maiúscula. Numa espécie sem nome principal, vira o principal (ou promove o alternativo igual a ele). Numa espécie com principal, entra como alternativo só se a espécie ainda não tem um nome igual.
+- **`202 CARE_GUIDE_GENERATING`:** é um `application/problem+json` com `Retry-After: 3`, sem a espécie. O app tenta de novo e, depois de 60 s, mostra "dicas indisponíveis no momento".
+
 ### Meu jardim
 
 | Método e caminho | O que faz |
 |---|---|
-| `GET /plants` | Lista: `{ id, commonName, photo, species: { id, scientificName, wateringSummary } \| null }` |
-| `POST /plants` | `{ photoId, commonName, speciesId? }` → planta. Anexa a foto |
-| `GET /plants/:id` | Planta com a espécie completa e o `careGuide` (mesma regra do `GET /species/:id`) |
-| `PATCH /plants/:id` | `{ commonName? , speciesId? }`. Só aceita `speciesId` se a planta ainda não tiver espécie (`SPECIES_ALREADY_SET`) |
-| `DELETE /plants/:id` | Remove a planta pelas regras acima |
+| `GET /plants` | Lista do mais novo para o mais antigo: `{ id, commonName, photo, species: { id, commonName, scientificName, wateringSummary } \| null }`. O `commonName` da espécie é o nome principal (ou o científico, se ela não tiver). `wateringSummary` é o `watering.summary` das dicas `ready`, ou `null`; a lista nunca gera dicas |
+| `POST /plants` | `{ photoId, commonName, speciesId? }` → `201` com a planta no formato da lista. `commonName` de 1 a 80 caracteres depois de tirar os espaços das pontas. Anexa a foto (`attached_at`, tira a tag) e grava `photos.plant_id`. Foto de outro Usuário: `NOT_FOUND`. Foto que já é de outra planta ou `speciesId` que não existe: `VALIDATION_FAILED`. Não gera as dicas |
+| `GET /plants/:id` | `{ id, commonName, photo, species }`, com `species` igual ao corpo do `GET /species/:id` (nomes, foto de referência, `careGuide` e `careGuideStatus`, pela mesma função de geração, inclusive o `202`), ou `null` na planta salva só com o nome. Planta de outro Usuário: `NOT_FOUND` |
+| `PATCH /plants/:id` | `{ commonName? , speciesId? }`, com pelo menos um dos dois (senão, `VALIDATION_FAILED`), e responde a planta no formato da lista; com os dois, aplica os dois. `commonName` segue a regra do `POST`. Só aceita `speciesId` se a planta ainda não tiver espécie (`SPECIES_ALREADY_SET`, inclusive com o mesmo `speciesId`); `speciesId` que não existe: `VALIDATION_FAILED`. A espécie é conferida primeiro: se ela falha, o nome também não muda. Não gera as dicas. Planta de outro Usuário: `NOT_FOUND` |
+| `DELETE /plants/:id` | `204`. Apaga a planta e as linhas das fotos dela numa transação e depois os objetos no armazenamento; uma falha ao apagar o objeto vai para o log e não falha a resposta. Planta de outro Usuário: `NOT_FOUND` |
 
 ### Anúncios e interesse
 
@@ -288,6 +311,7 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 | `PHOTO_DAILY_LIMIT` | 429 | Mais de 50 fotos no dia |
 | `IDENTIFICATION_DAILY_LIMIT` | 429 | 10 identificações no dia |
 | `IDENTIFICATION_SERVICE_UNAVAILABLE` | 503 | Falha ou timeout do Pl@ntNet (não conta no limite) |
+| `IDENTIFICATION_ALREADY_CHOSEN` | 409 | Segunda escolha na mesma identificação |
 | `CARE_GUIDE_GENERATING` | 202 | Outra requisição está gerando as dicas |
 | `SPECIES_ALREADY_SET` | 409 | Tentativa de trocar a espécie de uma planta |
 | `DONATION_PROFILE_REQUIRED` | 409 | Primeiro anúncio sem telefone ou localização |
@@ -310,6 +334,7 @@ Um `generating` com mais de 60 s é tratado como `failed`.
   2. O script valida cada nome no GBIF, descarta o que não bate e corrige os sinônimos, guardando a `gbifKey`.
   3. Busca os nomes populares na Flora e Funga do Brasil, com o GBIF (`por`) de reserva.
   4. Escolhe uma foto do Wikimedia Commons com licença livre (nunca NC) e registra autor, licença e URL de origem.
+  5. Aplica as correções à mão do `api/catalog/seed-overrides.json`, versionado, com uma entrada por nome científico aceito: `commonName` e `otherNames` substituem os nomes das fontes, e `photoFile` (opcional, um arquivo do Commons) substitui a foto do Wikidata, ainda conferida quanto a licença e autor. Exemplo: a *Monstera adansonii* é "costela-de-eva" (a Flora dá "costela-de-adão", que é a *Monstera deliciosa*).
 - **Revisão:** o Ângelo revisa o JSON no PR.
-- **`npm run catalog:load`:** roda à mão, uma vez por ambiente. Lê o JSON, faz o upsert pela `gbif_key`, copia as fotos para o S3 e gera, pelo mesmo código da API, as dicas que faltam. É idempotente: rodar de novo só completa o que falhou.
+- **`npm run catalog:load`:** roda à mão, uma vez por ambiente. Lê o JSON, faz o upsert pela `gbif_key`, sincroniza os nomes (o principal da semente vira o principal, o antigo principal fica como alternativo e nenhum nome é apagado), copia as fotos para o S3 e gera, pelo mesmo código da API, as dicas que faltam (inexistentes ou `failed`), no máximo 3 em paralelo, com `requested_by` nulo. É idempotente: rodar de novo só completa o que falhou. O resumo traz as dicas geradas e as que falharam. A chave do Claude (`ANTHROPIC_API_KEY`) vem do mesmo `api/.env` da API, também no `catalog:build`.
 - **Não é uma migration:** a carga chama serviços externos e pode parar no meio, e as migrations do Drizzle ficam só com o schema.

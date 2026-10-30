@@ -13,7 +13,8 @@ import 'update_required.dart';
 /// reached). A `426 APP_UPDATE_REQUIRED` on any call also raises
 /// [UpdateRequired].
 ///
-/// Repositories call [get], [post], [patch] and [postWithoutBody];
+/// Repositories call [get], [getList], [post], [patch], [delete],
+/// [postWithoutBody] and [postMultipart];
 /// cross-cutting behavior goes in as another [Interceptor] (the session's
 /// `Authorization` header is [BearerInterceptor]).
 class ApiClient {
@@ -33,6 +34,7 @@ class ApiClient {
                ),
              )
              ..interceptors.addAll([
+               ProblemAnswerInterceptor(),
                AppVersionInterceptor(appVersion),
                BearerInterceptor(sessionStore),
                UpdateRequiredInterceptor(updateRequired),
@@ -43,32 +45,68 @@ class ApiClient {
 
   final Dio _dio;
 
-  /// `GET` [path] and parse its JSON object body with [fromJson].
+  /// `GET` [path] (with [queryParameters]) and parse its JSON object body
+  /// with [fromJson]. [receiveTimeout] replaces the usual one for a call the
+  /// API may take long to answer (one that has Claude write a care guide).
   Future<T> get<T>(
     String path,
-    T Function(Map<String, dynamic> json) fromJson,
-  ) async {
-    try {
-      final response = await _dio.get<Map<String, dynamic>>(path);
+    T Function(Map<String, dynamic> json) fromJson, {
+    Map<String, String>? queryParameters,
+    Duration? receiveTimeout,
+  }) {
+    return _guard(() async {
+      final response = await _dio.get<Map<String, dynamic>>(
+        path,
+        queryParameters: queryParameters,
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
+      );
       return fromJson(response.data ?? const {});
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
+  /// `GET` [path] (with [queryParameters]) whose body is a JSON array of
+  /// objects, each parsed with [fromJson].
+  Future<List<T>> getList<T>(
+    String path,
+    T Function(Map<String, dynamic> json) fromJson, {
+    Map<String, String>? queryParameters,
+  }) {
+    return _guard(() async {
+      final response = await _dio.get<List<dynamic>>(
+        path,
+        queryParameters: queryParameters,
+      );
+      return [
+        for (final item in response.data ?? const <dynamic>[])
+          fromJson(item as Map<String, dynamic>),
+      ];
+    });
+  }
+
+  /// How long a call that waits on an external service may take to answer
+  /// (an identification: Pl@ntNet takes ~2 s, but up to 10 s, plus GBIF).
+  static const slowReceiveTimeout = Duration(seconds: 30);
+
   /// `POST` [body] as JSON to [path] and parse its JSON object answer with
-  /// [fromJson].
+  /// [fromJson]. [receiveTimeout] replaces the usual one for a slow route.
   Future<T> post<T>(
     String path,
     Map<String, Object?> body,
-    T Function(Map<String, dynamic> json) fromJson,
-  ) async {
-    try {
-      final response = await _dio.post<Map<String, dynamic>>(path, data: body);
+    T Function(Map<String, dynamic> json) fromJson, {
+    Duration? receiveTimeout,
+  }) {
+    return _guard(() async {
+      final response = await _dio.post<Map<String, dynamic>>(
+        path,
+        data: body,
+        options: receiveTimeout == null
+            ? null
+            : Options(receiveTimeout: receiveTimeout),
+      );
       return fromJson(response.data ?? const {});
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
   /// `PATCH` [body] as JSON to [path] and parse its JSON object answer with
@@ -77,20 +115,63 @@ class ApiClient {
     String path,
     Map<String, Object?> body,
     T Function(Map<String, dynamic> json) fromJson,
-  ) async {
-    try {
+  ) {
+    return _guard(() async {
       final response = await _dio.patch<Map<String, dynamic>>(path, data: body);
       return fromJson(response.data ?? const {});
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
+  }
+
+  /// `DELETE` [path], for routes that answer `204` without a body.
+  Future<void> delete(String path) {
+    return _guard(() async {
+      await _dio.delete<void>(path);
+    });
   }
 
   /// `POST` [body] as JSON to [path], for routes that answer without a body
   /// (`202`, `204`).
-  Future<void> postWithoutBody(String path, Map<String, Object?> body) async {
-    try {
+  Future<void> postWithoutBody(String path, Map<String, Object?> body) {
+    return _guard(() async {
       await _dio.post<void>(path, data: body);
+    });
+  }
+
+  /// How long sending a multipart body may take: a photo of up to ~1 MB on a
+  /// slow mobile network takes longer than the usual [BaseOptions.sendTimeout].
+  static const uploadSendTimeout = Duration(seconds: 60);
+
+  /// `POST` [files] as `multipart/form-data` to [path], one part per field,
+  /// and parse its JSON object answer with [fromJson]. Like every call, it is
+  /// repeated (with the whole body) after a session renewal.
+  Future<T> postMultipart<T>(
+    String path,
+    Map<String, UploadFile> files,
+    T Function(Map<String, dynamic> json) fromJson,
+  ) {
+    final form = FormData.fromMap({
+      for (final MapEntry(key: field, value: file) in files.entries)
+        field: MultipartFile.fromBytes(
+          file.bytes,
+          filename: file.filename,
+          contentType: DioMediaType.parse(file.contentType),
+        ),
+    });
+    return _guard(() async {
+      final response = await _dio.post<Map<String, dynamic>>(
+        path,
+        data: form,
+        options: Options(sendTimeout: uploadSendTimeout),
+      );
+      return fromJson(response.data ?? const {});
+    });
+  }
+
+  /// Runs [call], turning a [DioException] into the [ApiException] or
+  /// [ApiConnectionException] every method promises.
+  static Future<T> _guard<T>(Future<T> Function() call) async {
+    try {
+      return await call();
     } on DioException catch (error) {
       throw _toApiError(error);
     }
@@ -100,7 +181,14 @@ class ApiClient {
     final response = error.response;
     if (response == null) return ApiConnectionException(error);
     final status = response.statusCode ?? 0;
-    return ApiException(status: status, code: problemCode(response.data));
+    final retryAfter = int.tryParse(
+      response.headers.value('retry-after') ?? '',
+    );
+    return ApiException(
+      status: status,
+      code: problemCode(response.data),
+      retryAfter: retryAfter == null ? null : Duration(seconds: retryAfter),
+    );
   }
 
   /// The `code` of an `application/problem+json` body, parsed once here;
@@ -112,6 +200,33 @@ class ApiClient {
     } on Object {
       return ApiErrorCode.unknown;
     }
+  }
+}
+
+/// Turns a success status that carries an `application/problem+json` body
+/// into an error, so callers get an [ApiException] for it like for any other
+/// problem. The API does that for `202 CARE_GUIDE_GENERATING`, which Dio
+/// would otherwise hand to the caller's parser as a normal answer.
+class ProblemAnswerInterceptor extends Interceptor {
+  @override
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
+    final contentType = response.headers.value(Headers.contentTypeHeader);
+    if (contentType != null &&
+        contentType.startsWith('application/problem+json')) {
+      handler.reject(
+        DioException.badResponse(
+          statusCode: response.statusCode ?? 0,
+          requestOptions: response.requestOptions,
+          response: response,
+        ),
+        true,
+      );
+      return;
+    }
+    handler.next(response);
   }
 }
 
@@ -167,4 +282,20 @@ class UpdateRequiredInterceptor extends Interceptor {
     }
     handler.next(err);
   }
+}
+
+/// A file for [ApiClient.postMultipart], kept in memory so the body can be
+/// sent again after a session renewal.
+class UploadFile {
+  const UploadFile({
+    required this.bytes,
+    required this.filename,
+    required this.contentType,
+  });
+
+  final List<int> bytes;
+  final String filename;
+
+  /// The part's media type, such as `image/jpeg`.
+  final String contentType;
 }

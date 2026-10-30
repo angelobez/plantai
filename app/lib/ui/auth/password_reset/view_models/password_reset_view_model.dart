@@ -6,6 +6,7 @@ import '../../auth_failure_message.dart';
 import '../../retry_when_offline.dart';
 import '../../resend_countdown.dart';
 import '../../validators.dart';
+import '../../../core/view_models/safe_notify.dart';
 
 /// The two steps of "Esqueci a senha".
 enum PasswordResetStep {
@@ -20,7 +21,7 @@ enum PasswordResetStep {
 /// signs the User in (the router then takes them to the tabs). Also how an
 /// account made with Google gets a password.
 class PasswordResetViewModel extends ChangeNotifier
-    with RetryWhenOffline<void> {
+    with RetryWhenOffline<void>, SafeNotify {
   PasswordResetViewModel({
     required this._authRepository,
     this.resendCooldown = const Duration(seconds: 45),
@@ -33,9 +34,8 @@ class PasswordResetViewModel extends ChangeNotifier
 
   late final _countdown = ResendCountdown(
     duration: resendCooldown,
-    onTick: _notify,
+    onTick: notify,
   );
-  bool _disposed = false;
 
   PasswordResetStep _step = PasswordResetStep.email;
   PasswordResetStep get step => _step;
@@ -77,12 +77,12 @@ class PasswordResetViewModel extends ChangeNotifier
     _clearMessages();
     _emailError = validateEmail(email);
     if (_emailError != null) {
-      _notify();
+      notify();
       return;
     }
 
     _isSubmitting = true;
-    _notify();
+    notify();
     try {
       final trimmed = email.trim();
       await _authRepository.requestPasswordReset(trimmed);
@@ -94,7 +94,7 @@ class PasswordResetViewModel extends ChangeNotifier
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
-      _notify();
+      notify();
     }
   }
 
@@ -107,12 +107,12 @@ class PasswordResetViewModel extends ChangeNotifier
     _codeError = validateCode(code);
     _passwordError = validatePassword(newPassword);
     if (_codeError != null || _passwordError != null) {
-      _notify();
+      notify();
       return;
     }
 
     _isSubmitting = true;
-    _notify();
+    notify();
     try {
       await _authRepository.resetPassword(
         email: _email,
@@ -124,7 +124,7 @@ class PasswordResetViewModel extends ChangeNotifier
       _error = authFailureMessage(failure);
     } finally {
       _isSubmitting = false;
-      _notify();
+      notify();
     }
   }
 
@@ -133,7 +133,7 @@ class PasswordResetViewModel extends ChangeNotifier
     if (!canResend) return;
     _isResending = true;
     _clearMessages();
-    _notify();
+    notify();
     try {
       await _authRepository.requestPasswordReset(_email);
       _notice = 'Enviamos um código novo.';
@@ -143,7 +143,7 @@ class PasswordResetViewModel extends ChangeNotifier
       _error = authFailureMessage(failure);
     } finally {
       _isResending = false;
-      _notify();
+      notify();
     }
   }
 
@@ -151,7 +151,7 @@ class PasswordResetViewModel extends ChangeNotifier
   void editEmail() {
     _clearMessages();
     _step = PasswordResetStep.email;
-    _notify();
+    notify();
   }
 
   void _clearMessages() {
@@ -163,13 +163,8 @@ class PasswordResetViewModel extends ChangeNotifier
     clearRetry();
   }
 
-  void _notify() {
-    if (!_disposed) notifyListeners();
-  }
-
   @override
   void dispose() {
-    _disposed = true;
     _countdown.dispose();
     super.dispose();
   }

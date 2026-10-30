@@ -1,4 +1,5 @@
 import '../../domain/models/auth_failure.dart';
+import '../core/failure_messages.dart';
 
 /// The message an entry screen shows for [failure], in Portuguese.
 ///
@@ -18,8 +19,7 @@ String authFailureMessage(AuthFailure failure) => switch (failure) {
   AuthFailure.tooManyRequests =>
     'Muitas tentativas. Espere alguns minutos e tente de novo.',
   AuthFailure.validationFailed => 'Confira os dados e tente de novo.',
-  AuthFailure.noConnection =>
-    'Sem conexão com a internet. Confira a rede e tente de novo.',
+  AuthFailure.noConnection => noConnectionMessage,
   AuthFailure.updateRequired => 'Atualize o PlantAí para continuar.',
-  AuthFailure.unknown => 'Algo deu errado. Tente de novo.',
+  AuthFailure.unknown => unknownFailureMessage,
 };

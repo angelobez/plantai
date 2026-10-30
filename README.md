@@ -37,15 +37,30 @@ Needs Node 24 and Docker. From `api/`:
 ```sh
 npm install
 cp .env.example .env   # then fill in the values; the API refuses to start if one is invalid
-npm run db:up          # PostGIS in Docker (compose.yaml), waits until it is healthy
+npm run db:up          # PostGIS and the S3 emulator in Docker (compose.yaml), waits until both are healthy
 npm run db:migrate     # applies the Drizzle migrations in drizzle/
+npm run catalog:load   # loads the Catalog seed: species, names, reference photos and care guides
 npm run start:dev      # http://localhost:3000, with reload on change
 curl localhost:3000/v1/health
 ```
 
-`npm run db:down` stops the database and keeps its data. After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
+`npm run db:down` stops the database and the emulator and keeps their data (each has its own volume). After changing `src/database/schema.ts`, `npm run db:generate` writes the next migration to `drizzle/`; review the SQL in the PR.
 
 **Google Sign-In:** `scripts/google-oauth-wizard.sh` walks through recreating the Google Cloud project, the consent screen and the OAuth clients (two Android, one Web) from scratch, reading both SHA-1s with `keytool`, and writes `GOOGLE_WEB_CLIENT_ID` to `api/.env`. The Web client secret is never stored.
+
+### Photo storage (S3 emulator)
+Photos live in a private S3 bucket and are only served through presigned GET URLs valid for 1 hour (ADR 0007). Locally, `compose.yaml` runs an S3 emulator on `localhost:9000` and creates the `plantai-photos` bucket when it starts; `.env.example` already points at it. The code is the same as for AWS (`@aws-sdk/client-s3`, `S3_ENDPOINT` with path-style URLs), so phase 2 only changes `.env`: drop `S3_ENDPOINT` and the keys, and the Lambda role gives the credentials. Presigned URLs are signed for `http://localhost:9000`, which the phone reaches through `npm run dev:phone` (it also forwards port 9000); over Wi-Fi the photos do not open.
+
+**Why RustFS (`rustfs/rustfs:1.0.4`):** it is the emulator that meets the requirements: presigned GET URLs with SigV4, `PutObjectTagging`/`DeleteObjectTagging` (the `unattached` tag), a pinned stable release and active maintenance (Apache 2.0; 1.0.4 came out in October 2026). It also checks signatures, so the bucket is private as on S3: a URL without signature gets `403`. MinIO no longer publishes its community images. Adobe S3Mock does not check signatures, so it cannot show that the bucket is private. Garage has no object tagging. LocalStack's image now needs an account token. The image is the same in `compose.yaml` and in `test/support/s3.ts`, where `test/s3-photo-storage.spec.ts` runs the real adapter against it with Testcontainers. The lifecycle rule that deletes `unattached` photos after 1 day is not emulated; it belongs to the phase 2 infrastructure.
+
+The `PhotoStorage` port (`src/photo-storage/`) is what the rest of the API uses; tests swap it for `FakePhotoStorage` (`createTestApp(env, { photoStorage })`), which keeps the objects and their tags in memory.
+
+### Catalog
+The Catalog (species, names, reference photos) lives in the database. `npm run catalog:load` loads `catalog/catalog-seed.json` (built by `npm run catalog:build`; see `docs/spec/modelo-de-dados-e-api.md`, "Semente do Catálogo"): it upserts each species by `gbifKey`, syncs its names, downloads its Wikimedia photo (with an identifying `User-Agent`), shrinks it to 1200 px and stores it without the `unattached` tag. It mounts only the modules it needs (`CatalogLoadModule`), not the HTTP server, then has Claude write the missing or failed care guides through the same code as the API (`CareGuideService.ensure`, at most 3 at a time; it needs `ANTHROPIC_API_KEY` in `api/.env`), and ends with a summary of species, photos copied, care guides written and failures. Running it again duplicates nothing and only retries what failed; until its photo is copied, a species shows the Wikimedia one by URL. `-- --seed <file>` loads another seed file.
+
+To correct a species by hand (a wrong primary name, or no usable Wikidata photo), add it to `catalog/seed-overrides.json`, keyed by its accepted scientific name: `commonName` and `otherNames` replace the names Flora and GBIF gave, and an optional `photoFile` (a Commons file name) replaces the Wikidata photo. `catalog:build` applies it, and `catalog:load` then makes the corrected name primary, keeping the old one as an alternative.
+
+GBIF name resolution (`species/match`) is the `GbifNames` port (`src/gbif/`), used by the API and by `catalog:build`; tests swap it for `FakeGbifNames` (`createTestApp(env, { gbifNames })`).
 
 ### Authentication
 Every route requires `Authorization: Bearer <access token>` (a 15-minute JWT signed with `JWT_SECRET`); without a valid one it answers `401 UNAUTHENTICATED`. The pieces live in `api/src/auth/`:
@@ -70,7 +85,7 @@ To document a route:
 
 Then run `npm run openapi:update` (from `api/`) and commit `api/openapi.json` with the change.
 
-Checks, the same ones CI runs: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS with Testcontainers, so Docker must be running; they do not touch the database from `compose.yaml`.
+Checks, the same ones CI runs: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS (and, for the storage adapter, S3 emulator) with Testcontainers, so Docker must be running; they do not touch the services from `compose.yaml`.
 
 ## Running the app on a phone
 Needs Flutter 3.47 (Dart 3.13), the Android SDK and JDK 17, plus the API running on the notebook (above). From `app/`:
@@ -81,9 +96,9 @@ flutter pub get
 
 The app reads the API address from `--dart-define=API_BASE_URL`; release builds have no default (debug builds fall back to `http://localhost:3000`). Pick one of two ways to reach the notebook:
 
-- **USB cable:** forward the phone's port 3000 to the notebook and use `localhost`. `npm run dev:phone` at the repo root does it for you: it runs the API, re-applies `adb reverse` on every reconnect and tees the API log (e-mail codes included) to `api/logs/dev.log`.
+- **USB cable:** forward the phone's ports 3000 (API) and 9000 (S3 emulator, for the photos) to the notebook and use `localhost`. `npm run dev:phone` at the repo root does it for you: it runs the API, re-applies `adb reverse` of both ports on every reconnect and tees the API log (e-mail codes included) to `api/logs/dev.log`.
   ```sh
-  adb reverse tcp:3000 tcp:3000   # again after every reconnect, unless dev:phone is running
+  adb reverse tcp:3000 tcp:3000 && adb reverse tcp:9000 tcp:9000   # after every reconnect, unless dev:phone runs
   flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000 \
     --dart-define=GOOGLE_SERVER_CLIENT_ID=431388587561-jhgntmp6i18htkblrnopm61b0h3815ld.apps.googleusercontent.com
   ```

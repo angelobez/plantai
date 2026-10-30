@@ -59,6 +59,57 @@ void main() {
     expect(updateRequired.isRequired, isFalse);
   });
 
+  test('a 2xx problem answer (202 CARE_GUIDE_GENERATING) is an ApiException with its Retry-After', () async {
+    adapter.respond = (_) async => ResponseBody.fromString(
+      jsonEncode({
+        'type': 'about:blank',
+        'title': 'Accepted',
+        'status': 202,
+        'code': 'CARE_GUIDE_GENERATING',
+      }),
+      202,
+      headers: {
+        Headers.contentTypeHeader: ['application/problem+json; charset=utf-8'],
+        'retry-after': ['3'],
+      },
+    );
+
+    await expectLater(
+      client.get('/v1/species/1', (json) => json),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 202)
+            .having((e) => e.code, 'code', ApiErrorCode.careGuideGenerating)
+            .having(
+              (e) => e.retryAfter,
+              'retryAfter',
+              const Duration(seconds: 3),
+            ),
+      ),
+    );
+  });
+
+  test('an error without Retry-After has no retryAfter', () async {
+    adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
+
+    await expectLater(
+      client.get('/v1/species/1', (json) => json),
+      throwsA(
+        isA<ApiException>().having((e) => e.retryAfter, 'retryAfter', isNull),
+      ),
+    );
+  });
+
+  test('a call may wait longer than the usual receive timeout', () async {
+    await client.get(
+      '/v1/species/1',
+      (json) => json,
+      receiveTimeout: const Duration(seconds: 60),
+    );
+
+    expect(adapter.requests.single.receiveTimeout, const Duration(seconds: 60));
+  });
+
   test('a network failure becomes an ApiConnectionException', () async {
     adapter.respond = (options) async => throw DioException.connectionError(
       requestOptions: options,
@@ -193,4 +244,106 @@ void main() {
     expect(request.path, '/v1/me');
     expect(jsonDecode(jsonEncode(request.data)), {'name': 'Marina'});
   });
+
+  test(
+    'postMultipart sends the files as multipart and parses the answer',
+    () async {
+      adapter.respond = (_) async => jsonResponse(201, {'id': 'photo-1'});
+
+      final id = await client.postMultipart('/v1/photos', {
+        'file': UploadFile(
+          bytes: utf8.encode('jpeg-bytes'),
+          filename: 'planta.jpg',
+          contentType: 'image/jpeg',
+        ),
+      }, (json) => json['id']);
+
+      expect(id, 'photo-1');
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/v1/photos');
+      expect(request.contentType, startsWith('multipart/form-data'));
+      final body = utf8.decode(await adapter.bodies.single);
+      expect(body, contains('name="file"; filename="planta.jpg"'));
+      expect(body, contains('content-type: image/jpeg'));
+      expect(body, contains('jpeg-bytes'));
+    },
+  );
+
+  test('postMultipart turns an error answer into an ApiException', () async {
+    adapter.respond = (_) async => problemResponse(429, 'PHOTO_DAILY_LIMIT');
+
+    await expectLater(
+      client.postMultipart('/v1/photos', {
+        'file': UploadFile(
+          bytes: const [1, 2, 3],
+          filename: 'planta.jpg',
+          contentType: 'image/jpeg',
+        ),
+      }, (json) => json),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.status, 'status', 429)
+            .having((e) => e.code, 'code', ApiErrorCode.photoDailyLimit),
+      ),
+    );
+  });
+
+  test('get sends the query parameters', () async {
+    await client.get(
+      '/v1/species/1',
+      (json) => json,
+      queryParameters: {'a': 'b'},
+    );
+
+    expect(adapter.requests.single.uri.query, 'a=b');
+  });
+
+  test('getList sends the query and parses each item of the array', () async {
+    adapter.respond = (_) async => jsonResponse(200, [
+      {'name': 'jiboia'},
+      {'name': 'costela-de-adão'},
+    ]);
+
+    final names = await client.getList(
+      '/v1/species',
+      (json) => json['name'],
+      queryParameters: {'q': 'costela de adão'},
+    );
+
+    expect(names, ['jiboia', 'costela-de-adão']);
+    final request = adapter.requests.single;
+    expect(request.path, '/v1/species');
+    expect(request.uri.queryParameters, {'q': 'costela de adão'});
+  });
+
+  test('getList turns an error answer into an ApiException', () async {
+    adapter.respond = (_) async => problemResponse(400, 'VALIDATION_FAILED');
+
+    await expectLater(
+      client.getList('/v1/species', (json) => json),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.code,
+          'code',
+          ApiErrorCode.validationFailed,
+        ),
+      ),
+    );
+  });
+
+  test(
+    'getList turns a network failure into an ApiConnectionException',
+    () async {
+      adapter.respond = (options) async => throw DioException.connectionError(
+        requestOptions: options,
+        reason: 'refused',
+      );
+
+      await expectLater(
+        client.getList('/v1/species', (json) => json),
+        throwsA(isA<ApiConnectionException>()),
+      );
+    },
+  );
 }

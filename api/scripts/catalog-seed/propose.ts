@@ -19,7 +19,8 @@ Rules:
 /**
  * Asks Claude for the candidate species. Only the names come from Claude:
  * every one is still validated in GBIF, Flora and Commons.
- * ANTHROPIC_API_KEY comes from the script's environment, not from the API's.
+ * ANTHROPIC_API_KEY comes from the process environment, which the script
+ * fills from api/.env.
  */
 export async function proposeSpecies(): Promise<string[]> {
   const client = new Anthropic();

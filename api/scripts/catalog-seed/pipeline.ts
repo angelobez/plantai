@@ -1,14 +1,12 @@
 import {
+  type CommonNames,
   floraPortugueseNames,
   floraTaxonUrl,
   splitCommonNames,
 } from './common-names';
-import {
-  gbifMatchUrl,
-  gbifPortugueseNames,
-  gbifVernacularNamesUrl,
-  resolveGbifMatch,
-} from './gbif';
+import { messageOf } from '../../src/errors/message-of';
+import { type FetchJson, HttpGbifNames } from '../../src/gbif/http-gbif-names';
+import { gbifPortugueseNames, gbifVernacularNamesUrl } from './gbif';
 import {
   commonsImageInfoUrl,
   p18FileNames,
@@ -18,10 +16,17 @@ import {
   wikidataTaxonQueryUrl,
   type ReferencePhoto,
 } from './photo';
+import type { SeedOverride, SeedOverrides } from './overrides';
 import type { Discard, SeedSpecies } from './seed';
 
 /** GET a URL and parse the JSON body. The real one caches on disk. */
-export type FetchJson = (url: string) => Promise<unknown>;
+export type { FetchJson };
+
+export interface BuildSeedOptions {
+  /** Hand corrections, by accepted scientific name. */
+  overrides?: SeedOverrides;
+  onProgress?: (name: string, index: number) => void;
+}
 
 export interface SeedResult {
   species: SeedSpecies[];
@@ -59,25 +64,12 @@ async function findPhoto(
   return { reasons };
 }
 
-async function buildOne(
-  proposed: string,
+/** Flora first, then GBIF, for each of [names] until Flora has some. */
+async function findCommonNames(
+  names: string[],
+  gbifKey: number,
   fetchJson: FetchJson,
-  seenKeys: Map<number, string>,
-): Promise<SeedSpecies | Discard> {
-  const discard = (reason: string): Discard => ({ name: proposed, reason });
-
-  const gbif = resolveGbifMatch(
-    proposed,
-    await fetchJson(gbifMatchUrl(proposed)),
-  );
-  if (!gbif.ok) return discard(gbif.reason);
-  const duplicateOf = seenKeys.get(gbif.gbifKey);
-  if (duplicateOf !== undefined) {
-    return discard(
-      `duplicada de ${duplicateOf} (gbifKey ${String(gbif.gbifKey)})`,
-    );
-  }
-  const names = lookupNames(gbif.scientificName, proposed);
+): Promise<CommonNames | null> {
   let floraNames: string[] = [];
   for (const name of names) {
     floraNames = floraPortugueseNames(
@@ -87,12 +79,51 @@ async function buildOne(
     if (floraNames.length > 0) break;
   }
   const gbifNames = gbifPortugueseNames(
-    await fetchJson(gbifVernacularNamesUrl(gbif.gbifKey)),
+    await fetchJson(gbifVernacularNamesUrl(gbifKey)),
   );
-  const commonNames = splitCommonNames(floraNames, gbifNames);
+  return splitCommonNames(floraNames, gbifNames);
+}
+
+/** The photo of the override's Commons file, or Wikidata's. */
+async function findPhotoFor(
+  names: string[],
+  override: SeedOverride | undefined,
+  fetchJson: FetchJson,
+): Promise<{ photo: ReferencePhoto } | { reasons: string[] }> {
+  if (override?.photoFile === undefined) return findPhoto(names, fetchJson);
+  const result = referencePhotoFromImageInfo(
+    await fetchJson(commonsImageInfoUrl(override.photoFile)),
+  );
+  return result.ok
+    ? { photo: result.photo }
+    : { reasons: [`${override.photoFile}: ${result.reason}`] };
+}
+
+async function buildOne(
+  proposed: string,
+  fetchJson: FetchJson,
+  seenKeys: Map<number, string>,
+  overrides: SeedOverrides,
+): Promise<SeedSpecies | Discard> {
+  const discard = (reason: string): Discard => ({ name: proposed, reason });
+
+  // The same GBIF resolution as the API's.
+  const gbif = await new HttpGbifNames(fetchJson).resolve(proposed);
+  if (!gbif.ok) return discard(gbif.reason);
+  const duplicateOf = seenKeys.get(gbif.gbifKey);
+  if (duplicateOf !== undefined) {
+    return discard(
+      `duplicada de ${duplicateOf} (gbifKey ${String(gbif.gbifKey)})`,
+    );
+  }
+  const names = lookupNames(gbif.scientificName, proposed);
+  const override = overrides[gbif.scientificName];
+  const commonNames = override
+    ? { commonName: override.commonName, otherNames: override.otherNames }
+    : await findCommonNames(names, gbif.gbifKey, fetchJson);
   if (commonNames === null) return discard('sem nome popular (Flora e GBIF)');
 
-  const photo = await findPhoto(names, fetchJson);
+  const photo = await findPhotoFor(names, override, fetchJson);
   if ('reasons' in photo) {
     return discard(`sem foto livre (${photo.reasons.join('; ')})`);
   }
@@ -109,11 +140,13 @@ async function buildOne(
 /**
  * Validates each proposed name in GBIF, then looks up its common names and a
  * free reference photo. Every name ends either in the seed or in the discards.
+ * An override replaces the names the sources gave and, with a `photoFile`,
+ * the photo Wikidata would give.
  */
 export async function buildSeed(
   proposedNames: string[],
   fetchJson: FetchJson,
-  onProgress: (name: string, index: number) => void = () => undefined,
+  { overrides = {}, onProgress = () => undefined }: BuildSeedOptions = {},
 ): Promise<SeedResult> {
   const species: SeedSpecies[] = [];
   const discards: Discard[] = [];
@@ -122,11 +155,11 @@ export async function buildSeed(
   for (const [index, name] of proposedNames.entries()) {
     onProgress(name, index);
     try {
-      const result = await buildOne(name, fetchJson, seenKeys);
+      const result = await buildOne(name, fetchJson, seenKeys, overrides);
       if ('reason' in result) discards.push(result);
       else species.push(result);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = messageOf(error);
       discards.push({ name, reason: `erro: ${message}` });
     }
   }

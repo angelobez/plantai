@@ -9,14 +9,21 @@ import '../view_models/profile_view_model.dart';
 
 /// The Perfil tab, as in the Claude Design screen (`M-perfil`): the avatar,
 /// name and e-mail (read only), the rows Nome, WhatsApp and Localização de
-/// doação, and "Sair". Only the name is edited here; the other two are asked
-/// in the first listing (v0.3). "Sobre e créditos" comes in v0.2.
+/// doação, "Sobre e créditos" and "Sair". Only the name is edited here; the
+/// other two are asked in the first listing (v0.3).
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key, required this.viewModel});
+  const ProfileScreen({
+    super.key,
+    required this.viewModel,
+    required this.onAbout,
+  });
 
   static const notInformed = 'Não informado';
 
   final ProfileViewModel viewModel;
+
+  /// Opens "Sobre e créditos".
+  final VoidCallback onAbout;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +37,7 @@ class ProfileScreen extends StatelessWidget {
               profile: profile,
               viewModel: viewModel,
               onEditName: () => _editName(context, profile),
+              onAbout: onAbout,
             );
           }
           final error = viewModel.loadError;
@@ -57,11 +65,13 @@ class _ProfileView extends StatelessWidget {
     required this.profile,
     required this.viewModel,
     required this.onEditName,
+    required this.onAbout,
   });
 
   final UserProfile profile;
   final ProfileViewModel viewModel;
   final VoidCallback onEditName;
+  final VoidCallback onAbout;
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +145,7 @@ class _ProfileView extends StatelessWidget {
               ProfileScreen.notInformed,
         ),
         const SizedBox(height: 18),
+        _AboutRow(onTap: onAbout),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton(
@@ -214,6 +225,44 @@ class _InfoRow extends StatelessWidget {
       button: true,
       hint: 'Editar',
       child: InkWell(onTap: onEdit, child: content),
+    );
+  }
+}
+
+/// The "Sobre e créditos" row, with the chevron of a screen that opens.
+class _AboutRow extends StatelessWidget {
+  const _AboutRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.divider)),
+          ),
+          child: const Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Sobre e créditos',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: AppColors.inkMuted),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

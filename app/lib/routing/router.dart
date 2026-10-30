@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/repositories/auth/auth_repository.dart';
+import '../data/repositories/catalog/catalog_repository.dart';
+import '../data/repositories/garden/garden_repository.dart';
+import '../data/repositories/identification/identification_repository.dart';
+import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
+import '../data/services/api/models/photo.dart';
+import '../data/services/api/models/species_summary.dart';
 import '../data/services/api/update_required.dart';
+import '../data/services/photo_picker/photo_picker.dart';
+import '../domain/models/new_plant.dart';
+import '../ui/about/widgets/about_screen.dart';
 import '../ui/auth/email_login/view_models/email_login_view_model.dart';
 import '../ui/auth/email_login/widgets/email_login_screen.dart';
 import '../ui/auth/login/view_models/login_view_model.dart';
@@ -14,21 +23,81 @@ import '../ui/auth/signup/view_models/signup_view_model.dart';
 import '../ui/auth/signup/widgets/signup_screen.dart';
 import '../ui/auth/verify_email/view_models/verify_email_view_model.dart';
 import '../ui/auth/verify_email/widgets/verify_email_screen.dart';
+import '../ui/catalog/view_models/search_view_model.dart';
+import '../ui/catalog/view_models/species_view_model.dart';
+import '../ui/catalog/widgets/search_screen.dart';
+import '../ui/catalog/widgets/species_screen.dart';
 import '../ui/core/url_opener.dart';
 import '../ui/core/widgets/coming_soon.dart';
-import '../ui/core/widgets/leaf_icon.dart';
 import '../ui/core/widgets/tab_page.dart';
 import '../ui/core/widgets/view_model_scope.dart';
+import '../ui/garden/view_models/garden_view_model.dart';
+import '../ui/garden/view_models/plant_view_model.dart';
+import '../ui/garden/widgets/garden_screen.dart';
+import '../ui/garden/widgets/plant_name_dialog.dart';
+import '../ui/garden/widgets/plant_screen.dart';
+import '../ui/garden/widgets/save_plant.dart';
+import '../ui/identification/view_models/candidates_view_model.dart';
+import '../ui/identification/widgets/candidates_screen.dart';
+import '../ui/photo/view_models/photo_view_model.dart';
+import '../ui/photo/widgets/photo_screen.dart';
+import '../ui/photo/widgets/photo_source_sheet.dart';
 import '../ui/profile/view_models/profile_view_model.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/tabs/widgets/tabs_shell.dart';
 import '../ui/update_required/widgets/update_required_screen.dart';
 
+part 'entry_routes.dart';
+part 'garden_routes.dart';
+part 'identify_routes.dart';
+part 'photo_flow.dart';
+
 abstract final class Routes {
   static const garden = '/jardim';
+
+  /// Tela da planta, over the Jardim tab (back goes to the list), without
+  /// the bottom bar.
+  static String plant(String plantId) =>
+      '$garden/$_plantPath/${Uri.encodeComponent(plantId)}';
+
+  static const _plantPath = 'planta';
+  static const _plantIdParam = 'id';
+
+  /// The plant of a [plant] location.
+  static String plantIdOf(GoRouterState state) =>
+      state.pathParameters[_plantIdParam]!;
+
+  /// "Definir espécie" of the plant [plantId] by the Busca, over the Tela da
+  /// planta. Pushed for a result: the id of the chosen species, or null.
+  static String defineSpeciesSearch(String plantId) =>
+      '${plant(plantId)}/$_defineSpeciesPath/$_searchPath';
+
+  /// "Definir espécie" of the plant [plantId] by a new photo from [source]:
+  /// Foto, then [defineSpeciesCandidates]. Pushed for a result, as
+  /// [defineSpeciesSearch]. The new photo identifies the species but never
+  /// becomes the plant's.
+  static String defineSpeciesPhoto(String plantId, PhotoSource source) => Uri(
+    path: '${plant(plantId)}/$_defineSpeciesPath/$_photoPath',
+    queryParameters: {_photoSourceParam: source.name},
+  ).toString();
+
+  /// Candidatos of [defineSpeciesPhoto], for the photo [photoId]. Pushed
+  /// with the [Photo] as `extra`; completes with the chosen species' id, or
+  /// with the source of another photo ("Tirar outra foto").
+  static String defineSpeciesCandidates(String plantId, String photoId) =>
+      '${plant(plantId)}/$_defineSpeciesPath/$_photoPath/'
+      '$_candidatesPath/${Uri.encodeComponent(photoId)}';
+
+  static const _defineSpeciesPath = 'especie';
+  static const _photoPath = 'foto';
+
   static const nearby = '/perto';
   static const profile = '/perfil';
+
+  /// Foto, the start of the flow to identify a plant. Takes the source of
+  /// the first photo in the `fonte` query parameter ([identifyFrom]).
   static const identify = '/identificar';
+  static const about = '/sobre';
   static const updateRequired = '/atualize';
 
   /// The entry screens all live under [login], so one prefix tells them apart.
@@ -37,6 +106,64 @@ abstract final class Routes {
   static const signup = '$login/criar-conta';
   static const verifyEmail = '$login/codigo';
   static const passwordReset = '$login/esqueci-a-senha';
+
+  /// Foto, opening the camera or the gallery as it appears.
+  static String identifyFrom(PhotoSource source) => Uri(
+    path: identify,
+    queryParameters: {_photoSourceParam: source.name},
+  ).toString();
+
+  static const _photoSourceParam = 'fonte';
+
+  /// Busca no Catálogo, inside the photo flow. [photoId] is the photo already
+  /// sent, which "Salvar só com o nome" saves with the plant.
+  static String searchByName({String? photoId}) =>
+      _withPhoto('$identify/$_searchPath', photoId);
+
+  /// Tela da espécie, inside the photo flow, with the photo "Salvar no meu
+  /// jardim" saves with the plant ([photoId]), when there is one.
+  static String species(String speciesId, {String? photoId}) => _withPhoto(
+    '$identify/$_speciesPath/${Uri.encodeComponent(speciesId)}',
+    photoId,
+  );
+
+  /// Candidatos, inside the photo flow: identifies the photo [photoId],
+  /// already sent, and leads to Candidatos, Foto não reconhecida or Limite
+  /// diário. Pushed with the [Photo] as `extra`, for its thumbnail; the
+  /// push completes with the source of another photo when the User asks for
+  /// one ("Tirar outra foto").
+  static String candidates(String photoId) =>
+      '$identify/$_candidatesPath/${Uri.encodeComponent(photoId)}';
+
+  static const _candidatesPath = 'candidatos';
+  static const _searchPath = 'busca';
+  static const _speciesPath = 'especie';
+  static const _speciesIdParam = 'id';
+  static const _photoIdParam = 'foto';
+
+  /// The photo of a [searchByName] or [species] location, if any.
+  static String? photoIdOf(GoRouterState state) =>
+      state.uri.queryParameters[_photoIdParam];
+
+  /// The photo of a [candidates] location.
+  static String candidatesPhotoIdOf(GoRouterState state) =>
+      state.pathParameters[_photoIdParam]!;
+
+  /// The species of a [species] location.
+  static String speciesIdOf(GoRouterState state) =>
+      state.pathParameters[_speciesIdParam]!;
+
+  static String _withPhoto(String path, String? photoId) => Uri(
+    path: path,
+    queryParameters: photoId == null ? null : {_photoIdParam: photoId},
+  ).toString();
+
+  /// The source in a [identifyFrom] location; the gallery when there is none,
+  /// since it needs no permission.
+  static PhotoSource photoSourceOf(GoRouterState state) =>
+      PhotoSource.values
+          .asNameMap()[state.uri.queryParameters[_photoSourceParam]] ??
+      PhotoSource.gallery;
 
   static bool isEntry(String location) =>
       location == login || location.startsWith('$login/');
@@ -52,8 +179,23 @@ GoRouter router({
   required UpdateRequired updateRequired,
   required AuthRepository authRepository,
   required ProfileRepository profileRepository,
+  required PhotoRepository photoRepository,
+  required PhotoPicker photoPicker,
+  required CatalogRepository catalogRepository,
+  required IdentificationRepository identificationRepository,
+  required GardenRepository gardenRepository,
   UrlOpener openUrl = openExternally,
 }) {
+  final rootNavigatorKey = GlobalKey<NavigatorState>();
+  final flow = _PhotoFlow(
+    photoRepository: photoRepository,
+    photoPicker: photoPicker,
+    catalogRepository: catalogRepository,
+    identificationRepository: identificationRepository,
+    gardenRepository: gardenRepository,
+    openUrl: openUrl,
+  );
+
   final rules = <String? Function(GoRouterState state)>[
     // A 426 on any call: everything goes to "Atualize o PlantAí".
     (state) => updateRequired.isRequired ? Routes.updateRequired : null,
@@ -74,6 +216,7 @@ GoRouter router({
   ];
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: Routes.nearby,
     refreshListenable: Listenable.merge([updateRequired, authRepository]),
     redirect: (context, state) {
@@ -86,72 +229,16 @@ GoRouter router({
       return null;
     },
     routes: [
-      GoRoute(
-        path: Routes.login,
-        builder: (context, state) => ViewModelScope(
-          create: () => LoginViewModel(authRepository: authRepository),
-          builder: (viewModel) => LoginScreen(
-            viewModel: viewModel,
-            onEmail: () => context.push(Routes.emailLogin),
-          ),
-        ),
-        routes: [
-          GoRoute(
-            path: _child(Routes.emailLogin),
-            builder: (context, state) => ViewModelScope(
-              create: () => EmailLoginViewModel(authRepository: authRepository),
-              builder: (viewModel) => EmailLoginScreen(
-                viewModel: viewModel,
-                onVerifyEmail: () => context.push(Routes.verifyEmail),
-                onSignup: () => context.push(Routes.signup),
-                onForgotPassword: () => context.push(Routes.passwordReset),
-              ),
-            ),
-          ),
-          GoRoute(
-            path: _child(Routes.signup),
-            builder: (context, state) => ViewModelScope(
-              create: () => SignupViewModel(authRepository: authRepository),
-              builder: (viewModel) => SignupScreen(
-                viewModel: viewModel,
-                onCodeSent: () => context.push(Routes.verifyEmail),
-              ),
-            ),
-          ),
-          GoRoute(
-            path: _child(Routes.verifyEmail),
-            builder: (context, state) => ViewModelScope(
-              create: () =>
-                  VerifyEmailViewModel(authRepository: authRepository),
-              builder: (viewModel) => VerifyEmailScreen(viewModel: viewModel),
-            ),
-          ),
-          GoRoute(
-            path: _child(Routes.passwordReset),
-            builder: (context, state) => ViewModelScope(
-              create: () =>
-                  PasswordResetViewModel(authRepository: authRepository),
-              builder: (viewModel) => PasswordResetScreen(viewModel: viewModel),
-            ),
-          ),
-        ],
-      ),
+      _entryRoute(authRepository),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => TabsShell(
           navigationShell: navigationShell,
-          onCamera: () => context.push(Routes.identify),
+          onCamera: () => flow.open(context),
         ),
         // Same order as AppTab.
         branches: [
           StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.garden,
-                builder: (context, state) => const TabPage(
-                  body: ComingSoon(icon: LeafIcon(), title: 'Meu jardim'),
-                ),
-              ),
-            ],
+            routes: [_gardenRoute(flow, rootNavigatorKey: rootNavigatorKey)],
           ),
           StatefulShellBranch(
             routes: [
@@ -175,22 +262,20 @@ GoRouter router({
                     profileRepository: profileRepository,
                     authRepository: authRepository,
                   )..load(),
-                  builder: (viewModel) => ProfileScreen(viewModel: viewModel),
+                  builder: (viewModel) => ProfileScreen(
+                    viewModel: viewModel,
+                    onAbout: () => context.push(Routes.about),
+                  ),
                 ),
               ),
             ],
           ),
         ],
       ),
+      _identifyRoute(flow),
       GoRoute(
-        path: Routes.identify,
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(),
-          body: const ComingSoon(
-            icon: Icon(Icons.photo_camera_outlined),
-            title: 'Identificar pela foto',
-          ),
-        ),
+        path: Routes.about,
+        builder: (context, state) => AboutScreen(openUrl: openUrl),
       ),
       GoRoute(
         path: Routes.updateRequired,
@@ -199,6 +284,3 @@ GoRouter router({
     ],
   );
 }
-
-/// The path of an entry screen relative to [Routes.login], as a child route.
-String _child(String location) => location.substring(Routes.login.length + 1);

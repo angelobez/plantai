@@ -6,9 +6,17 @@ import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap';
 import type { Env } from '../../src/config/env';
 import { GoogleTokenVerifier } from '../../src/auth/google/google-token-verifier';
+import { CareGuideWriter } from '../../src/care-guides/care-guide-writer';
 import { EmailSender } from '../../src/email/email-sender';
+import { GbifNames } from '../../src/gbif/gbif-names';
+import { PlantIdentifier } from '../../src/identifications/plant-identifier';
+import { PhotoStorage } from '../../src/photo-storage/photo-storage';
+import { FakeCareGuideWriter } from './fake-care-guide-writer';
+import { FakeGbifNames } from './fake-gbif-names';
 import { FakeGoogleVerifier } from './fake-google-verifier';
 import { FakeOutbox } from './fake-outbox';
+import { FakePhotoStorage } from './fake-photo-storage';
+import { FakePlantIdentifier } from './fake-plant-identifier';
 
 export interface TestAppOptions {
   /** Extra controllers that exist only in the test module. */
@@ -25,6 +33,28 @@ export interface TestAppOptions {
    * tokens; without it, a throwaway one rejects every token.
    */
   googleVerifier?: FakeGoogleVerifier;
+  /**
+   * Keeps the photos in memory instead of S3. Pass one to look at what the
+   * API stored (bytes, tags) or to make it fail; without it, a throwaway one.
+   */
+  photoStorage?: FakePhotoStorage;
+  /**
+   * Resolves scientific names instead of GBIF. Pass one taught with
+   * `knows()`; without it, a throwaway one matches no name.
+   */
+  gbifNames?: FakeGbifNames;
+  /**
+   * Identifies the photos instead of Pl@ntNet. Pass one to set its answer
+   * (`answers()`) or make it fail; without it, a throwaway one recognizes
+   * nothing.
+   */
+  plantIdentifier?: FakePlantIdentifier;
+  /**
+   * Writes the care guides instead of Claude. Pass one to teach answers, hold
+   * or fail the calls, or see what was asked; without it, a throwaway one
+   * writes a valid guide for every species.
+   */
+  careGuideWriter?: FakeCareGuideWriter;
   /**
    * Keeps the real `/auth` rate limits. Without it no request is ever limited,
    * so a test may call `/auth` as often as it needs.
@@ -45,8 +75,9 @@ const unlimitedStorage: ThrottlerStorage = {
 
 /**
  * The whole Nest app, configured exactly like the real entry points. Only the
- * ports to external services (e-mail, Google) are swapped for fakes, and the
- * rate limits are off unless a test asks for them.
+ * ports to external services (e-mail, Google, photo storage, GBIF, Pl@ntNet,
+ * Claude) are swapped for fakes, and the rate limits are off unless a test asks
+ * for them.
  */
 export async function createTestApp(
   env: Env,
@@ -55,6 +86,10 @@ export async function createTestApp(
     logger,
     outbox = new FakeOutbox(),
     googleVerifier = new FakeGoogleVerifier(),
+    photoStorage = new FakePhotoStorage(),
+    gbifNames = new FakeGbifNames(),
+    plantIdentifier = new FakePlantIdentifier(),
+    careGuideWriter = new FakeCareGuideWriter(),
     realRateLimits = false,
   }: TestAppOptions = {},
 ): Promise<INestApplication<App>> {
@@ -65,7 +100,15 @@ export async function createTestApp(
     .overrideProvider(EmailSender)
     .useValue(outbox)
     .overrideProvider(GoogleTokenVerifier)
-    .useValue(googleVerifier);
+    .useValue(googleVerifier)
+    .overrideProvider(PhotoStorage)
+    .useValue(photoStorage)
+    .overrideProvider(GbifNames)
+    .useValue(gbifNames)
+    .overrideProvider(PlantIdentifier)
+    .useValue(plantIdentifier)
+    .overrideProvider(CareGuideWriter)
+    .useValue(careGuideWriter);
   if (!realRateLimits) {
     builder = builder
       .overrideProvider(ThrottlerStorage)
