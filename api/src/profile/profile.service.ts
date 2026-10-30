@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { DATABASE, type Database } from '../database/database.module';
+import { geographyOf } from '../database/geography';
 import { type User, users } from '../database/schema';
 import { DomainError } from '../errors/domain-error';
 import { Users } from '../users/users';
@@ -54,7 +55,7 @@ export class ProfileService {
       .update(users)
       .set({
         phone: mobile,
-        donationLocation: sql`ST_SetSRID(ST_MakePoint(${center.lng}, ${center.lat}), 4326)::geography`,
+        donationLocation: geographyOf(center),
         donationNeighborhood: neighborhood,
       })
       .where(eq(users.id, userId))

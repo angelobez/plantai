@@ -3,6 +3,7 @@ import { and, desc, eq, ne, type SQL, sql } from 'drizzle-orm';
 import { careGuideContentSchema } from '../care-guides/care-guide-content';
 import { CatalogService } from '../catalog/catalog.service';
 import { DATABASE, type Database } from '../database/database.module';
+import { geographyOf } from '../database/geography';
 import {
   careGuides,
   interests,
@@ -13,10 +14,13 @@ import {
   users,
 } from '../database/schema';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import type { SelectResultFields } from 'drizzle-orm/query-builders/select.types';
 import { DomainError, type ErrorCode } from '../errors/domain-error';
 import { invalidField } from '../errors/validation';
+import type { PhotoResponse } from '../photos/photo.dto';
 import { PhotosService } from '../photos/photos.service';
 import type { LatLng } from '../profile/donation-grid';
+import { firstWordOf } from './first-word';
 import {
   type ListingDetailResponse,
   type MyListingResponse,
@@ -29,6 +33,7 @@ import {
   effectiveStatus,
   isEffectivelyActive,
   newExpiry,
+  statusValue,
 } from './listing-status';
 
 /** What `POST /listings` takes, already validated. */
@@ -55,6 +60,18 @@ export interface ListingChanges {
 export interface DonorActionPrecondition {
   where: SQL;
   error: ErrorCode;
+}
+
+/** The only columns a donor action may write. */
+type DonorActionWrite = Pick<
+  PgUpdateSetSource<typeof listings>,
+  'quantity' | 'note' | 'status' | 'expiresAt'
+>;
+
+/** A row read with the `photoId`/`photoS3Key` pair of {@link withPhoto}. */
+interface PhotoColumns {
+  photoId: string;
+  photoS3Key: string;
 }
 
 /**
@@ -151,12 +168,8 @@ export class ListingsService {
       .orderBy(desc(listings.createdAt), desc(listings.id));
 
     return Promise.all(
-      rows.map(async ({ photoId, photoS3Key, expiresAt, ...row }) => ({
-        ...row,
-        photo: await this.photosService.present({
-          id: photoId,
-          s3Key: photoS3Key,
-        }),
+      rows.map(async ({ expiresAt, ...row }) => ({
+        ...(await this.withPhoto(row)),
         expiresAt: expiresAt.toISOString(),
       })),
     );
@@ -213,7 +226,7 @@ export class ListingsService {
       listingId,
       {
         quantity: sql`${listings.quantity} - ${count}`,
-        status: sql`CASE WHEN ${listings.quantity} - ${count} = 0 THEN 'donated'::listing_status ELSE ${listings.status} END`,
+        status: sql`CASE WHEN ${listings.quantity} - ${count} = 0 THEN ${statusValue('donated')} ELSE ${listings.status} END`,
       },
       {
         where: sql`${listings.quantity} >= ${count}`,
@@ -244,10 +257,10 @@ export class ListingsService {
    * own passes it as [precondition]. Answers the changed listing as
    * `GET /me/listings` shows it.
    */
-  async actOnActive(
+  private async actOnActive(
     userId: string,
     listingId: string,
-    changes: PgUpdateSetSource<typeof listings>,
+    changes: DonorActionWrite,
     precondition?: DonorActionPrecondition,
   ): Promise<MyListingResponse> {
     const [changed] = await this.db
@@ -297,7 +310,7 @@ export class ListingsService {
   ): Promise<NearbyListingResponse[]> {
     const point = geographyOf(from);
     const rows = await this.db
-      .select(this.itemColumns(point))
+      .select(itemColumns(point))
       .from(listings)
       .innerJoin(photos, eq(photos.id, listings.photoId))
       .leftJoin(species, eq(species.id, listings.speciesId))
@@ -331,7 +344,7 @@ export class ListingsService {
   ): Promise<ListingDetailResponse> {
     const [row] = await this.db
       .select({
-        ...this.itemColumns(geographyOf(from)),
+        ...itemColumns(geographyOf(from)),
         status: effectiveStatus(),
         note: listings.note,
         donorName: users.name,
@@ -364,38 +377,16 @@ export class ListingsService {
     };
   }
 
-  /** The columns of a `nearby` item, with the distance from [point] in km. */
-  private itemColumns(point: SQL) {
-    return {
-      id: listings.id,
-      commonName: listings.commonName,
-      scientificName: species.scientificName,
-      photoId: photos.id,
-      photoS3Key: photos.s3Key,
-      quantity: listings.quantity,
-      // To the center of the listing's cell, the only point stored (ADR 0002).
-      distanceKm:
-        sql<number>`round((ST_Distance(${listings.location}, ${point}) / 1000)::numeric)`.mapWith(
-          Number,
-        ),
-      neighborhood: listings.neighborhood,
-    };
+  private item(row: ItemRow): Promise<NearbyListingResponse> {
+    return this.withPhoto(row);
   }
 
-  private async item({
+  /** [row] with its `photoId`/`photoS3Key` pair as the API's `photo`. */
+  private async withPhoto<T extends PhotoColumns>({
     photoId,
     photoS3Key,
     ...row
-  }: {
-    id: string;
-    commonName: string;
-    scientificName: string | null;
-    photoId: string;
-    photoS3Key: string;
-    quantity: number;
-    distanceKm: number;
-    neighborhood: string;
-  }): Promise<NearbyListingResponse> {
+  }: T): Promise<Omit<T, keyof PhotoColumns> & { photo: PhotoResponse }> {
     return {
       ...row,
       photo: await this.photosService.present({
@@ -414,12 +405,29 @@ export class ListingsService {
   }
 }
 
-/** [point] as a PostGIS geography, for distances in meters on the spheroid. */
-function geographyOf({ lat, lng }: LatLng): SQL {
-  return sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`;
+/** The columns of a `nearby` item, with the distance from [point] in km. */
+function itemColumns(point: SQL) {
+  return {
+    id: listings.id,
+    commonName: listings.commonName,
+    scientificName: species.scientificName,
+    photoId: photos.id,
+    photoS3Key: photos.s3Key,
+    quantity: listings.quantity,
+    // To the center of the listing's cell, the only point stored (ADR 0002).
+    distanceKm:
+      sql<number>`round((ST_Distance(${listings.location}, ${point}) / 1000)::numeric)`.mapWith(
+        Number,
+      ),
+    neighborhood: listings.neighborhood,
+  };
 }
 
-/** The first word of a name: "Marina Souza" is "Marina". */
-export function firstWordOf(name: string): string {
-  return name.trim().split(/\s+/)[0] ?? name;
-}
+/**
+ * A row read with {@link itemColumns}. `species` is left-joined, which the
+ * column types alone do not say, so its name may be `null`.
+ */
+type ItemRow = Omit<
+  SelectResultFields<ReturnType<typeof itemColumns>>,
+  'scientificName'
+> & { scientificName: string | null };

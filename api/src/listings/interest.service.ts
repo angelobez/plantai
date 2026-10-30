@@ -4,8 +4,8 @@ import { DATABASE, type Database } from '../database/database.module';
 import { interests, listings, users } from '../database/schema';
 import { DomainError } from '../errors/domain-error';
 import type { InterestResponse } from './interest.dto';
+import { firstWordOf } from './first-word';
 import { isEffectivelyActive } from './listing-status';
-import { firstWordOf } from './listings.service';
 
 /**
  * Interesse: a User tapped "Tenho interesse" on another User's listing. It is

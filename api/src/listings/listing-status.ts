@@ -1,5 +1,9 @@
 import { type SQL, sql } from 'drizzle-orm';
-import { type ListingStatus, listings } from '../database/schema';
+import {
+  type ListingStatus,
+  listingStatus,
+  listings,
+} from '../database/schema';
 
 /** How long a listing stays up after publishing or renewing. */
 export const LISTING_LIFETIME = '30 days';
@@ -17,7 +21,15 @@ export const RENEWAL_WINDOW = '7 days';
  * {@link isEffectivelyActive}, built on it), never through `listings.status`.
  */
 export function effectiveStatus(): SQL<ListingStatus> {
-  return sql<ListingStatus>`(CASE WHEN ${listings.status} = 'active' AND ${listings.expiresAt} <= now() THEN 'closed' ELSE ${listings.status} END)`;
+  return sql<ListingStatus>`(CASE WHEN ${listings.status} = ${statusValue('active')} AND ${listings.expiresAt} <= now() THEN ${statusValue('closed')} ELSE ${listings.status} END)`;
+}
+
+/**
+ * [status] as a `listing_status` value in SQL, so every status a query
+ * writes is checked against {@link ListingStatus} and a rename cannot miss it.
+ */
+export function statusValue(status: ListingStatus): SQL<ListingStatus> {
+  return sql<ListingStatus>`${status}::${sql.identifier(listingStatus.enumName)}`;
 }
 
 /**
@@ -25,7 +37,7 @@ export function effectiveStatus(): SQL<ListingStatus> {
  * interest and to the donor's actions.
  */
 export function isEffectivelyActive(): SQL<boolean> {
-  return sql<boolean>`(${effectiveStatus()} = 'active')`;
+  return sql<boolean>`(${effectiveStatus()} = ${statusValue('active')})`;
 }
 
 /**
