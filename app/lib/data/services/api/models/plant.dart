@@ -78,4 +78,12 @@ class Plant {
   /// The species as the Tela da espécie shows it, care guide included; null
   /// for a plant saved with only a name.
   final Species? species;
+
+  /// This plant with [commonName] instead, as after a rename.
+  Plant copyWith({String? commonName}) => Plant(
+    id: id,
+    commonName: commonName ?? this.commonName,
+    photo: photo,
+    species: species,
+  );
 }

@@ -107,14 +107,7 @@ class PlantViewModel extends ChangeNotifier with SafeNotify {
       plantId,
       PlantChanges(commonName: name),
     );
-    if (_plant case final plant?) {
-      _plant = Plant(
-        id: plant.id,
-        commonName: renamed.commonName,
-        photo: plant.photo,
-        species: plant.species,
-      );
-    }
+    _plant = _plant?.copyWith(commonName: renamed.commonName);
   });
 
   /// Removes the plant and its photo from the garden. Answers whether it
