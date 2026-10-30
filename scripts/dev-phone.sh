@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 #
-# Runs the API for the app on a USB-connected phone.
-# - Re-applies `adb reverse` of the API (3000) and of the S3 emulator (9000,
+# Runs the API for the app on the phone, by USB cable or, with --wifi, over the
+# home network.
+# - USB: re-applies `adb reverse` of the API (3000) and of the S3 emulator (9000,
 #   where the presigned photo URLs point) every time the phone (re)connects.
+# - --wifi: no adb; the presigned photo URLs point at the notebook's LAN IP
+#   (S3_ENDPOINT overrides api/.env), and it warns when the installed APK was
+#   built for another IP (`npm run apk:wifi` rebuilds it).
 # - Applies the pending migrations (`npm run db:migrate` in api/), so a merge
 #   that adds a table does not leave the phone with 500s.
 # - Runs `npm run start:dev` in api/, teeing its output to api/logs/dev.log,
@@ -18,6 +22,9 @@ mkdir -p "$(dirname "$log")"
 
 # The API, and the S3 emulator from api/compose.yaml.
 ports=(3000 9000)
+
+wifi=false
+[[ "${1:-}" == "--wifi" ]] && wifi=true
 
 "$root/scripts/check-env.sh"
 
@@ -52,8 +59,18 @@ forward_port() {
   done
 }
 
-forward_port &
-trap 'kill $! 2>/dev/null' EXIT
+if $wifi; then
+  ip="$("$root/scripts/lan-ip.sh")"
+  export S3_ENDPOINT="http://$ip:9000"
+  built="$(cat "$root/app/build/api-base-url" 2>/dev/null || true)"
+  if [[ "$built" != "http://$ip:3000" ]]; then
+    echo "[dev-phone] the last APK was built for '${built:-unknown}', not http://$ip:3000; run: npm run apk:wifi" >&2
+  fi
+  echo "[dev-phone] Wi-Fi: on the phone's browser, http://$ip:3000/v1/health should answer"
+else
+  forward_port &
+  trap 'kill $! 2>/dev/null' EXIT
+fi
 
 cd "$root/api"
 echo "[dev-phone] API log: $log"
