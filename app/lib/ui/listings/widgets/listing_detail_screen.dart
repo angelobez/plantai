@@ -17,20 +17,13 @@ import 'location_problem_view.dart';
 /// note and, when the species has them ready, the care tips. Never the
 /// donor's phone.
 ///
-/// At the bottom, "Tenho interesse" ([onInterest]) on an active listing; on
-/// one that is no longer active, a notice in its place.
+/// At the bottom, "Tenho interesse" on an active listing, which records the
+/// interest and opens the donor's WhatsApp; on one that is no longer
+/// active, a notice in its place.
 class ListingDetailScreen extends StatelessWidget {
-  const ListingDetailScreen({
-    super.key,
-    required this.viewModel,
-    this.onInterest,
-  });
+  const ListingDetailScreen({super.key, required this.viewModel});
 
   final ListingDetailViewModel viewModel;
-
-  /// "Tenho interesse": registers the interest and opens the donor's
-  /// WhatsApp. Without it, the button shows disabled.
-  final VoidCallback? onInterest;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +63,10 @@ class ListingDetailScreen extends StatelessWidget {
                   child: viewModel.isAvailable
                       ? _InterestButton(
                           donorFirstName: listing.donorFirstName,
-                          onPressed: onInterest,
+                          error: viewModel.interestError,
+                          onPressed: viewModel.isShowingInterest
+                              ? null
+                              : viewModel.showInterest,
                         )
                       : const _UnavailableNotice(),
                 ),
@@ -282,22 +278,34 @@ class _BottomBar extends StatelessWidget {
   }
 }
 
-/// "Tenho interesse", with what it does under it.
+/// "Tenho interesse", with what it does under it and, when the last tap
+/// failed, why above it.
 class _InterestButton extends StatelessWidget {
   const _InterestButton({
     required this.donorFirstName,
+    required this.error,
     required this.onPressed,
   });
 
   final String donorFirstName;
+  final String? error;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final error = this.error;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (error != null) ...[
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, color: AppColors.danger),
+          ),
+          const SizedBox(height: 8),
+        ],
         FilledButton.icon(
           onPressed: onPressed,
           icon: const Icon(Icons.chat_outlined),

@@ -96,6 +96,15 @@ class ListingRepositoryRemote extends ListingRepository {
     ),
   );
 
+  @override
+  Future<Uri> interest(String id) => _guard(
+    () => _apiClient.post(
+      '${_path(id)}/interest',
+      const {},
+      (json) => Uri.parse(json['whatsappUrl'] as String),
+    ),
+  );
+
   /// `X-Search-Location: <lat>,<lng>`, with fixed decimals so a tiny value
   /// never turns into an exponent the API refuses.
   static Map<String, String> _searchLocation(ApproximatePosition position) => {
@@ -114,6 +123,7 @@ class ListingRepositoryRemote extends ListingRepository {
       ApiErrorCode.listingNotActive => ListingFailure.notActive,
       ApiErrorCode.invalidDonationCount => ListingFailure.invalidDonationCount,
       ApiErrorCode.renewalNotAllowed => ListingFailure.renewalNotAllowed,
+      ApiErrorCode.ownListing => ListingFailure.ownListing,
       _ => ListingFailure.unknown,
     },
   );

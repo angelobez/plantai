@@ -137,10 +137,10 @@ class _ListingFlow {
       create: () => ListingDetailViewModel(
         listingRepository: listingRepository,
         locationService: locationService,
+        openUrl: openUrl,
         listingId: Routes.listingIdOf(state),
         from: state.extra as ApproximatePosition?,
       )..load(),
-      // "Tenho interesse" comes with the interest.
       builder: (viewModel) => ListingDetailScreen(viewModel: viewModel),
     ),
   );

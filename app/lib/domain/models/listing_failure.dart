@@ -15,7 +15,7 @@ enum ListingFailure implements Exception {
   notFound,
 
   /// The listing is no longer active (closed, donated or expired), so the
-  /// donor's actions do not apply (`LISTING_NOT_ACTIVE`).
+  /// donor's actions and the interest do not apply (`LISTING_NOT_ACTIVE`).
   notActive,
 
   /// "Doei algumas" with more seedlings than the listing has now
@@ -25,6 +25,9 @@ enum ListingFailure implements Exception {
   /// "Renovar" before the last 7 days before the expiry
   /// (`RENEWAL_NOT_ALLOWED`).
   renewalNotAllowed,
+
+  /// "Tenho interesse" on the User's own listing (`OWN_LISTING`).
+  ownListing,
 
   /// Anything else.
   unknown,

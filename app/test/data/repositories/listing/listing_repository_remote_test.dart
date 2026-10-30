@@ -312,6 +312,24 @@ void main() {
     expect(notified, 1);
   });
 
+  test('interest posts to interest and answers the WhatsApp link', () async {
+    const whatsappUrl =
+        'https://wa.me/5511987654321?text=Oi%2C%20Marina!%20Vi%20no%20PlantA%C3%AD';
+    adapter.respond = (_) async =>
+        jsonResponse(200, {'whatsappUrl': whatsappUrl});
+    var notified = 0;
+    repository.addListener(() => notified++);
+
+    final url = await repository.interest(_listingId);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/v1/listings/$_listingId/interest');
+    expect(url, Uri.parse(whatsappUrl));
+    expect(url.queryParameters['text'], 'Oi, Marina! Vi no PlantAí');
+    expect(notified, 0, reason: 'the User’s own listings did not change');
+  });
+
   group('failures', () {
     Future<ListingFailure?> failureOf(Future<Object?> Function() call) async {
       try {
@@ -367,6 +385,24 @@ void main() {
       expect(
         await failureOf(() => repository.renew(_listingId)),
         ListingFailure.renewalNotAllowed,
+      );
+    });
+
+    test('OWN_LISTING', () async {
+      adapter.respond = (_) async => problemResponse(409, 'OWN_LISTING');
+
+      expect(
+        await failureOf(() => repository.interest(_listingId)),
+        ListingFailure.ownListing,
+      );
+    });
+
+    test('LISTING_NOT_ACTIVE on the interest', () async {
+      adapter.respond = (_) async => problemResponse(409, 'LISTING_NOT_ACTIVE');
+
+      expect(
+        await failureOf(() => repository.interest(_listingId)),
+        ListingFailure.notActive,
       );
     });
 

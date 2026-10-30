@@ -16,5 +16,6 @@ String listingFailureMessage(
     'O anúncio tem menos mudas do que isso agora.',
   ListingFailure.renewalNotAllowed =>
     'Só dá para renovar nos últimos 7 dias antes de expirar.',
+  ListingFailure.ownListing => 'Esse anúncio é seu.',
   ListingFailure.unknown => unknownFailureMessage,
 };

@@ -22,6 +22,7 @@ enum ApiErrorCode {
   locationRequired('LOCATION_REQUIRED'),
   invalidDonationCount('INVALID_DONATION_COUNT'),
   renewalNotAllowed('RENEWAL_NOT_ALLOWED'),
+  ownListing('OWN_LISTING'),
 
   /// `202`: another request is writing the care guide; try again after
   /// [ApiException.retryAfter].

@@ -51,6 +51,14 @@ abstract class ListingRepository extends ChangeNotifier {
   /// The listing [id], with the distance from [from] (sent as in [nearby]),
   /// also when it is no longer active. Missing: `ListingFailure.notFound`.
   Future<ListingDetail> detail(String id, {required ApproximatePosition from});
+
+  /// "Tenho interesse": records the User's interest in the listing [id]
+  /// (once per User; asking again only reopens the chat) and answers the
+  /// `wa.me` link to the donor's WhatsApp with the message ready, the only
+  /// way the app gets the donor's phone. The User's own listing fails with
+  /// `ListingFailure.ownListing`; one no longer active with
+  /// `ListingFailure.notActive`; a missing one with `ListingFailure.notFound`.
+  Future<Uri> interest(String id);
 }
 
 /// How many listings a full page of [ListingRepository.nearby] has.

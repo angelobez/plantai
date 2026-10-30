@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plantai/data/services/api/models/care_guide.dart';
@@ -22,7 +24,7 @@ const _guide = CareGuide(
 void main() {
   late FakeListingRepository repository;
   late FakeLocationService location;
-  late int interestTaps;
+  late List<Uri> openedUrls;
 
   // 30/10 at noon in São Paulo: published 3 days ago.
   final now = DateTime.utc(2026, 10, 30, 15);
@@ -30,14 +32,20 @@ void main() {
   setUp(() {
     repository = FakeListingRepository();
     location = FakeLocationService();
-    interestTaps = 0;
+    openedUrls = [];
   });
+
+  Future<bool> openUrl(Uri url) async {
+    openedUrls.add(url);
+    return true;
+  }
 
   Future<void> pump(WidgetTester tester, ListingDetail detail) async {
     repository.details[detail.id] = detail;
     final viewModel = ListingDetailViewModel(
       listingRepository: repository,
       locationService: location,
+      openUrl: openUrl,
       listingId: detail.id,
       from: vilaMariana,
       clock: () => now,
@@ -45,10 +53,7 @@ void main() {
     addTearDown(viewModel.dispose);
     await pumpScreen(
       tester,
-      ListingDetailScreen(
-        viewModel: viewModel,
-        onInterest: () => interestTaps++,
-      ),
+      ListingDetailScreen(viewModel: viewModel),
       below: const Text('Por perto'),
     );
   }
@@ -73,7 +78,73 @@ void main() {
     expect(find.text('Este anúncio não está mais disponível'), findsNothing);
 
     await tester.tap(find.text('Tenho interesse'));
-    expect(interestTaps, 1);
+    await tester.pumpAndSettle();
+    expect(openedUrls, [whatsappUrlOf(costelaPerto.id)]);
+  });
+
+  testWidgets(
+    '"Tenho interesse" on a listing that just ended shows the notice',
+    (tester) async {
+      await pump(tester, detailOf(costelaPerto));
+      repository.interestFailure = ListingFailure.notActive;
+
+      await tester.tap(find.text('Tenho interesse'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Este anúncio não está mais disponível'),
+        findsOneWidget,
+      );
+      expect(find.text('Tenho interesse'), findsNothing);
+      expect(openedUrls, isEmpty);
+    },
+  );
+
+  testWidgets('"Tenho interesse" without connection says so above the button', (
+    tester,
+  ) async {
+    await pump(tester, detailOf(costelaPerto));
+    repository.interestFailure = ListingFailure.noConnection;
+
+    await tester.tap(find.text('Tenho interesse'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Sem conexão com a internet. Confira a rede e tente de novo.'),
+      findsOneWidget,
+    );
+
+    repository.interestFailure = null;
+    await tester.tap(find.text('Tenho interesse'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Sem conexão com a internet. Confira a rede e tente de novo.'),
+      findsNothing,
+    );
+    expect(openedUrls, hasLength(1));
+  });
+
+  testWidgets('"Tenho interesse" is disabled while it is on the way', (
+    tester,
+  ) async {
+    await pump(tester, detailOf(costelaPerto));
+    repository.gate = Completer<void>();
+
+    await tester.tap(find.text('Tenho interesse'));
+    await tester.pump();
+
+    final button = tester.widget<ButtonStyleButton>(
+      find.ancestor(
+        of: find.text('Tenho interesse'),
+        matching: find.bySubtype<ButtonStyleButton>(),
+      ),
+    );
+    expect(button.onPressed, isNull);
+
+    repository.gate!.complete();
+    await tester.pumpAndSettle();
+    expect(openedUrls, hasLength(1));
   });
 
   testWidgets('shows the care tips when the species has them', (tester) async {
@@ -113,6 +184,7 @@ void main() {
     final viewModel = ListingDetailViewModel(
       listingRepository: repository,
       locationService: location,
+      openUrl: openUrl,
       listingId: 'gone',
       from: vilaMariana,
     )..load();
@@ -147,6 +219,7 @@ void main() {
     final viewModel = ListingDetailViewModel(
       listingRepository: repository,
       locationService: location,
+      openUrl: openUrl,
       listingId: costelaPerto.id,
     )..load();
     addTearDown(viewModel.dispose);

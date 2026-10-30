@@ -97,6 +97,12 @@ ListingDetail detailOf(
   careGuide: careGuide,
 );
 
+/// The link [FakeListingRepository.interest] answers for the listing [id]:
+/// Marina's WhatsApp, with the message about it.
+Uri whatsappUrlOf(String id) => Uri.https('wa.me', '/5511987654321', {
+  'text': 'Oi, Marina! Vi no PlantAí seu anúncio $id e tenho interesse.',
+});
+
 /// A [ListingRepository] the test drives: [myListings] answers [mine], and
 /// [create] puts a new active listing at the top of it, telling the
 /// listeners. Every call throws [failure] when set (or [createFailures],
@@ -107,6 +113,9 @@ ListingDetail detailOf(
 /// expires at [renewedExpiresAt]); [actionFailure] makes only them fail.
 /// They record what they got in [updates], [donations], [closed] and
 /// [renewed].
+///
+/// [interest] answers [whatsappUrlOf] the listing, or throws
+/// [interestFailure]; it records the ids it got in [interests].
 ///
 /// Set [gate] to hold every call until the test completes it.
 class FakeListingRepository extends ListingRepository {
@@ -144,6 +153,12 @@ class FakeListingRepository extends ListingRepository {
 
   /// The expiry [renew] gives: 30 days after 30/10 at noon in São Paulo.
   DateTime renewedExpiresAt = DateTime.utc(2026, 11, 29, 15);
+
+  /// Thrown by the next [interest] calls, until set back to null.
+  ListingFailure? interestFailure;
+
+  /// The ids [interest] got, in order.
+  final interests = <String>[];
 
   /// How many times [myListings] was called.
   int listed = 0;
@@ -317,5 +332,14 @@ class FakeListingRepository extends ListingRepository {
     detailCalls.add((id, from));
     await _answer();
     return details[id] ?? (throw ListingFailure.notFound);
+  }
+
+  @override
+  Future<Uri> interest(String id) async {
+    interests.add(id);
+    await gate?.future;
+    final failure = interestFailure ?? this.failure;
+    if (failure != null) throw failure;
+    return whatsappUrlOf(id);
   }
 }

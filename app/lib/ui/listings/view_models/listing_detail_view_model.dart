@@ -4,6 +4,7 @@ import '../../../data/repositories/listing/listing_repository.dart';
 import '../../../data/services/api/models/listing.dart';
 import '../../../data/services/location/location_service.dart';
 import '../../../domain/models/listing_failure.dart';
+import '../../core/url_opener.dart';
 import '../../core/view_models/safe_notify.dart';
 import '../../donation_profile/view_models/donation_profile_view_model.dart'
     show LocationProblem;
@@ -15,10 +16,14 @@ import '../listing_failure_message.dart';
 /// perto list was read from); otherwise [load] asks for the location, and
 /// without one shows [locationProblem]. A listing that is no longer active
 /// still shows, with [isAvailable] false.
+///
+/// "Tenho interesse" ([showInterest]) records the interest and opens the
+/// donor's WhatsApp through the [UrlOpener].
 class ListingDetailViewModel extends ChangeNotifier with SafeNotify {
   ListingDetailViewModel({
     required this._listingRepository,
     required this._locationService,
+    required this._openUrl,
     required this.listingId,
     ApproximatePosition? from,
     DateTime Function() clock = DateTime.now,
@@ -27,6 +32,7 @@ class ListingDetailViewModel extends ChangeNotifier with SafeNotify {
 
   final ListingRepository _listingRepository;
   final LocationService _locationService;
+  final UrlOpener _openUrl;
   final DateTime Function() _now;
 
   final String listingId;
@@ -41,8 +47,22 @@ class ListingDetailViewModel extends ChangeNotifier with SafeNotify {
   ListingDetail? get listing => _listing;
 
   /// Whether the listing is still active, so "Tenho interesse" makes sense;
-  /// otherwise the screen says it is no longer available.
-  bool get isAvailable => _listing?.status == ListingStatus.active;
+  /// otherwise the screen says it is no longer available. It also turns
+  /// false when the interest finds the listing ended after it was read.
+  bool get isAvailable =>
+      _listing?.status == ListingStatus.active && !_endedSinceRead;
+
+  /// The interest answered `LISTING_NOT_ACTIVE`.
+  bool _endedSinceRead = false;
+
+  /// Whether "Tenho interesse" is on its way.
+  bool _isShowingInterest = false;
+  bool get isShowingInterest => _isShowingInterest;
+
+  /// Why the last "Tenho interesse" did not open WhatsApp; tapping again
+  /// tries again.
+  String? _interestError;
+  String? get interestError => _interestError;
 
   /// Why there is no location, if that is what stopped the read.
   LocationProblem? _locationProblem;
@@ -71,6 +91,7 @@ class ListingDetailViewModel extends ChangeNotifier with SafeNotify {
       if (position == null || isDisposed) return;
       _position = position;
       _listing = await _listingRepository.detail(listingId, from: position);
+      _endedSinceRead = false;
     } on ListingFailure catch (failure) {
       _loadError = listingFailureMessage(failure);
       _canRetry = failure != ListingFailure.notFound;
@@ -94,6 +115,34 @@ class ListingDetailViewModel extends ChangeNotifier with SafeNotify {
         _locationProblem = LocationProblem.unavailable;
     }
     return null;
+  }
+
+  /// "Tenho interesse": records the interest and opens the donor's WhatsApp
+  /// with the message ready. A listing that ended since it was read turns
+  /// into the "no longer available" notice; any other failure goes to
+  /// [interestError]. Does nothing while one is on its way.
+  Future<void> showInterest() async {
+    if (_isShowingInterest || !isAvailable) return;
+    _isShowingInterest = true;
+    _interestError = null;
+    notify();
+    try {
+      final whatsappUrl = await _listingRepository.interest(listingId);
+      if (isDisposed) return;
+      if (!await _openUrl(whatsappUrl)) {
+        _interestError =
+            'Não foi possível abrir o WhatsApp. Confira se ele está instalado.';
+      }
+    } on ListingFailure catch (failure) {
+      if (failure == ListingFailure.notActive) {
+        _endedSinceRead = true;
+      } else {
+        _interestError = listingFailureMessage(failure);
+      }
+    } finally {
+      _isShowingInterest = false;
+      notify();
+    }
   }
 
   /// Opens the Android settings that fix the [locationProblem].

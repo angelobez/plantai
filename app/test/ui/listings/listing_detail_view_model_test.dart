@@ -28,10 +28,22 @@ void main() {
     created.clear();
   });
 
+  late List<Uri> openedUrls;
+  late bool opens;
+
+  setUp(() {
+    openedUrls = [];
+    opens = true;
+  });
+
   ListingDetailViewModel build({ApproximatePosition? from}) {
     final viewModel = ListingDetailViewModel(
       listingRepository: repository,
       locationService: location,
+      openUrl: (url) async {
+        openedUrls.add(url);
+        return opens;
+      },
       listingId: costelaPerto.id,
       from: from,
     );
@@ -136,5 +148,108 @@ void main() {
     await viewModel.load();
     expect(viewModel.loadError, isNull);
     expect(viewModel.listing, isNotNull);
+  });
+
+  group('Tenho interesse', () {
+    Future<ListingDetailViewModel> loaded() async {
+      final viewModel = build(from: listPosition);
+      await viewModel.load();
+      return viewModel;
+    }
+
+    test('records the interest and opens the donor’s WhatsApp', () async {
+      final viewModel = await loaded();
+      repository.gate = Completer<void>();
+
+      final showing = viewModel.showInterest();
+      expect(viewModel.isShowingInterest, isTrue);
+      repository.gate!.complete();
+      await showing;
+
+      expect(viewModel.isShowingInterest, isFalse);
+      expect(repository.interests, [costelaPerto.id]);
+      expect(openedUrls, [whatsappUrlOf(costelaPerto.id)]);
+      expect(viewModel.interestError, isNull);
+      expect(viewModel.isAvailable, isTrue);
+    });
+
+    test('tapping again opens the chat again', () async {
+      final viewModel = await loaded();
+
+      await viewModel.showInterest();
+      await viewModel.showInterest();
+
+      expect(openedUrls, hasLength(2));
+    });
+
+    test('a tap while one is on the way does nothing', () async {
+      final viewModel = await loaded();
+      repository.gate = Completer<void>();
+
+      final first = viewModel.showInterest();
+      await viewModel.showInterest().timeout(Duration.zero, onTimeout: () {});
+      repository.gate!.complete();
+      await first;
+
+      expect(repository.interests, hasLength(1));
+      expect(openedUrls, hasLength(1));
+    });
+
+    test('LISTING_NOT_ACTIVE turns the button into the notice', () async {
+      final viewModel = await loaded();
+      repository.interestFailure = ListingFailure.notActive;
+
+      await viewModel.showInterest();
+
+      expect(viewModel.isAvailable, isFalse);
+      expect(viewModel.interestError, isNull);
+      expect(openedUrls, isEmpty);
+    });
+
+    for (final (failure, message) in [
+      (
+        ListingFailure.noConnection,
+        'Sem conexão com a internet. Confira a rede e tente de novo.',
+      ),
+      (ListingFailure.notFound, 'Esse anúncio não existe mais.'),
+      (ListingFailure.ownListing, 'Esse anúncio é seu.'),
+      (ListingFailure.unknown, 'Algo deu errado. Tente de novo.'),
+    ]) {
+      test('$failure shows "$message", keeping the button', () async {
+        final viewModel = await loaded();
+        repository.interestFailure = failure;
+
+        await viewModel.showInterest();
+
+        expect(viewModel.interestError, message);
+        expect(viewModel.isAvailable, isTrue);
+        expect(openedUrls, isEmpty);
+      });
+    }
+
+    test('trying again clears the message', () async {
+      final viewModel = await loaded();
+      repository.interestFailure = ListingFailure.noConnection;
+      await viewModel.showInterest();
+
+      repository.interestFailure = null;
+      await viewModel.showInterest();
+
+      expect(viewModel.interestError, isNull);
+      expect(openedUrls, [whatsappUrlOf(costelaPerto.id)]);
+    });
+
+    test('when WhatsApp cannot open, says so', () async {
+      final viewModel = await loaded();
+      opens = false;
+
+      await viewModel.showInterest();
+
+      expect(openedUrls, hasLength(1));
+      expect(
+        viewModel.interestError,
+        'Não foi possível abrir o WhatsApp. Confira se ele está instalado.',
+      );
+    });
   });
 }
