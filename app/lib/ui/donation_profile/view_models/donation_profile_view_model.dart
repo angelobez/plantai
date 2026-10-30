@@ -28,8 +28,9 @@ enum LocationProblem {
 /// The donation profile: the WhatsApp phone and the donation location. The
 /// same screen serves the Perfil and, before the form, the Primeiro anúncio.
 ///
-/// The API never sends the point back, so saving always needs a position
-/// found here by [useMyLocation], even when the profile already has one.
+/// The API never sends the point back. Saving sends a position only when one
+/// was found here by [useMyLocation]; without it the saved location stays,
+/// and with no saved location (the Primeiro anúncio) a position is required.
 class DonationProfileViewModel extends ChangeNotifier with SafeNotify {
   DonationProfileViewModel({
     required this._profileRepository,
@@ -72,7 +73,8 @@ class DonationProfileViewModel extends ChangeNotifier with SafeNotify {
 
   ApproximatePosition? _position;
 
-  /// Whether a position was found here; only then can the profile be saved.
+  /// Whether a position was found here; without one, only a profile with a
+  /// saved location can be saved.
   bool get hasPosition => _position != null;
 
   bool _isLocating = false;
@@ -177,14 +179,15 @@ class DonationProfileViewModel extends ChangeNotifier with SafeNotify {
   Future<UserProfile?> save() async {
     final position = _position;
     final neighborhood = _neighborhood.trim();
+    final missingLocation = position == null && currentNeighborhood == null;
     _phoneError = whatsappNumber(_phone) == null ? _missingPhone : null;
-    _neighborhoodError = position == null ? null : _validate(neighborhood);
-    if (position == null) {
+    _neighborhoodError = missingLocation ? null : _validate(neighborhood);
+    if (missingLocation) {
       _locationProblem = null;
       _locationError =
           'Toque em "Usar minha localização" para confirmar de onde você doa.';
     }
-    if (_phoneError != null || _neighborhoodError != null || position == null) {
+    if (_phoneError != null || _neighborhoodError != null || missingLocation) {
       notify();
       return null;
     }
@@ -197,8 +200,8 @@ class DonationProfileViewModel extends ChangeNotifier with SafeNotify {
       return await _profileRepository.updateDonationProfile(
         DonationProfile(
           phone: _phone,
-          latitude: position.latitude,
-          longitude: position.longitude,
+          latitude: position?.latitude,
+          longitude: position?.longitude,
           neighborhood: neighborhood,
         ),
       );

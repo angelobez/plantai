@@ -4,15 +4,21 @@
 class DonationProfile {
   const DonationProfile({
     required this.phone,
-    required this.latitude,
-    required this.longitude,
+    this.latitude,
+    this.longitude,
     required this.neighborhood,
-  });
+  }) : assert(
+         (latitude == null) == (longitude == null),
+         'latitude and longitude come together',
+       );
 
   /// As typed: with the area code, with or without +55, masked or not.
   final String phone;
-  final double latitude;
-  final double longitude;
+
+  /// The point found by the GPS, or null (with [longitude]) to keep the one
+  /// saved before.
+  final double? latitude;
+  final double? longitude;
 
   /// 1 to 60 characters, without spaces at the ends.
   final String neighborhood;

@@ -25,8 +25,8 @@ class ProfileRepositoryRemote implements ProfileRepository {
   Future<UserProfile> updateDonationProfile(DonationProfile profile) => _guard(
     () => _apiClient.put('/v1/me/donation-profile', {
       'phone': profile.phone,
-      'lat': profile.latitude,
-      'lng': profile.longitude,
+      'lat': ?profile.latitude,
+      'lng': ?profile.longitude,
       'neighborhood': profile.neighborhood,
     }, UserProfile.fromJson),
   );

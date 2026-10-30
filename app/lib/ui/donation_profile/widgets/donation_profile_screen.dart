@@ -215,7 +215,8 @@ class _AskLocation extends StatelessWidget {
       children: [
         if (current != null) ...[
           Text(
-            'Hoje: $current. Para salvar, confirme a localização.',
+            'Hoje: $current. Se você mudou de lugar, use a localização de '
+            'novo.',
             style: const TextStyle(fontSize: 14, color: AppColors.inkMuted),
           ),
           const SizedBox(height: 10),

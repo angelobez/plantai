@@ -232,7 +232,7 @@ void main() {
   });
 
   testWidgets('editing an existing profile shows the phone and the '
-      'neighborhood, and asks to confirm the location', (tester) async {
+      'neighborhood, and saves without a new location', (tester) async {
     await pump(
       tester,
       profile: const UserProfile(
@@ -249,11 +249,29 @@ void main() {
       '(11) 98765-4321',
     );
     expect(
-      find.text('Hoje: Vila Mariana. Para salvar, confirme a localização.'),
+      find.text(
+        'Hoje: Vila Mariana. Se você mudou de lugar, use a localização de '
+        'novo.',
+      ),
       findsOneWidget,
     );
 
     await tapText(tester, 'Salvar');
+    final sent = profileRepository.donationProfiles.single;
+    expect(sent.latitude, isNull);
+    expect(sent.neighborhood, 'Vila Mariana');
+    expect(saved, hasLength(1));
+    expect(locationService.asked, 0);
+  });
+
+  testWidgets('without a saved location, saving asks for the location', (
+    tester,
+  ) async {
+    await pump(tester, firstListing: true);
+    await tester.enterText(textFieldUnder('WhatsApp'), '11987654321');
+
+    await tapText(tester, 'Continuar');
+
     expect(
       find.text(
         'Toque em "Usar minha localização" para confirmar de onde você doa.',

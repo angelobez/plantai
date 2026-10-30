@@ -111,6 +111,29 @@ void main() {
     expect(profile.donationLocation?.neighborhood, 'Vila Mariana');
   });
 
+  test(
+    'updateDonationProfile without a position leaves lat and lng out',
+    () async {
+      adapter.respond = (_) async => jsonResponse(200, {
+        ...profileJson(),
+        'phone': '+5511987654321',
+        'donationLocation': {'neighborhood': 'Vila Mariana'},
+      });
+
+      await repository.updateDonationProfile(
+        const DonationProfile(
+          phone: '(11) 98765-4321',
+          neighborhood: 'Vila Mariana',
+        ),
+      );
+
+      expect(adapter.requests.single.data, {
+        'phone': '(11) 98765-4321',
+        'neighborhood': 'Vila Mariana',
+      });
+    },
+  );
+
   test('INVALID_PHONE becomes ProfileFailure.invalidPhone', () async {
     adapter.respond = (_) async => problemResponse(400, 'INVALID_PHONE');
 

@@ -58,7 +58,7 @@ void main() {
         expect(viewModel.phone, '(11) 98765-4321');
         expect(viewModel.neighborhood, 'Vila Mariana');
         expect(viewModel.currentNeighborhood, 'Vila Mariana');
-        // The API never sends the point back: it must be found again.
+        // The API never sends the point back; saving keeps the saved one.
         expect(viewModel.hasPosition, isFalse);
       },
     );
@@ -304,20 +304,45 @@ void main() {
       expect(profileRepository.calls, isEmpty);
     });
 
-    test(
-      'without a position, asks for the location and sends nothing',
-      () async {
-        final viewModel = build(profile: marinaWithDonationProfile);
+    test('without a saved location or a position, asks for the location and '
+        'sends nothing', () async {
+      final viewModel = build(profile: marina)..updatePhone('(11) 98765-4321');
 
-        expect(await viewModel.save(), isNull);
+      expect(await viewModel.save(), isNull);
 
-        expect(
-          viewModel.locationError,
-          'Toque em "Usar minha localização" para confirmar de onde você doa.',
-        );
-        expect(profileRepository.calls, isEmpty);
-      },
-    );
+      expect(
+        viewModel.locationError,
+        'Toque em "Usar minha localização" para confirmar de onde você doa.',
+      );
+      expect(profileRepository.calls, isEmpty);
+    });
+
+    test('with a saved location, saves the phone without a position', () async {
+      final viewModel = build(profile: marinaWithDonationProfile)
+        ..updatePhone('(21) 99876-5432');
+
+      final saved = await viewModel.save();
+
+      expect(saved, isNotNull);
+      expect(viewModel.locationError, isNull);
+      final sent = profileRepository.donationProfiles.single;
+      expect(sent.phone, '(21) 99876-5432');
+      expect(sent.latitude, isNull);
+      expect(sent.longitude, isNull);
+      expect(sent.neighborhood, 'Vila Mariana');
+      expect(locationService.asked, 0);
+    });
+
+    test('with a saved location, sends the position found here', () async {
+      final viewModel = build(profile: marinaWithDonationProfile);
+      await viewModel.useMyLocation();
+
+      await viewModel.save();
+
+      final sent = profileRepository.donationProfiles.single;
+      expect(sent.latitude, vilaMariana.latitude);
+      expect(sent.longitude, vilaMariana.longitude);
+    });
 
     test('without a neighborhood, asks for it and sends nothing', () async {
       locationService.neighborhood = null;
