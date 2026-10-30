@@ -47,6 +47,11 @@ import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/tabs/widgets/tabs_shell.dart';
 import '../ui/update_required/widgets/update_required_screen.dart';
 
+part 'entry_routes.dart';
+part 'garden_routes.dart';
+part 'identify_routes.dart';
+part 'photo_flow.dart';
+
 abstract final class Routes {
   static const garden = '/jardim';
 
@@ -182,108 +187,14 @@ GoRouter router({
   UrlOpener openUrl = openExternally,
 }) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
-
-  /// The way into the photo flow from the camera button and the empty
-  /// Jardim: asks camera or gallery over the current screen, then opens
-  /// Foto. Closing the sheet stays where it was. ("Definir espécie" asks the
-  /// same, then opens its own Foto.)
-  Future<void> openPhotoFlow(BuildContext context) async {
-    final source = await showPhotoSourceSheet(context);
-    if (source == null || !context.mounted) return;
-    await context.push(Routes.identifyFrom(source));
-  }
-
-  /// Saves the plant from the photo flow, then opens it: the flow leaves the
-  /// stack, and back from the Tela da planta is the Jardim tab.
-  void saveAndOpen(BuildContext context, NewPlant plant) => savePlant(
-    context,
+  final flow = _PhotoFlow(
+    photoRepository: photoRepository,
+    photoPicker: photoPicker,
+    catalogRepository: catalogRepository,
+    identificationRepository: identificationRepository,
     gardenRepository: gardenRepository,
-    plant: plant,
-    onSaved: (saved) {
-      if (context.mounted) context.go(Routes.plant(saved.id));
-    },
+    openUrl: openUrl,
   );
-
-  /// "Salvar só com o nome" where there is no name yet (Foto não reconhecida,
-  /// Limite diário): asks it first.
-  Future<void> askNameAndSave(BuildContext context, String photoId) async {
-    final name = await showPlantNameDialog(context);
-    if (name == null || !context.mounted) return;
-    saveAndOpen(context, NewPlant(photoId: photoId, commonName: name));
-  }
-
-  // The screens of the photo flow, shared by the flow that saves a new plant
-  // (under /identificar) and by "Definir espécie" (under the Tela da
-  // planta), which differ only in where each choice leads.
-
-  Widget photoScreen(
-    BuildContext context,
-    GoRouterState state, {
-    required Future<PhotoSource?> Function(Photo photo) onIdentify,
-    required ValueChanged<Photo> onSearchByName,
-  }) => ViewModelScope(
-    create: () => PhotoViewModel(
-      photoPicker: photoPicker,
-      photoRepository: photoRepository,
-    ),
-    builder: (viewModel) => PhotoScreen(
-      viewModel: viewModel,
-      initialSource: Routes.photoSourceOf(state),
-      onClose: () => context.pop(),
-      onIdentify: onIdentify,
-      onSearchByName: onSearchByName,
-    ),
-  );
-
-  Widget candidatesScreen(
-    BuildContext context,
-    GoRouterState state, {
-    required ValueChanged<SpeciesSummary> onSpecies,
-    required VoidCallback onNoneOfThese,
-    required VoidCallback onSearchByName,
-    VoidCallback? onSaveNameOnly,
-  }) {
-    final extra = state.extra;
-    return ViewModelScope(
-      create: () => CandidatesViewModel(
-        identificationRepository: identificationRepository,
-        photoId: Routes.candidatesPhotoIdOf(state),
-      )..identify(),
-      builder: (viewModel) => CandidatesScreen(
-        viewModel: viewModel,
-        photo: extra is Photo ? extra : null,
-        openUrl: openUrl,
-        onSpecies: onSpecies,
-        onNoneOfThese: onNoneOfThese,
-        onTakeAnother: () async {
-          final source = await showPhotoSourceSheet(context);
-          if (source != null && context.mounted) context.pop(source);
-        },
-        onSearchByName: onSearchByName,
-        onSaveNameOnly: onSaveNameOnly,
-      ),
-    );
-  }
-
-  Widget searchScreen({
-    required ValueChanged<SpeciesSummary> onSpecies,
-    ValueChanged<String>? onSaveNameOnly,
-  }) => ViewModelScope(
-    create: () => SearchViewModel(catalogRepository: catalogRepository),
-    builder: (viewModel) => SearchScreen(
-      viewModel: viewModel,
-      onSpecies: onSpecies,
-      onSaveNameOnly: onSaveNameOnly,
-    ),
-  );
-
-  /// "Definir espécie": pushes [location] and, when it completes with the
-  /// id of a species, closes the current screen with it too, so the id
-  /// travels back to the Tela da planta. Otherwise the current screen stays.
-  Future<void> passSpeciesBack(BuildContext context, String location) async {
-    final speciesId = await context.push<String>(location);
-    if (speciesId != null && context.mounted) context.pop(speciesId);
-  }
 
   final rules = <String? Function(GoRouterState state)>[
     // A 426 on any call: everything goes to "Atualize o PlantAí".
@@ -318,185 +229,16 @@ GoRouter router({
       return null;
     },
     routes: [
-      GoRoute(
-        path: Routes.login,
-        builder: (context, state) => ViewModelScope(
-          create: () => LoginViewModel(authRepository: authRepository),
-          builder: (viewModel) => LoginScreen(
-            viewModel: viewModel,
-            onEmail: () => context.push(Routes.emailLogin),
-          ),
-        ),
-        routes: [
-          GoRoute(
-            path: _child(Routes.emailLogin),
-            builder: (context, state) => ViewModelScope(
-              create: () => EmailLoginViewModel(authRepository: authRepository),
-              builder: (viewModel) => EmailLoginScreen(
-                viewModel: viewModel,
-                onVerifyEmail: () => context.push(Routes.verifyEmail),
-                onSignup: () => context.push(Routes.signup),
-                onForgotPassword: () => context.push(Routes.passwordReset),
-              ),
-            ),
-          ),
-          GoRoute(
-            path: _child(Routes.signup),
-            builder: (context, state) => ViewModelScope(
-              create: () => SignupViewModel(authRepository: authRepository),
-              builder: (viewModel) => SignupScreen(
-                viewModel: viewModel,
-                onCodeSent: () => context.push(Routes.verifyEmail),
-              ),
-            ),
-          ),
-          GoRoute(
-            path: _child(Routes.verifyEmail),
-            builder: (context, state) => ViewModelScope(
-              create: () =>
-                  VerifyEmailViewModel(authRepository: authRepository),
-              builder: (viewModel) => VerifyEmailScreen(viewModel: viewModel),
-            ),
-          ),
-          GoRoute(
-            path: _child(Routes.passwordReset),
-            builder: (context, state) => ViewModelScope(
-              create: () =>
-                  PasswordResetViewModel(authRepository: authRepository),
-              builder: (viewModel) => PasswordResetScreen(viewModel: viewModel),
-            ),
-          ),
-        ],
-      ),
+      _entryRoute(authRepository),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => TabsShell(
           navigationShell: navigationShell,
-          onCamera: () => openPhotoFlow(context),
+          onCamera: () => flow.open(context),
         ),
         // Same order as AppTab.
         branches: [
           StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: Routes.garden,
-                builder: (context, state) => ViewModelScope(
-                  create: () =>
-                      GardenViewModel(gardenRepository: gardenRepository)
-                        ..load(),
-                  builder: (viewModel) => GardenScreen(
-                    viewModel: viewModel,
-                    onPlant: (plant) => context.push(Routes.plant(plant.id)),
-                    onIdentify: () => openPhotoFlow(context),
-                  ),
-                ),
-                routes: [
-                  // Over the whole shell: the Tela da planta has no bottom
-                  // bar, and back is the list.
-                  GoRoute(
-                    parentNavigatorKey: rootNavigatorKey,
-                    path: '${Routes._plantPath}/:${Routes._plantIdParam}',
-                    builder: (context, state) => ViewModelScope(
-                      create: () => PlantViewModel(
-                        gardenRepository: gardenRepository,
-                        plantId: Routes.plantIdOf(state),
-                      )..load(),
-                      builder: (viewModel) {
-                        final plantId = Routes.plantIdOf(state);
-                        return PlantScreen(
-                          viewModel: viewModel,
-                          openUrl: openUrl,
-                          // The list already left out the plant (the
-                          // repository told it).
-                          onRemoved: () => context.go(Routes.garden),
-                          onSearchSpecies: () => context.push<String>(
-                            Routes.defineSpeciesSearch(plantId),
-                          ),
-                          onIdentifySpecies: () async {
-                            final source = await showPhotoSourceSheet(context);
-                            if (source == null || !context.mounted) {
-                              return null;
-                            }
-                            return context.push<String>(
-                              Routes.defineSpeciesPhoto(plantId, source),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                    // "Definir espécie": each screen closes with the id of
-                    // the chosen species, back to the Tela da planta, which
-                    // sets it. Nothing here saves a plant or a photo.
-                    routes: [
-                      GoRoute(
-                        parentNavigatorKey: rootNavigatorKey,
-                        path:
-                            '${Routes._defineSpeciesPath}/${Routes._searchPath}',
-                        builder: (context, state) => searchScreen(
-                          onSpecies: (species) => context.pop(species.id),
-                        ),
-                      ),
-                      GoRoute(
-                        parentNavigatorKey: rootNavigatorKey,
-                        path:
-                            '${Routes._defineSpeciesPath}/${Routes._photoPath}',
-                        builder: (context, state) {
-                          final plantId = Routes.plantIdOf(state);
-                          return photoScreen(
-                            context,
-                            state,
-                            onIdentify: (photo) async {
-                              final result = await context.push<Object>(
-                                Routes.defineSpeciesCandidates(
-                                  plantId,
-                                  photo.id,
-                                ),
-                                extra: photo,
-                              );
-                              if (result is String && context.mounted) {
-                                context.pop(result);
-                              }
-                              return result is PhotoSource ? result : null;
-                            },
-                            onSearchByName: (_) => passSpeciesBack(
-                              context,
-                              Routes.defineSpeciesSearch(plantId),
-                            ),
-                          );
-                        },
-                        routes: [
-                          GoRoute(
-                            parentNavigatorKey: rootNavigatorKey,
-                            path:
-                                '${Routes._candidatesPath}/:${Routes._photoIdParam}',
-                            builder: (context, state) {
-                              final search = Routes.defineSpeciesSearch(
-                                Routes.plantIdOf(state),
-                              );
-                              return candidatesScreen(
-                                context,
-                                state,
-                                // The choice already ran: the species is in
-                                // the Catalog.
-                                onSpecies: (species) => context.pop(species.id),
-                                // The choice is made: back from Busca is Foto.
-                                onNoneOfThese: () async {
-                                  final speciesId = await context.push<String>(
-                                    search,
-                                  );
-                                  if (context.mounted) context.pop(speciesId);
-                                },
-                                onSearchByName: () =>
-                                    passSpeciesBack(context, search),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+            routes: [_gardenRoute(flow, rootNavigatorKey: rootNavigatorKey)],
           ),
           StatefulShellBranch(
             routes: [
@@ -530,87 +272,7 @@ GoRouter router({
           ),
         ],
       ),
-      // The next screens of the flow (Candidatos, Busca, Tela da espécie) are
-      // its child routes, pushed over Foto, so going back finds the same
-      // photo. They get the uploaded photo's id in the query.
-      GoRoute(
-        path: Routes.identify,
-        builder: (context, state) => photoScreen(
-          context,
-          state,
-          onIdentify: (photo) => context.push<PhotoSource>(
-            Routes.candidates(photo.id),
-            extra: photo,
-          ),
-          onSearchByName: (photo) =>
-              context.push(Routes.searchByName(photoId: photo.id)),
-        ),
-        routes: [
-          GoRoute(
-            path: '${Routes._candidatesPath}/:${Routes._photoIdParam}',
-            builder: (context, state) {
-              final photoId = Routes.candidatesPhotoIdOf(state);
-              return candidatesScreen(
-                context,
-                state,
-                // The choice is made: Candidatos leaves the stack, and back
-                // from the next screen is Foto.
-                onSpecies: (species) => context.pushReplacement(
-                  Routes.species(species.id, photoId: photoId),
-                ),
-                onNoneOfThese: () => context.pushReplacement(
-                  Routes.searchByName(photoId: photoId),
-                ),
-                onSearchByName: () =>
-                    context.push(Routes.searchByName(photoId: photoId)),
-                onSaveNameOnly: () => askNameAndSave(context, photoId),
-              );
-            },
-          ),
-          GoRoute(
-            path: Routes._searchPath,
-            builder: (context, state) {
-              final photoId = Routes.photoIdOf(state);
-              return searchScreen(
-                onSpecies: (species) =>
-                    context.push(Routes.species(species.id, photoId: photoId)),
-                onSaveNameOnly: photoId == null
-                    ? null
-                    : (name) => saveAndOpen(
-                        context,
-                        NewPlant(photoId: photoId, commonName: name),
-                      ),
-              );
-            },
-          ),
-          GoRoute(
-            path: '${Routes._speciesPath}/:${Routes._speciesIdParam}',
-            builder: (context, state) {
-              final photoId = Routes.photoIdOf(state);
-              return ViewModelScope(
-                create: () => SpeciesViewModel(
-                  catalogRepository: catalogRepository,
-                  speciesId: Routes.speciesIdOf(state),
-                )..load(),
-                builder: (viewModel) => SpeciesScreen(
-                  viewModel: viewModel,
-                  openUrl: openUrl,
-                  onSaveToGarden: photoId == null
-                      ? null
-                      : (species) => saveAndOpen(
-                          context,
-                          NewPlant(
-                            photoId: photoId,
-                            commonName: species.commonName,
-                            speciesId: species.id,
-                          ),
-                        ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      _identifyRoute(flow),
       GoRoute(
         path: Routes.about,
         builder: (context, state) => AboutScreen(openUrl: openUrl),
@@ -622,6 +284,3 @@ GoRouter router({
     ],
   );
 }
-
-/// The path of an entry screen relative to [Routes.login], as a child route.
-String _child(String location) => location.substring(Routes.login.length + 1);
