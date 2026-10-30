@@ -87,7 +87,7 @@ Exatamente um dos dois campos de foto (`reference_photo_s3_key` ou `reference_ph
 - Um índice único parcial garante um só `is_primary` por espécie, e `(species_id, name)` é único, para a carga da semente não duplicar nomes.
 - O `unaccent` não é `IMMUTABLE`; a coluna gerada e os índices usam o wrapper `public.immutable_unaccent`. A busca tem índices trigram (`pg_trgm`) em `name_normalized` e em `lower(immutable_unaccent(scientific_name))`.
 - **O nome principal da semente:** vem da Flora e Funga do Brasil.
-- **O nome principal de uma espécie nova:** vem do Claude.
+- **O nome principal de uma espécie nova:** o `commonName` que o candidato mostrou na identificação, exatamente como apareceu. Só quando o candidato não mostrou nome (`null`), o principal vem do Claude, nas primeiras dicas.
 - **O nome do Claude quando já existe um principal:** entra como nome alternativo, se for diferente.
 
 **`care_guides`** (Dicas de cuidado, uma por espécie)
@@ -144,7 +144,7 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 
 **Limite diário:** toda linha de `identifications` conta no limite de 10 por usuário por dia, inclusive as `not_recognized`, porque gastam a cota do Pl@ntNet do mesmo jeito. A falha de rede e o 5xx do Pl@ntNet não geram linha, então não contam.
 
-**Espécie nova:** só nasce quando o usuário escolhe o candidato. Nesse momento, a API faz o upsert pela `gbif_key`, e a foto de referência passa a ser a primeira imagem que o Pl@ntNet mostrou daquele candidato (`reference_photo_url`, com `origin = identification`). Ela nasce **sem** nome em `species_names`: os nomes do Pl@ntNet não são guardados, e o nome principal vem do Claude na primeira geração das dicas. Até lá, toda resposta usa o nome científico como `commonName`.
+**Espécie nova:** só nasce quando o usuário escolhe o candidato. Nesse momento, a API faz o upsert pela `gbif_key`, e a foto de referência passa a ser a primeira imagem que o Pl@ntNet mostrou daquele candidato (`reference_photo_url`, com `origin = identification`). Ela nasce com o `commonName` que o candidato mostrou como nome principal em `species_names` (o primeiro nome do Pl@ntNet que passa no filtro, com o hífen corrigido); os outros nomes do Pl@ntNet não são guardados. Se o candidato não mostrou nome, ela nasce sem nome, o principal vem do Claude na primeira geração das dicas e, até lá, toda resposta usa o nome científico como `commonName`. Uma espécie que já existe fica com os nomes que tem.
 
 ### Jardim
 
@@ -233,7 +233,7 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 |---|---|
 | `POST /photos` | Multipart `file` (até 6 MB) → `201` com `{ id, url, expiresAt }`. Limite de 50 por dia (`PHOTO_DAILY_LIMIT`). Arquivo que não é imagem, campo ausente, corpo que não é multipart ou arquivo acima de 6 MB: `VALIDATION_FAILED`, com `path` `file` |
 | `POST /identifications` | `{ photoId }` → `201` com `{ id, result, candidates[], remainingToday }`. Chamada síncrona ao Pl@ntNet (~2 s). Passos abaixo. Se `result = not_recognized`, vem `candidates: []`. Foto de outro usuário ou inexistente: `NOT_FOUND` |
-| `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }`, nunca os dois → `200` com `{ species }` (no formato do item da busca, com `matchedAlternativeName: null`) ou `204`. Faz o upsert da Espécie no Catálogo. Uma escolha só: a segunda responde `IDENTIFICATION_ALREADY_CHOSEN`. Índice fora da lista, corpo inválido ou identificação `not_recognized`: `VALIDATION_FAILED`. Identificação de outro usuário: `NOT_FOUND` |
+| `POST /identifications/:id/choice` | `{ candidateIndex }` ou `{ none: true }`, nunca os dois → `200` com `{ species }` (no formato do item da busca, com `matchedAlternativeName: null`) ou `204`. Faz o upsert da Espécie no Catálogo; a espécie nova ganha o `commonName` do candidato como nome principal. Uma escolha só: a segunda responde `IDENTIFICATION_ALREADY_CHOSEN`. Índice fora da lista, corpo inválido ou identificação `not_recognized`: `VALIDATION_FAILED`. Identificação de outro usuário: `NOT_FOUND` |
 | `GET /species?q=` | Busca sem diferenciar acento nem maiúscula: `lower(unaccent(q))` com `ILIKE '%termo%'` em `name_normalized` e no nome científico normalizado. `q` de 2 a 50 caracteres depois do trim (fora disso, `VALIDATION_FAILED`); `%` e `_` valem como letras. Responde uma lista com uma linha por espécie, até 20: primeiro as que têm um nome que começa pelo termo, depois as outras, cada grupo em ordem alfabética do nome principal. Cada item: `{ id, commonName, scientificName, referencePhoto, matchedAlternativeName \| null }`; `matchedAlternativeName` é o nome alternativo que bateu, quando o termo não bateu no principal nem no científico |
 | `GET /species/:id` | `{ id, commonName, scientificName, referencePhoto, otherNames[], careGuide, careGuideStatus }`, com `otherNames` em ordem alfabética. Espécie inexistente: `NOT_FOUND`; `id` que não é UUID: `VALIDATION_FAILED` |
 
@@ -261,7 +261,7 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 
 **Geração das dicas** (uma só função na API, usada pelo `GET /species/:id`, pelo `GET /plants/:id` e pela carga da semente):
 - **Reserva:** um único `INSERT … ON CONFLICT (species_id) DO UPDATE … WHERE status = 'failed' OR (status = 'generating' AND started_at < now() - 60 s)`, que já grava `model`, `prompt_version`, `requested_by` e `started_at`. Só quem ganha a linha chama o Claude.
-- **O que o Claude recebe:** o nome científico e os nomes que o Catálogo já tem (o principal primeiro). Responde por um tool estrito, cujo JSON Schema sai do schema Zod do `content`; a resposta passa pelo Zod de novo, e uma resposta inválida, uma recusa ou um corte por `max_tokens` contam como falha. Modelo de `CARE_GUIDE_MODEL` (padrão `claude-sonnet-5-5`), `prompt_version` 1, timeout de 25 s com uma nova tentativa, para terminar antes dos 60 s.
+- **O que o Claude recebe:** o nome científico e os nomes que o Catálogo já tem (o principal primeiro). O prompt pede que o `commonName` repita o primeiro desses nomes, exatamente como está; só sem nenhum nome o Claude escolhe o nome popular mais usado no Brasil. Responde por um tool estrito, cujo JSON Schema sai do schema Zod do `content`; a resposta passa pelo Zod de novo, e uma resposta inválida, uma recusa ou um corte por `max_tokens` contam como falha. Modelo de `CARE_GUIDE_MODEL` (padrão `claude-sonnet-5-5`), `prompt_version` 2, timeout de 25 s com uma nova tentativa, para terminar antes dos 60 s.
 - **Sucesso:** `ready`, com `content`, `generated_at` e o `model` que respondeu (o de reserva, se o Claude recusou e o fallback do servidor respondeu).
 - **O nome do Claude:** comparado sem acento nem maiúscula. Numa espécie sem nome principal, vira o principal (ou promove o alternativo igual a ele). Numa espécie com principal, entra como alternativo só se a espécie ainda não tem um nome igual.
 - **`202 CARE_GUIDE_GENERATING`:** é um `application/problem+json` com `Retry-After: 3`, sem a espécie. O app tenta de novo e, depois de 60 s, mostra "dicas indisponíveis no momento".

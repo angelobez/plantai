@@ -12,7 +12,7 @@ import {
 } from './care-guide-writer';
 
 /** Bump it when the prompt or the tool changes. */
-export const CARE_GUIDE_PROMPT_VERSION = 1;
+export const CARE_GUIDE_PROMPT_VERSION = 2;
 
 const TOOL_NAME = 'record_care_guide';
 
@@ -40,7 +40,7 @@ function userPrompt({ scientificName, knownNames }: CareGuideRequest): string {
 Nomes populares que o app já conhece: ${names}
 
 Preencha as dicas:
-- commonName: o nome popular mais usado no Brasil para essa espécie, em minúsculas (a não ser que tenha nome próprio), como "costela-de-adão".
+- commonName: se o app já conhece nomes populares, use o primeiro desses nomes, exatamente como está escrito, mesmo que você conheça outro (é o nome brasileiro que o app mostra). Só se o app não conhecer nenhum, escreva o nome popular mais usado no Brasil para essa espécie, em minúsculas (a não ser que tenha nome próprio), como "costela-de-adão".
 - watering (rega), light (luz) e propagation (como fazer muda): cada um com
   - summary: uma linha curta, de no máximo uns 25 caracteres, como "1x por semana", "Meia-sombra" ou "Estaca";
   - details: de 2 a 4 frases com o que fazer na prática.

@@ -106,9 +106,21 @@ describe('ClaudeCareGuideWriter', () => {
     expect(prompt).toContain('português do Brasil');
     expect(prompt).toContain('apartamento');
     expect(prompt).toContain('25 caracteres');
-    expect(CARE_GUIDE_PROMPT_VERSION).toBe(1);
-    expect(writer.promptVersion).toBe(1);
+    expect(CARE_GUIDE_PROMPT_VERSION).toBe(2);
+    expect(writer.promptVersion).toBe(2);
     expect(writer.model).toBe('claude-sonnet-5-5');
+  });
+
+  it('asks Claude to keep the first known name as the common name', async () => {
+    const { writer, sent } = writerAnswering(
+      fixture('claude-care-guide-valid.json'),
+    );
+
+    await writer.write(monstera);
+
+    expect(JSON.stringify(sent[0]?.body.messages)).toContain(
+      'use o primeiro desses nomes, exatamente como está escrito',
+    );
   });
 
   it('says there is no known name when the species has none', async () => {
