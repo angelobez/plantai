@@ -8,7 +8,8 @@ App de plantas: identificar pela foto, dicas de cuidado com IA e doação de mud
 
 ## Workflow de desenvolvimento
 - Monorepo: `api/` (NestJS) e `app/` (Flutter); ver `docs/adr/0005-monorepo-com-api-e-app.md`.
-- Fluxo: `/to-spec` → `/to-tickets` → `/implement` por ticket (TDD + `/code-review`), `/clear` entre tickets e `/retro` no fim de cada sessão de código. Planejamento de decisões em aberto: `/rodada` ou `/proximo` (mapa: issue com o label `wayfinder:map`).
+- Fluxo: `/to-spec` → `/to-tickets` → `/implement-spec` (a entrega inteira num PR, um subagente por ticket) ou `/implement` (um ticket), e `/retro` no fim de cada sessão de código.
+- Antes de mexer em migration, script, rotas do app ou `ApiClient`: `docs/agents/gotchas.md`. Planejamento de decisões em aberto: `/rodada` ou `/proximo` (mapa: issue com o label `wayfinder:map`).
 - Cada ticket numa branch com PR; a `main` só recebe PR com CI verde (sem exigir aprovação).
 - Padrões de código, cobrados na revisão: `CODING_STANDARDS.md`.
 - Testar no celular: `npm run dev:phone` na raiz, no terminal do Ângelo (fora do Claude Code). Log da API, com os códigos de e-mail, em `api/logs/dev.log`.

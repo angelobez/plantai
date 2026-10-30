@@ -11,6 +11,7 @@ Lido na revisão (`/code-review`). Lint, format e typecheck já são cobrados pe
 - Conjunto fechado de valores (códigos de erro, status, propósitos) vira `enum` ou união literal com uma fonte única, não strings soltas repetidas.
 - Fluxos de autenticação não revelam se uma conta existe: a resposta (status e corpo) é a mesma com ou sem conta, inclusive quando algo falha no meio, como o envio de e-mail. Falha de envio vai para o log, não para a resposta.
 - Testes de integração com PostGIS real via Testcontainers; rota nova muda `api/openapi.json` (`npm run openapi:update`).
+- O `Env` de um teste vem do `testEnv()` (`api/test/support/env.ts`), com overrides só do que o teste verifica. O único literal completo é o do `env.spec.ts`, que testa o parse. Variável nova muda um lugar só.
 
 ## App
 - `flutter_lints` com `strict-casts`, `strict-inference` e `strict-raw-types`.
