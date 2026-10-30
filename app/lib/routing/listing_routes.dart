@@ -95,16 +95,19 @@ class _ListingFlow {
     GoRoute(
       path: Routes.nearby,
       pageBuilder: (context, state) => NoTransitionPage(
-        child: ListingsTabPage(
-          selected: ListingsTab.nearby,
-          onSelect: (tab) => _selectTab(context, tab),
-          trailing: const HeaderPill(
-            icon: Icons.location_on_outlined,
-            label: 'até 30 km',
-          ),
-          body: const ComingSoon(
-            icon: Icon(Icons.location_on_outlined),
-            title: 'Mudas por perto',
+        child: ViewModelScope(
+          create: () => NearbyViewModel(
+            listingRepository: listingRepository,
+            locationService: locationService,
+          )..load(),
+          builder: (viewModel) => NearbyScreen(
+            viewModel: viewModel,
+            onSelectTab: (tab) => _selectTab(context, tab),
+            onOpen: (listing) => context.push(
+              Routes.listing(listing.id),
+              extra: viewModel.position,
+            ),
+            onDonate: () => openPhotoFlow(context),
           ),
         ),
       ),
@@ -124,6 +127,23 @@ class _ListingFlow {
       ),
     ),
   ];
+
+  /// Detalhe do anúncio, over the whole shell. Pushed with the position the
+  /// Por perto list was read from as `extra`, so the distance matches the
+  /// list's; without it, the screen asks for the location.
+  GoRoute detailRoute() => GoRoute(
+    path: Routes.listingPattern,
+    builder: (context, state) => ViewModelScope(
+      create: () => ListingDetailViewModel(
+        listingRepository: listingRepository,
+        locationService: locationService,
+        listingId: Routes.listingIdOf(state),
+        from: state.extra as ApproximatePosition?,
+      )..load(),
+      // "Tenho interesse" comes with the interest.
+      builder: (viewModel) => ListingDetailScreen(viewModel: viewModel),
+    ),
+  );
 
   /// The Primeiro anúncio and the Novo anúncio, over the whole shell.
   List<RouteBase> formRoutes() => [

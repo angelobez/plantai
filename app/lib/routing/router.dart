@@ -33,7 +33,6 @@ import '../ui/catalog/view_models/species_view_model.dart';
 import '../ui/catalog/widgets/search_screen.dart';
 import '../ui/catalog/widgets/species_screen.dart';
 import '../ui/core/url_opener.dart';
-import '../ui/core/widgets/coming_soon.dart';
 import '../ui/core/widgets/view_model_scope.dart';
 import '../ui/garden/view_models/garden_view_model.dart';
 import '../ui/garden/view_models/plant_view_model.dart';
@@ -42,10 +41,14 @@ import '../ui/garden/widgets/plant_name_dialog.dart';
 import '../ui/garden/widgets/plant_screen.dart';
 import '../ui/garden/widgets/save_plant.dart';
 import '../ui/identification/view_models/candidates_view_model.dart';
+import '../ui/listings/view_models/listing_detail_view_model.dart';
 import '../ui/listings/view_models/my_listings_view_model.dart';
+import '../ui/listings/view_models/nearby_view_model.dart';
 import '../ui/listings/view_models/new_listing_view_model.dart';
 import '../ui/listings/widgets/listings_tab_page.dart';
+import '../ui/listings/widgets/listing_detail_screen.dart';
 import '../ui/listings/widgets/my_listings_screen.dart';
+import '../ui/listings/widgets/nearby_screen.dart';
 import '../ui/listings/widgets/new_listing_screen.dart';
 import '../ui/listings/widgets/start_listing.dart';
 import '../ui/identification/widgets/candidates_screen.dart';
@@ -106,6 +109,17 @@ abstract final class Routes {
 
   /// The Por perto tab, on its "Por perto" inner tab.
   static const nearby = '/perto';
+
+  /// Detalhe do anúncio of [listingId], over the whole shell.
+  static String listing(String listingId) =>
+      '/anuncio/${Uri.encodeComponent(listingId)}';
+
+  static const listingPattern = '/anuncio/:$_listingIdParam';
+  static const _listingIdParam = 'id';
+
+  /// The listing of a [listing] location.
+  static String listingIdOf(GoRouterState state) =>
+      state.pathParameters[_listingIdParam]!;
 
   /// The Por perto tab, on its "Meus anúncios" inner tab.
   static const myListings = '/meus-anuncios';
@@ -354,6 +368,7 @@ GoRouter router({
       _photoFlowRoute(flow, root: Routes.identify, end: flow.savePlantEnd),
       _photoFlowRoute(flow, root: Routes.donate, end: listingFlow.donateEnd),
       ...listingFlow.formRoutes(),
+      listingFlow.detailRoute(),
       GoRoute(
         path: Routes.about,
         builder: (context, state) => AboutScreen(openUrl: openUrl),

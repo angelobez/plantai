@@ -27,3 +27,36 @@ const _$ListingStatusEnumMap = {
   ListingStatus.donated: 'donated',
   ListingStatus.closed: 'closed',
 };
+
+NearbyListing _$NearbyListingFromJson(Map<String, dynamic> json) =>
+    NearbyListing(
+      id: json['id'] as String,
+      commonName: json['commonName'] as String,
+      scientificName: json['scientificName'] as String?,
+      photo: Photo.fromJson(json['photo'] as Map<String, dynamic>),
+      quantity: (json['quantity'] as num).toInt(),
+      distanceKm: (json['distanceKm'] as num).toInt(),
+      neighborhood: json['neighborhood'] as String,
+    );
+
+ListingDetail _$ListingDetailFromJson(Map<String, dynamic> json) =>
+    ListingDetail(
+      id: json['id'] as String,
+      commonName: json['commonName'] as String,
+      scientificName: json['scientificName'] as String?,
+      photo: Photo.fromJson(json['photo'] as Map<String, dynamic>),
+      quantity: (json['quantity'] as num).toInt(),
+      distanceKm: (json['distanceKm'] as num).toInt(),
+      neighborhood: json['neighborhood'] as String,
+      status: $enumDecode(
+        _$ListingStatusEnumMap,
+        json['status'],
+        unknownValue: ListingStatus.closed,
+      ),
+      note: json['note'] as String?,
+      donorFirstName: json['donorFirstName'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      careGuide: json['careGuide'] == null
+          ? null
+          : CareGuide.fromJson(json['careGuide'] as Map<String, dynamic>),
+    );

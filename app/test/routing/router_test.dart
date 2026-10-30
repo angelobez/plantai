@@ -11,6 +11,7 @@ import 'package:plantai/main.dart';
 import 'package:plantai/routing/router.dart';
 import 'package:plantai/ui/core/widgets/photo_image.dart';
 import 'package:plantai/ui/core/widgets/plantai_logo.dart';
+import 'package:plantai/ui/core/widgets/round_back_button.dart';
 import 'package:plantai/ui/listings/widgets/listings_tab_page.dart';
 
 import '../testing/fake_auth_repository.dart';
@@ -22,6 +23,10 @@ import '../testing/fake_location_service.dart';
 import '../testing/fake_photo_picker.dart';
 import '../testing/fake_photo_repository.dart';
 import '../testing/fake_profile_repository.dart';
+
+/// What the Por perto inner tab shows with no listing nearby (the fake's
+/// default), to tell the tab is on screen.
+const _nearbyEmpty = 'Nenhuma muda a até 30 km ainda';
 
 void main() {
   late UpdateRequired updateRequired;
@@ -86,13 +91,13 @@ void main() {
   Finder cameraButton() =>
       find.bySemanticsLabel('Identificar uma planta pela foto');
 
-  testWidgets('opens on Por perto, with the logo and "em breve"', (
+  testWidgets('opens on Por perto, with the logo and no longer "em breve"', (
     tester,
   ) async {
     await pumpApp(tester);
 
-    expect(find.text('Mudas por perto'), findsOneWidget);
-    expect(find.text('Em breve'), findsOneWidget);
+    expect(find.text(_nearbyEmpty), findsOneWidget);
+    expect(find.text('Em breve'), findsNothing);
     expect(find.byType(PlantaiLogo), findsOneWidget);
     expect(tab('Jardim'), findsOneWidget);
     expect(tab('Por perto'), findsOneWidget);
@@ -106,7 +111,7 @@ void main() {
     await tester.tap(tab('Jardim'));
     await tester.pumpAndSettle();
     expect(find.text('Monstera da sala'), findsOneWidget);
-    expect(find.text('Mudas por perto'), findsNothing);
+    expect(find.text(_nearbyEmpty), findsNothing);
 
     await tester.tap(tab('Perfil'));
     await tester.pumpAndSettle();
@@ -115,7 +120,7 @@ void main() {
 
     await tester.tap(tab('Por perto'));
     await tester.pumpAndSettle();
-    expect(find.text('Mudas por perto'), findsOneWidget);
+    expect(find.text(_nearbyEmpty), findsOneWidget);
     expect(find.text('marina@email.com'), findsNothing);
   });
 
@@ -237,7 +242,7 @@ void main() {
       await tester.tapAt(const Offset(20, 20));
       await tester.pumpAndSettle();
       expect(find.text('Tirar foto'), findsNothing);
-      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(find.text(_nearbyEmpty), findsOneWidget);
       expect(photoPicker.asked, isEmpty);
     });
 
@@ -287,7 +292,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Que planta é essa?'), findsNothing);
-      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(find.text(_nearbyEmpty), findsOneWidget);
       expect(photoRepository.uploads, isEmpty);
     });
 
@@ -813,7 +818,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(authRepository.calls.last, 'verifyEmail(123456)');
-      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(find.text(_nearbyEmpty), findsOneWidget);
       expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
     });
 
@@ -851,7 +856,7 @@ void main() {
       await logIn(tester);
 
       expect(authRepository.calls, ['logIn(marina@email.com, senha-boa-123)']);
-      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(find.text(_nearbyEmpty), findsOneWidget);
       expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
     });
 
@@ -871,7 +876,7 @@ void main() {
         await tester.enterText(find.byType(TextField), '123456');
         await tester.pumpAndSettle();
 
-        expect(find.text('Mudas por perto'), findsOneWidget);
+        expect(find.text(_nearbyEmpty), findsOneWidget);
       },
     );
   });
@@ -900,7 +905,7 @@ void main() {
           'requestPasswordReset(marina@email.com)',
           'resetPassword(marina@email.com, 123456, senha-nova-456)',
         ]);
-        expect(find.text('Mudas por perto'), findsOneWidget);
+        expect(find.text(_nearbyEmpty), findsOneWidget);
         expect(find.byKey(const Key('bottom-bar')), findsOneWidget);
       },
     );
@@ -909,12 +914,12 @@ void main() {
   group('with a session', () {
     testWidgets('the entry screens go to Por perto', (tester) async {
       await pumpApp(tester);
-      final router = GoRouter.of(tester.element(find.text('Mudas por perto')));
+      final router = GoRouter.of(tester.element(find.text(_nearbyEmpty)));
 
       router.go(Routes.signup);
       await tester.pumpAndSettle();
 
-      expect(find.text('Mudas por perto'), findsOneWidget);
+      expect(find.text(_nearbyEmpty), findsOneWidget);
     });
 
     testWidgets('Sair in Perfil goes to Login', (tester) async {
@@ -1040,26 +1045,26 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('the Por perto tab has the inner tabs Por perto ("em breve") '
-        'and Meus anúncios', (tester) async {
+    testWidgets('the Por perto tab has the inner tabs Por perto and Meus '
+        'anúncios', (tester) async {
       listingRepository.mine = [costelaAtiva, espadaDoada];
       await pumpApp(tester);
 
       expect(innerTab('Por perto'), findsOneWidget);
       expect(find.text('até 30 km'), findsOneWidget);
-      expect(find.text('Em breve'), findsOneWidget);
+      expect(find.text(_nearbyEmpty), findsOneWidget);
 
       await tester.tap(innerTab('Meus anúncios'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Em breve'), findsNothing);
+      expect(find.text(_nearbyEmpty), findsNothing);
       expect(find.text('Costela-de-adão'), findsOneWidget);
       expect(find.text('Espada-de-são-jorge'), findsOneWidget);
       expect(tab('Por perto'), findsOneWidget);
 
       await tester.tap(innerTab('Por perto'));
       await tester.pumpAndSettle();
-      expect(find.text('Em breve'), findsOneWidget);
+      expect(find.text(_nearbyEmpty), findsOneWidget);
     });
 
     testWidgets('"Doar mudas" on a plant opens the form with its photo, name '
@@ -1110,6 +1115,39 @@ void main() {
       await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
       expect(find.widgetWithText(FilledButton, 'Doar mudas'), findsOneWidget);
+    });
+
+    testWidgets('Por perto lists the neighbors’ listings and opens the '
+        'detail from the same position; back is the list', (tester) async {
+      listingRepository.nearbyListings = [costelaPerto, espadaLonge];
+      listingRepository.details[espadaLonge.id] = detailOf(espadaLonge);
+      await pumpApp(tester);
+
+      expect(find.text('a cerca de 2 km · Saúde'), findsOneWidget);
+      await tester.tap(find.text('Espada-de-são-jorge'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Doado por Marina'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsNothing);
+      expect(listingRepository.detailCalls, [
+        (espadaLonge.id, listingRepository.nearbyCalls.single.$1),
+      ]);
+
+      await tester.tap(find.byType(RoundBackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('a cerca de 2 km · Saúde'), findsOneWidget);
+    });
+
+    testWidgets('"Doar a primeira" opens the photo flow of a new listing', (
+      tester,
+    ) async {
+      await pumpApp(tester);
+
+      await tester.tap(find.text('Doar a primeira'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tirar foto'), findsOneWidget);
+      expect(find.text('Escolher da galeria'), findsOneWidget);
     });
 
     /// Meus anúncios → "Doar mudas" ([fromEmptyState]: the empty state's

@@ -19,6 +19,7 @@ enum ApiErrorCode {
   invalidPhone('INVALID_PHONE'),
   donationProfileRequired('DONATION_PROFILE_REQUIRED'),
   listingNotActive('LISTING_NOT_ACTIVE'),
+  locationRequired('LOCATION_REQUIRED'),
 
   /// `202`: another request is writing the care guide; try again after
   /// [ApiException.retryAfter].

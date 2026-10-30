@@ -5,6 +5,7 @@ import '../../services/api/api_client.dart';
 import '../../services/api/api_exception.dart';
 import '../../services/api/guard_api_call.dart';
 import '../../services/api/models/listing.dart';
+import '../../services/location/location_service.dart';
 import 'listing_repository.dart';
 
 /// [ListingRepository] backed by the API's `/v1/listings` and
@@ -57,6 +58,39 @@ class ListingRepositoryRemote extends ListingRepository {
     notifyListeners();
     return listing;
   }
+
+  @override
+  Future<List<NearbyListing>> nearby({
+    required ApproximatePosition from,
+    int page = 1,
+  }) => _guard(
+    () => _apiClient.getList(
+      '/v1/listings/nearby',
+      NearbyListing.fromJson,
+      queryParameters: {'page': '$page'},
+      headers: _searchLocation(from),
+    ),
+  );
+
+  @override
+  Future<ListingDetail> detail(
+    String id, {
+    required ApproximatePosition from,
+  }) => _guard(
+    () => _apiClient.get(
+      '/v1/listings/${Uri.encodeComponent(id)}',
+      ListingDetail.fromJson,
+      headers: _searchLocation(from),
+    ),
+  );
+
+  /// `X-Search-Location: <lat>,<lng>`, with fixed decimals so a tiny value
+  /// never turns into an exponent the API refuses.
+  static Map<String, String> _searchLocation(ApproximatePosition position) => {
+    'X-Search-Location':
+        '${position.latitude.toStringAsFixed(6)},'
+        '${position.longitude.toStringAsFixed(6)}',
+  };
 
   static Future<T> _guard<T>(Future<T> Function() call) => guardApiCall(
     call,

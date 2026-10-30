@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:plantai/data/repositories/listing/listing_repository.dart';
+import 'package:plantai/data/services/api/models/care_guide.dart';
 import 'package:plantai/data/services/api/models/listing.dart';
 import 'package:plantai/data/services/api/models/photo.dart';
 import 'package:plantai/domain/models/listing_changes.dart';
+import 'package:plantai/data/services/location/location_service.dart';
 import 'package:plantai/domain/models/listing_failure.dart';
 import 'package:plantai/domain/models/new_listing.dart';
 
@@ -51,6 +53,50 @@ final jiboiaEncerrada = MyListing(
   canRenew: false,
 );
 
+/// A neighbor's listing in the same cell ("menos de 1 km").
+final costelaPerto = NearbyListing(
+  id: '0190e0d4-0000-7000-8000-0000000000d1',
+  commonName: 'Costela-de-adão',
+  scientificName: 'Monstera deliciosa',
+  photo: costelaPhoto,
+  quantity: 3,
+  distanceKm: 0,
+  neighborhood: 'Vila Mariana',
+);
+
+/// A neighbor's listing published with only a name, 2 km away.
+final espadaLonge = NearbyListing(
+  id: '0190e0d4-0000-7000-8000-0000000000d2',
+  commonName: 'Espada-de-são-jorge',
+  scientificName: null,
+  photo: costelaPhoto,
+  quantity: 1,
+  distanceKm: 2,
+  neighborhood: 'Saúde',
+);
+
+/// [listing] as `GET /v1/listings/:id` would answer it: published by Marina
+/// on 27/10 at noon in São Paulo, with a note and no care guide.
+ListingDetail detailOf(
+  NearbyListing listing, {
+  ListingStatus status = ListingStatus.active,
+  String? note = 'Mudas já enraizadas, pegar à tarde.',
+  CareGuide? careGuide,
+}) => ListingDetail(
+  id: listing.id,
+  commonName: listing.commonName,
+  scientificName: listing.scientificName,
+  photo: listing.photo,
+  quantity: listing.quantity,
+  distanceKm: listing.distanceKm,
+  neighborhood: listing.neighborhood,
+  status: status,
+  note: note,
+  donorFirstName: 'Marina',
+  createdAt: DateTime.utc(2026, 10, 27, 15),
+  careGuide: careGuide,
+);
+
 /// A [ListingRepository] the test drives: [myListings] answers [mine], and
 /// [create] puts a new active listing at the top of it, telling the
 /// listeners. Every call throws [failure] when set (or [createFailures],
@@ -90,6 +136,20 @@ class FakeListingRepository extends ListingRepository {
 
   /// How many times [myListings] was called.
   int listed = 0;
+
+  /// Every listing near the searcher, nearest first; [nearby] pages it
+  /// [nearbyPageSize] at a time.
+  List<NearbyListing> nearbyListings = [];
+
+  /// What [detail] answers, by id; a missing id is
+  /// `ListingFailure.notFound`.
+  final details = <String, ListingDetail>{};
+
+  /// What [nearby] got, in order: the position and the page.
+  final nearbyCalls = <(ApproximatePosition, int)>[];
+
+  /// What [detail] got, in order: the id and the position.
+  final detailCalls = <(String, ApproximatePosition)>[];
 
   Future<void> _answer() async {
     await gate?.future;
@@ -193,4 +253,27 @@ class FakeListingRepository extends ListingRepository {
     expiresAt: listing.expiresAt,
     canRenew: canRenew ?? listing.canRenew,
   );
+
+  @override
+  Future<List<NearbyListing>> nearby({
+    required ApproximatePosition from,
+    int page = 1,
+  }) async {
+    nearbyCalls.add((from, page));
+    await _answer();
+    return nearbyListings
+        .skip((page - 1) * nearbyPageSize)
+        .take(nearbyPageSize)
+        .toList();
+  }
+
+  @override
+  Future<ListingDetail> detail(
+    String id, {
+    required ApproximatePosition from,
+  }) async {
+    detailCalls.add((id, from));
+    await _answer();
+    return details[id] ?? (throw ListingFailure.notFound);
+  }
 }

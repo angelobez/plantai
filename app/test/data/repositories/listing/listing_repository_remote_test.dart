@@ -7,6 +7,7 @@ import 'package:plantai/data/repositories/listing/listing_repository_remote.dart
 import 'package:plantai/data/services/api/api_client.dart';
 import 'package:plantai/data/services/api/models/listing.dart';
 import 'package:plantai/data/services/api/update_required.dart';
+import 'package:plantai/data/services/location/location_service.dart';
 import 'package:plantai/data/services/session/session_store.dart';
 import 'package:plantai/domain/models/listing_changes.dart';
 import 'package:plantai/domain/models/listing_failure.dart';
@@ -188,6 +189,94 @@ void main() {
     expect(request.path, '/v1/listings/$_listingId/close');
     expect(listing.status, ListingStatus.closed);
     expect(notified, 1);
+  });
+
+  const nearbyJson = {
+    'id': _listingId,
+    'commonName': 'Costela-de-adão',
+    'scientificName': 'Monstera deliciosa',
+    'photo': {
+      'id': _photoId,
+      'url': 'http://localhost:9000/plantai-photos/photos/f1.jpg?X-Amz=1',
+      'expiresAt': '2026-10-29T13:00:00.000Z',
+    },
+    'quantity': 3,
+    'distanceKm': 0,
+    'neighborhood': 'Vila Mariana',
+  };
+  const position = ApproximatePosition(latitude: -23.5874, longitude: -46.6345);
+
+  test(
+    'nearby asks for the page with the location in the header only',
+    () async {
+      adapter.respond = (_) async => jsonResponse(200, [
+        nearbyJson,
+        {...nearbyJson, 'scientificName': null, 'distanceKm': 4},
+      ]);
+
+      final listings = await repository.nearby(from: position, page: 2);
+
+      final request = adapter.requests.single;
+      expect(request.method, 'GET');
+      expect(request.path, '/v1/listings/nearby');
+      expect(request.queryParameters, {'page': '2'});
+      expect(request.headers['X-Search-Location'], '-23.587400,-46.634500');
+      expect(request.uri.toString(), isNot(contains('23.58')));
+      expect(listings.map((listing) => listing.distanceKm), [0, 4]);
+      expect(listings.first.scientificName, 'Monstera deliciosa');
+      expect(listings.last.scientificName, isNull);
+      expect(listings.first.neighborhood, 'Vila Mariana');
+    },
+  );
+
+  test('the location never turns into an exponent', () async {
+    adapter.respond = (_) async => jsonResponse(200, <Object>[]);
+
+    await repository.nearby(
+      from: const ApproximatePosition(latitude: 0.0000001, longitude: -1e-7),
+    );
+
+    expect(
+      adapter.requests.single.headers['X-Search-Location'],
+      '0.000000,-0.000000',
+    );
+  });
+
+  test('detail reads the listing with the location in the header', () async {
+    adapter.respond = (_) async => jsonResponse(200, {
+      ...nearbyJson,
+      'status': 'closed',
+      'note': null,
+      'donorFirstName': 'Marina',
+      'createdAt': '2026-10-27T15:00:00.000Z',
+      'careGuide': {
+        'commonName': 'Costela-de-adão',
+        'watering': {'summary': '1x por semana', 'details': 'Regue.'},
+        'light': {'summary': 'Meia-sombra', 'details': 'Sem sol.'},
+        'propagation': {'summary': 'Estaca', 'details': 'Corte.'},
+      },
+    });
+
+    final detail = await repository.detail(_listingId, from: position);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/v1/listings/$_listingId');
+    expect(request.headers['X-Search-Location'], '-23.587400,-46.634500');
+    expect(detail.status, ListingStatus.closed);
+    expect(detail.note, isNull);
+    expect(detail.donorFirstName, 'Marina');
+    expect(detail.createdAt, DateTime.utc(2026, 10, 27, 15));
+    expect(detail.careGuide?.watering.summary, '1x por semana');
+  });
+
+  test('detail of a missing listing is notFound', () async {
+    adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
+
+    await expectLater(
+      repository.detail(_listingId, from: position),
+      throwsA(ListingFailure.notFound),
+    );
   });
 
   group('failures', () {

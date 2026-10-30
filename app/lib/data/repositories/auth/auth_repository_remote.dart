@@ -198,6 +198,7 @@ class AuthRepositoryRemote extends AuthRepository {
       ApiErrorCode.invalidPhone ||
       ApiErrorCode.donationProfileRequired ||
       ApiErrorCode.listingNotActive ||
+      ApiErrorCode.locationRequired ||
       ApiErrorCode.unknown => AuthFailure.unknown,
     },
   );

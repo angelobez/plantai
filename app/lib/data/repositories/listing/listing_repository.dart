@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../domain/models/listing_changes.dart';
 import '../../../domain/models/new_listing.dart';
 import '../../services/api/models/listing.dart';
+import '../../services/location/location_service.dart';
 
 /// Donation listings in the API (`/v1/listings` and `/v1/me/listings`).
 ///
@@ -28,4 +29,20 @@ abstract class ListingRepository extends ChangeNotifier {
 
   /// "Encerrar": closes the listing [id] for good and answers it.
   Future<MyListing> close(String id);
+
+  /// Page [page] (from 1) of the active listings of other Users within
+  /// 30 km of [from], nearest first; [nearbyPageSize] per page, so a shorter
+  /// page is the last one. [from] goes in the `X-Search-Location` header,
+  /// never in the URL.
+  Future<List<NearbyListing>> nearby({
+    required ApproximatePosition from,
+    int page = 1,
+  });
+
+  /// The listing [id], with the distance from [from] (sent as in [nearby]),
+  /// also when it is no longer active. Missing: `ListingFailure.notFound`.
+  Future<ListingDetail> detail(String id, {required ApproximatePosition from});
 }
+
+/// How many listings a full page of [ListingRepository.nearby] has.
+const nearbyPageSize = 30;
