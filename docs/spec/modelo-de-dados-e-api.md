@@ -225,11 +225,11 @@ A resposta com tokens tem o formato `{ accessToken, refreshToken, user }`. O thr
 |---|---|
 | `GET /me` | `{ id, name, email, phone, donationLocation: { neighborhood } \| null }`. As coordenadas não voltam |
 | `PATCH /me` | `{ name }` |
-| `PUT /me/donation-profile` | `{ phone, lat, lng, neighborhood }`, todos obrigatórios → `200` com o corpo do `GET /me`. A API valida o telefone e arredonda o ponto antes de salvar. É usado no primeiro anúncio e no Perfil. Trocar o perfil não muda os anúncios já criados |
+| `PUT /me/donation-profile` | `{ phone, lat?, lng?, neighborhood }` → `200` com o corpo do `GET /me`. `phone` e `neighborhood` são obrigatórios; `lat` e `lng` vêm juntos ou nenhum dos dois. Sem eles, fica a localização já salva e só mudam telefone e bairro; sem eles e sem localização salva, `VALIDATION_FAILED` em `lat` e `lng`. A API valida o telefone e arredonda o ponto antes de salvar. É usado no primeiro anúncio e no Perfil. Trocar o perfil não muda os anúncios já criados |
 
 **`PUT /me/donation-profile`, campo a campo:**
 - **`phone`:** `libphonenumber-js` com país padrão `BR`; aceita com ou sem `+55`, máscara ou espaços. Precisa ser celular brasileiro válido (tipo `MOBILE`); senão, `INVALID_PHONE`. Guardado em E.164 (`+5511987654321`).
-- **`lat` e `lng`:** números em `-90..90` e `-180..180`; fora disso, `VALIDATION_FAILED`.
+- **`lat` e `lng`:** números em `-90..90` e `-180..180`; fora disso, `VALIDATION_FAILED`. Só um dos dois: `VALIDATION_FAILED` no que faltou.
 - **`neighborhood`:** de 1 a 60 caracteres depois do trim; fora disso, `VALIDATION_FAILED`.
 
 **Grade de ~1 km (ADR 0002):** o ponto recebido vira o centro da sua célula antes de salvar, e só o centro é guardado; o ponto recebido não vai para o banco nem para o log. As linhas de latitude têm passo fixo de `1 / 111,32` grau (~1 km): linha `i = floor(lat / passo)`, centro `(i + 0,5) × passo`. Dentro da linha, o passo de longitude é o mesmo passo dividido pelo cosseno da latitude do centro da linha, e o centro da coluna sai do mesmo jeito; assim a célula tem ~1 km nos dois sentidos em qualquer latitude, e o centro fica a menos de ~0,71 km do ponto. A função é pura e determinística: dois pontos da mesma célula dão exatamente o mesmo centro.

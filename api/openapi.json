@@ -5671,16 +5671,16 @@
             "example": "(11) 98765-4321"
           },
           "lat": {
+            "description": "Latitude of the GPS; rounded to its ~1 km cell before saving. Send it with lng, or neither to keep the saved location",
             "type": "number",
             "minimum": -90,
-            "maximum": 90,
-            "description": "Latitude of the GPS; rounded to its ~1 km cell before saving"
+            "maximum": 90
           },
           "lng": {
+            "description": "Longitude of the GPS; rounded to its ~1 km cell before saving. Send it with lat, or neither to keep the saved location",
             "type": "number",
             "minimum": -180,
-            "maximum": 180,
-            "description": "Longitude of the GPS; rounded to its ~1 km cell before saving"
+            "maximum": 180
           },
           "neighborhood": {
             "type": "string",
@@ -5691,8 +5691,6 @@
         },
         "required": [
           "phone",
-          "lat",
-          "lng",
           "neighborhood"
         ]
       },

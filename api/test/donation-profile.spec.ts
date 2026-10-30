@@ -190,22 +190,104 @@ describe('PUT /me/donation-profile', () => {
     expect(me.body).toEqual(session.user);
   });
 
-  it.each(['phone', 'lat', 'lng', 'neighborhood'])(
-    'requires the %s',
-    async (field) => {
-      const session = await signUpAndVerify(app, outbox);
-      const body = Object.fromEntries(
-        Object.entries(donationProfile()).filter(([key]) => key !== field),
-      );
+  it.each(['phone', 'neighborhood'])('requires the %s', async (field) => {
+    const session = await signUpAndVerify(app, outbox);
+    const body = Object.fromEntries(
+      Object.entries(donationProfile()).filter(([key]) => key !== field),
+    );
 
-      const response = await putDonationProfile(app, session, body).expect(400);
+    const response = await putDonationProfile(app, session, body).expect(400);
+
+    expect(response.body).toMatchObject({
+      code: 'VALIDATION_FAILED',
+      errors: [{ path: field }],
+    });
+  });
+
+  /** [body] without the given keys. */
+  function without(body: object, ...keys: string[]): object {
+    return Object.fromEntries(
+      Object.entries(body).filter(([key]) => !keys.includes(key)),
+    );
+  }
+
+  it.each([
+    ['lat', 'lng'],
+    ['lng', 'lat'],
+  ])(
+    'rejects a %s without a %s with VALIDATION_FAILED, even with a location saved',
+    async (_sent, missing) => {
+      const session = await signUpWithDonationProfile(app, outbox);
+      const before = await storedPoint(session);
+
+      const response = await putDonationProfile(
+        app,
+        session,
+        without(donationProfile({ neighborhood: 'Saúde' }), missing),
+      ).expect(400);
 
       expect(response.body).toMatchObject({
         code: 'VALIDATION_FAILED',
-        errors: [{ path: field }],
+        errors: [{ path: missing }],
       });
+      const me = await getMe(session).expect(200);
+      expect(me.body).toEqual(session.user);
+      expect(await storedPoint(session)).toEqual(before);
     },
   );
+
+  it('without lat and lng keeps the saved location and updates the rest', async () => {
+    const session = await signUpWithDonationProfile(app, outbox);
+    const before = await storedPoint(session);
+
+    const put = await putDonationProfile(
+      app,
+      session,
+      without(
+        donationProfile({ phone: '21 99876-5432', neighborhood: 'Saúde' }),
+        'lat',
+        'lng',
+      ),
+    ).expect(200);
+
+    expect(put.body).toEqual({
+      ...session.user,
+      phone: '+5521998765432',
+      donationLocation: { neighborhood: 'Saúde' },
+    });
+    const me = await getMe(session).expect(200);
+    expect(me.body).toEqual(put.body);
+    expect(await storedPoint(session)).toEqual(before);
+  });
+
+  it('without lat and lng and no saved location answers VALIDATION_FAILED', async () => {
+    const session = await signUpAndVerify(app, outbox);
+
+    const response = await putDonationProfile(
+      app,
+      session,
+      without(donationProfile(), 'lat', 'lng'),
+    ).expect(400);
+
+    expect(response.body).toMatchObject({
+      code: 'VALIDATION_FAILED',
+      errors: [{ path: 'lat' }, { path: 'lng' }],
+    });
+    const me = await getMe(session).expect(200);
+    expect(me.body).toEqual(session.user);
+  });
+
+  it('without lat and lng still checks the phone first', async () => {
+    const session = await signUpAndVerify(app, outbox);
+
+    const response = await putDonationProfile(
+      app,
+      session,
+      without(donationProfile({ phone: '(11) 3333-4444' }), 'lat', 'lng'),
+    ).expect(400);
+
+    expect(response.body).toMatchObject({ code: 'INVALID_PHONE' });
+  });
 
   it('stores the center of the ~1 km cell, never the exact point', async () => {
     const exact = { lat: -23.587412, lng: -46.634567 };
