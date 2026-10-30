@@ -8,6 +8,7 @@ import '../../core/themes/colors.dart';
 import '../../core/widgets/photo_image.dart';
 import '../../photo/widgets/photo_source_sheet.dart';
 import '../view_models/new_listing_view_model.dart';
+import 'quantity_stepper.dart';
 
 /// Novo anúncio, as in the Claude Design screen `M-novo-anuncio`: the photo
 /// with "Tirar outra foto da muda", the editable name, the read-only
@@ -162,7 +163,15 @@ class _NewListingScreenState extends State<NewListingScreen> {
                         ),
                       ),
                     ),
-                    _QuantityStepper(viewModel: _viewModel, enabled: !busy),
+                    QuantityStepper(
+                      value: _viewModel.quantity,
+                      onDecrease: !busy && _viewModel.canDecrease
+                          ? _viewModel.decrease
+                          : null,
+                      onIncrease: !busy && _viewModel.canIncrease
+                          ? _viewModel.increase
+                          : null,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 22),
@@ -307,62 +316,6 @@ class _PhotoRow extends StatelessWidget {
           FormMessage(error: error),
         ],
       ],
-    );
-  }
-}
-
-/// "−" value "+", from 1 to 99.
-class _QuantityStepper extends StatelessWidget {
-  const _QuantityStepper({required this.viewModel, required this.enabled});
-
-  final NewListingViewModel viewModel;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.mist,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            tooltip: 'Menos uma',
-            onPressed: enabled && viewModel.canDecrease
-                ? viewModel.decrease
-                : null,
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.ink,
-              fixedSize: const Size.square(40),
-            ),
-            icon: const Icon(Icons.remove),
-          ),
-          SizedBox(
-            width: 44,
-            child: Text(
-              '${viewModel.quantity}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Mais uma',
-            onPressed: enabled && viewModel.canIncrease
-                ? viewModel.increase
-                : null,
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.forest,
-              foregroundColor: Colors.white,
-              fixedSize: const Size.square(40),
-            ),
-            icon: const Icon(Icons.add),
-          ),
-        ],
-      ),
     );
   }
 }

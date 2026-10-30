@@ -7,6 +7,7 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/photo_image.dart';
 import '../listing_texts.dart';
 import '../view_models/my_listings_view_model.dart';
+import 'listing_actions.dart';
 import 'listings_tab_page.dart';
 
 /// Meus anúncios, the second inner tab of Por perto, as in the Claude
@@ -89,7 +90,17 @@ class MyListingsScreen extends StatelessWidget {
                     ),
                   ),
                 for (final listing in listings)
-                  MyListingRow(listing: listing, now: now),
+                  MyListingRow(
+                    listing: listing,
+                    now: now,
+                    actionsEnabled: !viewModel.isActing,
+                    onAction: (action) => runListingAction(
+                      context,
+                      viewModel: viewModel,
+                      listing: listing,
+                      action: action,
+                    ),
+                  ),
               ],
             ),
           );
@@ -99,15 +110,28 @@ class MyListingsScreen extends StatelessWidget {
   }
 }
 
-/// One listing of Meus anúncios. An active listing will get the donor's
-/// actions under its lines; a donated or closed one is dimmed, with none.
+/// One listing of Meus anúncios. An active listing has the donor's actions
+/// menu at the right ([ListingActionsMenu]); a donated or closed one is
+/// dimmed, with none.
 class MyListingRow extends StatelessWidget {
-  const MyListingRow({super.key, required this.listing, required this.now});
+  const MyListingRow({
+    super.key,
+    required this.listing,
+    required this.now,
+    this.onAction,
+    this.actionsEnabled = true,
+  });
 
   final MyListing listing;
 
   /// The instant "expira em X dias" counts from.
   final DateTime now;
+
+  /// Runs the action chosen in the menu; without it, the row has no menu.
+  final ValueChanged<ListingAction>? onAction;
+
+  /// False while another action runs.
+  final bool actionsEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -178,10 +202,15 @@ class MyListingRow extends StatelessWidget {
                         )
                       : muted,
                 ),
-                // The donor's actions on an active listing go here.
               ],
             ),
           ),
+          if (onAction case final onAction?)
+            ListingActionsMenu(
+              listing: listing,
+              enabled: actionsEnabled,
+              onSelected: onAction,
+            ),
         ],
       ),
     );
