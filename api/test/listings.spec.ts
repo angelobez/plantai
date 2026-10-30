@@ -161,6 +161,7 @@ describe('listings (Anúncios)', () => {
         },
         status: 'active',
         quantity: 3,
+        note: 'Pegar à tarde',
         interestCount: 0,
         expiresAt: expect.any(String) as unknown,
         canRenew: false,

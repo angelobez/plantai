@@ -5627,6 +5627,12 @@
             "maximum": 9007199254740991,
             "description": "Seedlings left; 0 only once donated"
           },
+          "note": {
+            "type": "string",
+            "example": "pegar à tarde",
+            "description": "The donor’s note, so \"Editar\" starts from it; null without one",
+            "nullable": true
+          },
           "interestCount": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -5650,6 +5656,7 @@
           "photo",
           "status",
           "quantity",
+          "note",
           "interestCount",
           "expiresAt",
           "canRenew"

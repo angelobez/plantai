@@ -19,6 +19,7 @@ export interface MyListingBody {
   photo: PhotoBody;
   status: 'active' | 'donated' | 'closed';
   quantity: number;
+  note: string | null;
   interestCount: number;
   expiresAt: string;
   canRenew: boolean;

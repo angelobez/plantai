@@ -121,6 +121,7 @@ export class ListingsService {
         photoS3Key: photos.s3Key,
         status: effectiveStatus(),
         quantity: listings.quantity,
+        note: listings.note,
         interestCount:
           sql<number>`(SELECT count(*) FROM ${interests} WHERE ${interests.listingId} = ${listings.id})`.mapWith(
             Number,

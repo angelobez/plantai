@@ -86,6 +86,11 @@ export const myListingSchema = z.object({
   photo: photoSchema,
   status: listingStatusSchema,
   quantity: z.int().describe('Seedlings left; 0 only once donated'),
+  note: z
+    .string()
+    .meta({ example: 'pegar à tarde' })
+    .nullable()
+    .describe('The donor’s note, so "Editar" starts from it; null without one'),
   interestCount: z
     .int()
     .describe('How many Users tapped "Tenho interesse"; no names'),

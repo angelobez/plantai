@@ -1,11 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { eq } from 'drizzle-orm';
 import type request from 'supertest';
 import type { App } from 'supertest/types';
 import { createTestApp } from './support/app';
-import { listings } from '../src/database/schema';
-import { type AuthTokensBody, databaseOf } from './support/auth';
+import type { AuthTokensBody } from './support/auth';
 import { signUpWithDonationProfile } from './support/donation';
 import { testEnv } from './support/env';
 import { FakeOutbox } from './support/fake-outbox';
@@ -87,7 +85,9 @@ describe("the donor's actions on a listing", () => {
         quantity: 7,
       }).expect(200);
 
-      expect(response.body).toEqual(asLater(listing, { quantity: 7 }));
+      expect(response.body).toEqual(
+        asLater(listing, { quantity: 7, note: 'à tarde' }),
+      );
       expect(await mineById(donor, listing.id)).toEqual(
         asLater(listing, { quantity: 7 }),
       );
@@ -101,9 +101,12 @@ describe("the donor's actions on a listing", () => {
       const donor = await newDonor();
       const listing = await publishListing(app, donor, { note: 'à tarde' });
 
-      await editListing(app, donor, listing.id, { note }).expect(200);
+      const response = await editListing(app, donor, listing.id, {
+        note,
+      }).expect(200);
 
-      expect(await noteOf(listing.id)).toBeNull();
+      expect(response.body).toEqual(asLater(listing, { note: null }));
+      expect(await mineById(donor, listing.id)).toMatchObject({ note: null });
     });
 
     it('changes the note, trimmed, keeping the quantity', async () => {
@@ -114,8 +117,9 @@ describe("the donor's actions on a listing", () => {
         note: '  pegar de manhã  ',
       }).expect(200);
 
-      expect(response.body).toEqual(asLater(listing, { quantity: 4 }));
-      expect(await noteOf(listing.id)).toBe('pegar de manhã');
+      expect(response.body).toEqual(
+        asLater(listing, { quantity: 4, note: 'pegar de manhã' }),
+      );
     });
 
     it.each([
@@ -206,16 +210,4 @@ describe("the donor's actions on a listing", () => {
       },
     );
   });
-
-  /**
-   * The stored note: no response shows it yet (the detail, #64, will), so the
-   * edit of the note is checked in the database.
-   */
-  async function noteOf(id: string): Promise<string | null> {
-    const [row] = await databaseOf(app)
-      .select({ note: listings.note })
-      .from(listings)
-      .where(eq(listings.id, id));
-    return row?.note ?? null;
-  }
 });
