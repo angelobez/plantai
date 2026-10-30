@@ -24,6 +24,7 @@ import {
   keyOf,
   type MyListingBody,
   myListings,
+  nearbyIds,
   type PhotoBody,
   publishListing,
   uploadPhoto,
@@ -467,6 +468,7 @@ describe('listings (Anúncios)', () => {
         .where(eq(photos.id, plant.photo.id));
       expect(photo).toEqual({ plantId: null });
       expect((await storedListing(listing.id)).plantId).toBeNull();
+      expect(await nearbyIds(app, await newDonor())).toContain(listing.id);
     });
 
     it('still deletes the photo of a plant whose listing has a photo of its own', async () => {
