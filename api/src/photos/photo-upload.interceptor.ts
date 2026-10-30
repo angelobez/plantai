@@ -7,7 +7,8 @@ import {
 import type { Request, Response } from 'express';
 import multer, { MulterError } from 'multer';
 import type { Observable } from 'rxjs';
-import { DomainError } from '../errors/domain-error';
+import type { DomainError } from '../errors/domain-error';
+import { invalidField } from '../errors/validation';
 
 /** The multipart field that carries the photo. */
 export const PHOTO_FIELD = 'file';
@@ -22,10 +23,7 @@ const parseUpload = multer({
 
 /** A `VALIDATION_FAILED` about the photo field. */
 export function invalidPhoto(message: string, cause?: unknown): DomainError {
-  return new DomainError('VALIDATION_FAILED', {
-    cause,
-    errors: [{ path: PHOTO_FIELD, message }],
-  });
+  return invalidField(PHOTO_FIELD, message, cause);
 }
 
 function toDomainError(error: unknown): DomainError {

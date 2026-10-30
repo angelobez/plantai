@@ -11,6 +11,7 @@ import {
   speciesNames,
 } from '../database/schema';
 import { DomainError } from '../errors/domain-error';
+import { invalidField } from '../errors/validation';
 import { messageOf } from '../errors/message-of';
 import { PhotoStorage } from '../photo-storage/photo-storage';
 import { PhotosService } from '../photos/photos.service';
@@ -33,12 +34,6 @@ export interface PlantChanges {
 export interface OwnedPlant {
   plant: typeof plants.$inferSelect;
   photo: { id: string; s3Key: string };
-}
-
-function invalid(path: string, message: string): DomainError {
-  return new DomainError('VALIDATION_FAILED', {
-    errors: [{ path, message }],
-  });
 }
 
 /**
@@ -71,10 +66,10 @@ export class PlantsService {
   async create(userId: string, input: NewPlant): Promise<PlantItemResponse> {
     const photo = await this.photosService.findOwned(userId, input.photoId);
     if (photo.plantId) {
-      throw invalid('photoId', 'the photo already belongs to a plant');
+      throw invalidField('photoId', 'the photo already belongs to a plant');
     }
     if (input.speciesId && !(await this.speciesExists(input.speciesId))) {
-      throw invalid('speciesId', 'no such species');
+      throw invalidField('speciesId', 'no such species');
     }
 
     await this.photosService.attach(photo);
@@ -96,7 +91,7 @@ export class PlantsService {
         .where(and(eq(photos.id, photo.id), isNull(photos.plantId)))
         .returning({ id: photos.id });
       if (linked.length === 0) {
-        throw invalid('photoId', 'the photo already belongs to a plant');
+        throw invalidField('photoId', 'the photo already belongs to a plant');
       }
       return plant.id;
     });
@@ -298,7 +293,7 @@ export class PlantsService {
   ): Promise<void> {
     if (plant.speciesId) throw new DomainError('SPECIES_ALREADY_SET');
     if (!(await this.speciesExists(speciesId))) {
-      throw invalid('speciesId', 'no such species');
+      throw invalidField('speciesId', 'no such species');
     }
     // Only a plant with no species yet: of two requests at once, one wins.
     const updated = await this.db

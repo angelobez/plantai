@@ -8,6 +8,7 @@ import { identifications, species, speciesNames } from '../database/schema';
 import { startOfToday } from '../database/today';
 import { DomainError } from '../errors/domain-error';
 import { messageOf } from '../errors/message-of';
+import { invalidField } from '../errors/validation';
 import { GbifNames } from '../gbif/gbif-names';
 import { PhotosService } from '../photos/photos.service';
 import { plausibleCommonName } from './candidate-common-name';
@@ -136,9 +137,7 @@ export class IdentificationsService {
       if (!row) throw new DomainError('NOT_FOUND');
       if (row.chosenAt) throw new DomainError('IDENTIFICATION_ALREADY_CHOSEN');
       if (row.result === 'not_recognized') {
-        throw new DomainError('VALIDATION_FAILED', {
-          errors: [{ path: '', message: 'the photo was not recognized' }],
-        });
+        throw invalidField('', 'the photo was not recognized');
       }
 
       let chosenSpeciesId: string | null = null;
@@ -146,14 +145,10 @@ export class IdentificationsService {
         const candidates = z.array(storedCandidateSchema).parse(row.candidates);
         const candidate = candidates[choice.candidateIndex];
         if (!candidate) {
-          throw new DomainError('VALIDATION_FAILED', {
-            errors: [
-              {
-                path: 'candidateIndex',
-                message: `there are ${String(candidates.length)} candidates`,
-              },
-            ],
-          });
+          throw invalidField(
+            'candidateIndex',
+            `there are ${String(candidates.length)} candidates`,
+          );
         }
         chosenSpeciesId = await this.upsertSpecies(tx, candidate);
       }
