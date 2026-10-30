@@ -1,21 +1,10 @@
+import { testEnv, UNUSED_DATABASE_URL } from '../../test/support/env';
 import { createEmailSender } from './email.module';
 import { signupCodeEmail } from './emails';
 import { LogEmailSender } from './log-email-sender';
 import { EmailNotSentError, ResendEmailSender } from './resend-email-sender';
 
-const env = {
-  DATABASE_URL: 'postgres://unused:unused@localhost:1/unused',
-  PORT: 0,
-  MIN_APP_VERSION: '0.0.0',
-  JWT_SECRET: 'a-test-secret-that-is-at-least-32-chars',
-  GOOGLE_WEB_CLIENT_ID: 'web-client',
-  EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
-  S3_BUCKET: 'unused',
-  S3_REGION: 'us-east-1',
-  PLANTNET_API_KEY: 'unused',
-  ANTHROPIC_API_KEY: 'unused',
-  CARE_GUIDE_MODEL: 'claude-sonnet-5-5',
-};
+const env = testEnv(UNUSED_DATABASE_URL);
 
 describe('createEmailSender', () => {
   it('writes e-mails to the log without RESEND_API_KEY', () => {

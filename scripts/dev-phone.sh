@@ -17,6 +17,21 @@ mkdir -p "$(dirname "$log")"
 # The API, and the S3 emulator from api/compose.yaml.
 ports=(3000 9000)
 
+"$root/scripts/check-env.sh"
+
+# A leftover API on 3000 (an old dev:phone, say) would answer the phone with old
+# code while the new one dies on EADDRINUSE behind `nest --watch`.
+if [[ -n "$(ss -ltnH 'sport = :3000')" ]]; then
+  echo "[dev-phone] port 3000 is already taken; stop it and run again:" >&2
+  pids="$(lsof -t -iTCP:3000 -sTCP:LISTEN 2>/dev/null | paste -sd, || true)"
+  [[ -n "$pids" ]] && ps -o pid=,lstart=,args= -p "$pids" | sed 's/^/  /' >&2
+  exit 1
+fi
+if ! (exec 3<>/dev/tcp/127.0.0.1/9000) 2>/dev/null; then
+  echo "[dev-phone] the S3 emulator is not up on 9000; run: npm --prefix api run db:up" >&2
+  exit 1
+fi
+
 forward_port() {
   while true; do
     adb wait-for-device
