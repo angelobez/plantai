@@ -3,6 +3,8 @@
 # Runs the API for the app on a USB-connected phone.
 # - Re-applies `adb reverse` of the API (3000) and of the S3 emulator (9000,
 #   where the presigned photo URLs point) every time the phone (re)connects.
+# - Applies the pending migrations (`npm run db:migrate` in api/), so a merge
+#   that adds a table does not leave the phone with 500s.
 # - Runs `npm run start:dev` in api/, teeing its output to api/logs/dev.log,
 #   where the e-mail codes show up when RESEND_API_KEY is unset.
 #
@@ -29,6 +31,13 @@ if [[ -n "$(ss -ltnH 'sport = :3000')" ]]; then
 fi
 if ! (exec 3<>/dev/tcp/127.0.0.1/9000) 2>/dev/null; then
   echo "[dev-phone] the S3 emulator is not up on 9000; run: npm --prefix api run db:up" >&2
+  exit 1
+fi
+
+# drizzle-kit exits 1 with no reason when the database is unreachable.
+echo "[dev-phone] applying pending migrations"
+if ! (cd "$root/api" && npm run --silent db:migrate); then
+  echo "[dev-phone] db:migrate failed; is the database up? run: npm --prefix api run db:up" >&2
   exit 1
 fi
 

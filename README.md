@@ -96,7 +96,7 @@ flutter pub get
 
 The app reads the API address from `--dart-define=API_BASE_URL`; release builds have no default (debug builds fall back to `http://localhost:3000`). Pick one of two ways to reach the notebook:
 
-- **USB cable:** forward the phone's ports 3000 (API) and 9000 (S3 emulator, for the photos) to the notebook and use `localhost`. `npm run dev:phone` at the repo root does it for you: it runs the API, re-applies `adb reverse` of both ports on every reconnect and tees the API log (e-mail codes included) to `api/logs/dev.log`.
+- **USB cable:** forward the phone's ports 3000 (API) and 9000 (S3 emulator, for the photos) to the notebook and use `localhost`. `npm run dev:phone` at the repo root does it for you: it applies the pending migrations (`db:migrate`), runs the API, re-applies `adb reverse` of both ports on every reconnect and tees the API log (e-mail codes included) to `api/logs/dev.log`. It needs `npm run db:up` first. It does not build or install the app: after pulling app changes, rebuild the APK below and `adb install -r` it.
   ```sh
   adb reverse tcp:3000 tcp:3000 && adb reverse tcp:9000 tcp:9000   # after every reconnect, unless dev:phone runs
   flutter build apk --release --dart-define=API_BASE_URL=http://localhost:3000 \

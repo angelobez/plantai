@@ -13,6 +13,7 @@ import {
   type ErrorCode,
   type FieldError,
 } from './domain-error';
+import { stackOf } from './message-of';
 
 /** RFC 9457 problem details, extended with the API's stable `code`. */
 export interface ProblemDetails {
@@ -58,7 +59,8 @@ const MALFORMED_REQUEST: FieldError = {
  * {@link DomainError} are translated: Nest's 400 (malformed JSON, for
  * instance) becomes `VALIDATION_FAILED` with a generic message, its 404
  * `NOT_FOUND` and its 429 `TOO_MANY_REQUESTS`. Anything else, other HTTP
- * exceptions included, becomes `INTERNAL_ERROR`, logged here and never echoed.
+ * exceptions included, becomes `INTERNAL_ERROR`, logged here (through
+ * {@link stackOf}, so no query parameter reaches the log) and never echoed.
  */
 @Catch()
 export class ProblemDetailsFilter implements ExceptionFilter {
@@ -93,7 +95,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 
     this.logger.error(
       'Exception has no problem-details mapping; answering INTERNAL_ERROR',
-      exception instanceof Error ? exception.stack : String(exception),
+      stackOf(exception),
     );
     return new DomainError('INTERNAL_ERROR', { cause: exception });
   }
