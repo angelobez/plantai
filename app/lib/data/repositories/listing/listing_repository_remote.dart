@@ -90,7 +90,7 @@ class ListingRepositoryRemote extends ListingRepository {
     required ApproximatePosition from,
   }) => _guard(
     () => _apiClient.get(
-      '/v1/listings/${Uri.encodeComponent(id)}',
+      _path(id),
       ListingDetail.fromJson,
       headers: _searchLocation(from),
     ),
