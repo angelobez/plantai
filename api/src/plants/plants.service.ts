@@ -100,15 +100,6 @@ export class PlantsService {
   }
 
   /**
-   * [userId]'s plants, newest first, each with the watering summary of its
-   * species' care guide when the guide is `ready`. Reading the list never
-   * has Claude write a guide.
-   */
-  list(userId: string): Promise<PlantItemResponse[]> {
-    return this.items(userId);
-  }
-
-  /**
    * One of [userId]'s plants, with its species and care guide as
    * `GET /species/:id` answers them: the first reading of a species has
    * Claude write the guide, and while another request writes it, this
@@ -216,13 +207,12 @@ export class PlantsService {
   }
 
   /**
-   * [userId]'s plants matching [filter], newest first, as list items. A
-   * plant shows its first photo (today it has only one).
+   * [userId]'s plants, newest first, each with the watering summary of its
+   * species' care guide when the guide is `ready`; [filter] narrows them. A
+   * plant shows its first photo (today it has only one). Reading the list
+   * never has Claude write a guide.
    */
-  private async items(
-    userId: string,
-    filter?: SQL,
-  ): Promise<PlantItemResponse[]> {
+  async list(userId: string, filter?: SQL): Promise<PlantItemResponse[]> {
     const rows = await this.db
       .selectDistinctOn([plants.createdAt, plants.id], {
         id: plants.id,
@@ -282,7 +272,7 @@ export class PlantsService {
     userId: string,
     plantId: string,
   ): Promise<PlantItemResponse> {
-    const [item] = await this.items(userId, eq(plants.id, plantId));
+    const [item] = await this.list(userId, eq(plants.id, plantId));
     if (!item) throw new Error(`The plant ${plantId} was not found`);
     return item;
   }
