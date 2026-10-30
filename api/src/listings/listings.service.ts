@@ -420,6 +420,6 @@ function geographyOf({ lat, lng }: LatLng): SQL {
 }
 
 /** The first word of a name: "Marina Souza" is "Marina". */
-function firstWordOf(name: string): string {
+export function firstWordOf(name: string): string {
   return name.trim().split(/\s+/)[0] ?? name;
 }

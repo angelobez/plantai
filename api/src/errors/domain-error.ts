@@ -22,6 +22,7 @@ export const ERROR_STATUS = {
   LOCATION_REQUIRED: HttpStatus.BAD_REQUEST,
   INVALID_DONATION_COUNT: HttpStatus.BAD_REQUEST,
   RENEWAL_NOT_ALLOWED: HttpStatus.CONFLICT,
+  OWN_LISTING: HttpStatus.CONFLICT,
   /** Not a failure: another request is writing the care guide; try again. */
   CARE_GUIDE_GENERATING: HttpStatus.ACCEPTED,
   INTERNAL_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
