@@ -1,13 +1,29 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, ne, type SQL, sql } from 'drizzle-orm';
+import { careGuideContentSchema } from '../care-guides/care-guide-content';
 import { CatalogService } from '../catalog/catalog.service';
 import { DATABASE, type Database } from '../database/database.module';
-import { interests, listings, photos, plants, users } from '../database/schema';
+import {
+  careGuides,
+  interests,
+  listings,
+  photos,
+  plants,
+  species,
+  users,
+} from '../database/schema';
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import { DomainError, type ErrorCode } from '../errors/domain-error';
 import { invalidField } from '../errors/validation';
 import { PhotosService } from '../photos/photos.service';
-import type { MyListingResponse } from './listing.dto';
+import type { LatLng } from '../profile/donation-grid';
+import {
+  type ListingDetailResponse,
+  type MyListingResponse,
+  NEARBY_PAGE_SIZE,
+  NEARBY_RADIUS_METERS,
+  type NearbyListingResponse,
+} from './listing.dto';
 import {
   canRenew,
   effectiveStatus,
@@ -230,6 +246,126 @@ export class ListingsService {
     return new DomainError(precondition.error);
   }
 
+  /**
+   * Page [page] (from 1) of the effectively active listings of Users other
+   * than [userId] within 30 km of [from], nearest first and, in a tie (same
+   * cell), newest first; {@link NEARBY_PAGE_SIZE} per page.
+   */
+  async nearby(
+    userId: string,
+    from: LatLng,
+    page: number,
+  ): Promise<NearbyListingResponse[]> {
+    const point = geographyOf(from);
+    const rows = await this.db
+      .select(this.itemColumns(point))
+      .from(listings)
+      .innerJoin(photos, eq(photos.id, listings.photoId))
+      .leftJoin(species, eq(species.id, listings.speciesId))
+      .where(
+        and(
+          ne(listings.userId, userId),
+          isEffectivelyActive(),
+          sql`ST_DWithin(${listings.location}, ${point}, ${NEARBY_RADIUS_METERS})`,
+        ),
+      )
+      .orderBy(
+        sql`ST_Distance(${listings.location}, ${point})`,
+        desc(listings.createdAt),
+        desc(listings.id),
+      )
+      .limit(NEARBY_PAGE_SIZE)
+      .offset((page - 1) * NEARBY_PAGE_SIZE);
+
+    return Promise.all(rows.map((row) => this.item(row)));
+  }
+
+  /**
+   * Any listing, whoever's and whatever its effective status (so the app can
+   * say it is no longer available), with the distance from [from]. The care
+   * guide shows only when it is `ready`: reading the detail never has Claude
+   * write one. Never the donor's phone. Missing: `NOT_FOUND`.
+   */
+  async detail(
+    listingId: string,
+    from: LatLng,
+  ): Promise<ListingDetailResponse> {
+    const [row] = await this.db
+      .select({
+        ...this.itemColumns(geographyOf(from)),
+        status: effectiveStatus(),
+        note: listings.note,
+        donorName: users.name,
+        createdAt: listings.createdAt,
+        careGuide: careGuides.content,
+      })
+      .from(listings)
+      .innerJoin(photos, eq(photos.id, listings.photoId))
+      .innerJoin(users, eq(users.id, listings.userId))
+      .leftJoin(species, eq(species.id, listings.speciesId))
+      .leftJoin(
+        careGuides,
+        and(
+          eq(careGuides.speciesId, listings.speciesId),
+          eq(careGuides.status, 'ready'),
+        ),
+      )
+      .where(eq(listings.id, listingId));
+    if (!row) throw new DomainError('NOT_FOUND');
+
+    const { status, note, donorName, createdAt, careGuide, ...item } = row;
+    return {
+      ...(await this.item(item)),
+      status,
+      note,
+      donorFirstName: firstWordOf(donorName),
+      createdAt: createdAt.toISOString(),
+      careGuide:
+        careGuide === null ? null : careGuideContentSchema.parse(careGuide),
+    };
+  }
+
+  /** The columns of a `nearby` item, with the distance from [point] in km. */
+  private itemColumns(point: SQL) {
+    return {
+      id: listings.id,
+      commonName: listings.commonName,
+      scientificName: species.scientificName,
+      photoId: photos.id,
+      photoS3Key: photos.s3Key,
+      quantity: listings.quantity,
+      // To the center of the listing's cell, the only point stored (ADR 0002).
+      distanceKm:
+        sql<number>`round((ST_Distance(${listings.location}, ${point}) / 1000)::numeric)`.mapWith(
+          Number,
+        ),
+      neighborhood: listings.neighborhood,
+    };
+  }
+
+  private async item({
+    photoId,
+    photoS3Key,
+    ...row
+  }: {
+    id: string;
+    commonName: string;
+    scientificName: string | null;
+    photoId: string;
+    photoS3Key: string;
+    quantity: number;
+    distanceKm: number;
+    neighborhood: string;
+  }): Promise<NearbyListingResponse> {
+    return {
+      ...row,
+      photo: await this.photosService.present({
+        id: photoId,
+        s3Key: photoS3Key,
+      }),
+    };
+  }
+
   private async ownsPlant(userId: string, plantId: string): Promise<boolean> {
     const [row] = await this.db
       .select({ id: plants.id })
@@ -237,4 +373,14 @@ export class ListingsService {
       .where(and(eq(plants.id, plantId), eq(plants.userId, userId)));
     return row !== undefined;
   }
+}
+
+/** [point] as a PostGIS geography, for distances in meters on the spheroid. */
+function geographyOf({ lat, lng }: LatLng): SQL {
+  return sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`;
+}
+
+/** The first word of a name: "Marina Souza" is "Marina". */
+function firstWordOf(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? name;
 }

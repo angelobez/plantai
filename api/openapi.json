@@ -3622,10 +3622,22 @@
         ]
       }
     },
-    "/v1/listings": {
-      "post": {
-        "operationId": "ListingsController_create",
+    "/v1/listings/nearby": {
+      "get": {
+        "operationId": "ListingsController_nearby",
         "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "From 1; 30 listings per page. The app asks for the next page while it gets a full one",
+            "schema": {
+              "minimum": 1,
+              "maximum": 9007199254740991,
+              "default": 1,
+              "type": "integer"
+            }
+          },
           {
             "name": "X-App-Version",
             "in": "header",
@@ -3634,31 +3646,34 @@
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateListingRequest"
-              }
+          },
+          {
+            "name": "X-Search-Location",
+            "in": "header",
+            "description": "The searcher’s approximate location, \"<lat>,<lng>\" in decimal degrees; never stored nor logged. Missing: LOCATION_REQUIRED",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "-23.5874,-46.6345"
             }
           }
-        },
+        ],
         "responses": {
-          "201": {
+          "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MyListing_Output"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NearbyListing_Output"
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "VALIDATION_FAILED",
+            "description": "LOCATION_REQUIRED, VALIDATION_FAILED",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3672,6 +3687,7 @@
                         "code": {
                           "type": "string",
                           "enum": [
+                            "LOCATION_REQUIRED",
                             "VALIDATION_FAILED"
                           ]
                         }
@@ -3698,56 +3714,6 @@
                           "type": "string",
                           "enum": [
                             "UNAUTHENTICATED"
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "NOT_FOUND",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ProblemDetails"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "enum": [
-                            "NOT_FOUND"
-                          ]
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "DONATION_PROFILE_REQUIRED",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ProblemDetails"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "enum": [
-                            "DONATION_PROFILE_REQUIRED"
                           ]
                         }
                       }
@@ -3819,6 +3785,186 @@
       }
     },
     "/v1/listings/{id}": {
+      "get": {
+        "operationId": "ListingsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-App-Version",
+            "in": "header",
+            "description": "Semantic version of the app; older than MIN_APP_VERSION answers 426",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Search-Location",
+            "in": "header",
+            "description": "The searcher’s approximate location, \"<lat>,<lng>\" in decimal degrees; never stored nor logged. Missing: LOCATION_REQUIRED",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "-23.5874,-46.6345"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDetail_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "LOCATION_REQUIRED, VALIDATION_FAILED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "LOCATION_REQUIRED",
+                            "VALIDATION_FAILED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "UNAUTHENTICATED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "NOT_FOUND"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "APP_UPDATE_REQUIRED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Listings"
+        ]
+      },
       "patch": {
         "operationId": "ListingsController_update",
         "parameters": [
@@ -3954,6 +4100,202 @@
                           "type": "string",
                           "enum": [
                             "LISTING_NOT_ACTIVE"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "APP_UPDATE_REQUIRED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "APP_UPDATE_REQUIRED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL_ERROR",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "INTERNAL_ERROR"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Listings"
+        ]
+      }
+    },
+    "/v1/listings": {
+      "post": {
+        "operationId": "ListingsController_create",
+        "parameters": [
+          {
+            "name": "X-App-Version",
+            "in": "header",
+            "description": "Semantic version of the app; older than MIN_APP_VERSION answers 426",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateListingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyListing_Output"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "VALIDATION_FAILED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "UNAUTHENTICATED"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "NOT_FOUND"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DONATION_PROFILE_REQUIRED",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "DONATION_PROFILE_REQUIRED"
                           ]
                         }
                       }
@@ -5528,6 +5870,268 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         }
+      },
+      "NearbyListing_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "scientificName": {
+            "type": "string",
+            "example": "Monstera deliciosa",
+            "description": "The species’ scientific name; null when listed by name only",
+            "nullable": true
+          },
+          "photo": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Presigned GET URL of the JPEG"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "When the URL stops working"
+              }
+            },
+            "required": [
+              "id",
+              "url",
+              "expiresAt"
+            ],
+            "additionalProperties": false
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Seedlings left"
+          },
+          "distanceKm": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "From the searcher to the center of the listing’s ~1 km cell, rounded; 0 means \"menos de 1 km\""
+          },
+          "neighborhood": {
+            "type": "string",
+            "description": "The donor’s, when publishing"
+          }
+        },
+        "required": [
+          "id",
+          "commonName",
+          "scientificName",
+          "photo",
+          "quantity",
+          "distanceKm",
+          "neighborhood"
+        ],
+        "additionalProperties": false
+      },
+      "ListingDetail_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "commonName": {
+            "type": "string"
+          },
+          "scientificName": {
+            "type": "string",
+            "example": "Monstera deliciosa",
+            "description": "The species’ scientific name; null when listed by name only",
+            "nullable": true
+          },
+          "photo": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Presigned GET URL of the JPEG"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "When the URL stops working"
+              }
+            },
+            "required": [
+              "id",
+              "url",
+              "expiresAt"
+            ],
+            "additionalProperties": false
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Seedlings left"
+          },
+          "distanceKm": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "From the searcher to the center of the listing’s ~1 km cell, rounded; 0 means \"menos de 1 km\""
+          },
+          "neighborhood": {
+            "type": "string",
+            "description": "The donor’s, when publishing"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "donated",
+              "closed"
+            ],
+            "description": "Effective status: an expired active listing is closed"
+          },
+          "note": {
+            "type": "string",
+            "example": "Pegar à tarde",
+            "description": "The donor’s note; null without one",
+            "nullable": true
+          },
+          "donorFirstName": {
+            "type": "string",
+            "description": "The first word of the donor’s name"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "careGuide": {
+            "type": "object",
+            "properties": {
+              "commonName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "The most used common name in Brazil"
+              },
+              "watering": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "description": "A short line, about 25 characters: \"1x por semana\""
+                  },
+                  "details": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1500,
+                    "description": "The full tip"
+                  }
+                },
+                "required": [
+                  "summary",
+                  "details"
+                ],
+                "additionalProperties": false,
+                "description": "Rega"
+              },
+              "light": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "description": "A short line, about 25 characters: \"1x por semana\""
+                  },
+                  "details": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1500,
+                    "description": "The full tip"
+                  }
+                },
+                "required": [
+                  "summary",
+                  "details"
+                ],
+                "additionalProperties": false,
+                "description": "Luz"
+              },
+              "propagation": {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "description": "A short line, about 25 characters: \"1x por semana\""
+                  },
+                  "details": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1500,
+                    "description": "The full tip"
+                  }
+                },
+                "required": [
+                  "summary",
+                  "details"
+                ],
+                "additionalProperties": false,
+                "description": "Como fazer muda"
+              }
+            },
+            "required": [
+              "commonName",
+              "watering",
+              "light",
+              "propagation"
+            ],
+            "additionalProperties": false,
+            "description": "The species’ care guide when it is ready, or null. This route never has Claude write one",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "commonName",
+          "scientificName",
+          "photo",
+          "quantity",
+          "distanceKm",
+          "neighborhood",
+          "status",
+          "note",
+          "donorFirstName",
+          "createdAt",
+          "careGuide"
+        ],
+        "additionalProperties": false
       },
       "CreateListingRequest": {
         "type": "object",

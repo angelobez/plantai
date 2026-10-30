@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { careGuideContentSchema } from '../care-guides/care-guide-content';
 import { listingStatus } from '../database/schema';
 import { photoSchema } from '../photos/photo.dto';
 import { plantCommonNameSchema } from '../plants/plant.dto';
@@ -103,3 +104,70 @@ export const myListingSchema = z.object({
 export type MyListingResponse = z.infer<typeof myListingSchema>;
 
 export class MyListing extends createZodDto(myListingSchema) {}
+
+/** How many listings one page of `GET /listings/nearby` answers. */
+export const NEARBY_PAGE_SIZE = 30;
+
+/** How far a neighbor's listing may be, in meters (30 km). */
+export const NEARBY_RADIUS_METERS = 30_000;
+
+export class NearbyListingsQuery extends createZodDto(
+  z.object({
+    page: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(1)
+      .describe(
+        `From 1; ${String(NEARBY_PAGE_SIZE)} listings per page. The app asks for the next page while it gets a full one`,
+      ),
+  }),
+) {}
+
+/** One listing near the searcher, as `GET /listings/nearby` shows it. */
+export const nearbyListingSchema = z.object({
+  id: z.uuid(),
+  commonName: z.string(),
+  scientificName: z
+    .string()
+    .meta({ example: 'Monstera deliciosa' })
+    .nullable()
+    .describe('The species’ scientific name; null when listed by name only'),
+  photo: photoSchema,
+  quantity: z.int().describe('Seedlings left'),
+  distanceKm: z
+    .int()
+    .describe(
+      'From the searcher to the center of the listing’s ~1 km cell, rounded; 0 means "menos de 1 km"',
+    ),
+  neighborhood: z.string().describe('The donor’s, when publishing'),
+});
+
+export type NearbyListingResponse = z.infer<typeof nearbyListingSchema>;
+
+export class NearbyListing extends createZodDto(nearbyListingSchema) {}
+
+/**
+ * `GET /listings/:id`: the item of `nearby` plus what the detail shows. Never
+ * the donor's phone, which only `POST /listings/:id/interest` hands out
+ * (ADR 0007).
+ */
+export const listingDetailSchema = nearbyListingSchema.extend({
+  status: listingStatusSchema,
+  note: z
+    .string()
+    .meta({ example: 'Pegar à tarde' })
+    .nullable()
+    .describe('The donor’s note; null without one'),
+  donorFirstName: z.string().describe('The first word of the donor’s name'),
+  createdAt: z.iso.datetime(),
+  careGuide: careGuideContentSchema
+    .nullable()
+    .describe(
+      'The species’ care guide when it is ready, or null. This route never has Claude write one',
+    ),
+});
+
+export type ListingDetailResponse = z.infer<typeof listingDetailSchema>;
+
+export class ListingDetail extends createZodDto(listingDetailSchema) {}
