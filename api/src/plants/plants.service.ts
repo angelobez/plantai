@@ -1,10 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, asc, desc, eq, isNull, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, not, type SQL, sql } from 'drizzle-orm';
 import { CareGuideService } from '../care-guides/care-guide.service';
 import { CatalogService } from '../catalog/catalog.service';
 import { DATABASE, type Database } from '../database/database.module';
 import {
   careGuides,
+  listings,
   photos,
   plants,
   species,
@@ -68,7 +69,10 @@ export class PlantsService {
     if (photo.plantId) {
       throw invalidField('photoId', 'the photo already belongs to a plant');
     }
-    if (input.speciesId && !(await this.speciesExists(input.speciesId))) {
+    if (
+      input.speciesId &&
+      !(await this.catalogService.exists(input.speciesId))
+    ) {
       throw invalidField('speciesId', 'no such species');
     }
 
@@ -156,17 +160,20 @@ export class PlantsService {
 
   /**
    * Removes [userId]'s plant [plantId] with its photos: the rows first, in
-   * one transaction, then the objects in the storage. An object that fails
-   * to go is logged and left for later; the plant is gone anyway.
-   * `NOT_FOUND` for another User's plant.
+   * one transaction, then the objects in the storage. A photo some listing
+   * uses stays, without the plant, and the listings that came from the plant
+   * stay too (`listings.plant_id` is SET NULL). An object that fails to go
+   * is logged and left for later; the plant is gone anyway. `NOT_FOUND` for
+   * another User's plant.
    */
   async remove(userId: string, plantId: string): Promise<void> {
     const { plant } = await this.findOwned(userId, plantId);
     const removed = await this.db.transaction(async (tx) => {
+      const usedByListing = sql`${photos.id} IN (SELECT ${listings.photoId} FROM ${listings})`;
       // `photos.plant_id` is SET NULL, so the photos go before the plant.
       const plantPhotos = await tx
         .delete(photos)
-        .where(eq(photos.plantId, plant.id))
+        .where(and(eq(photos.plantId, plant.id), not(usedByListing)))
         .returning({ s3Key: photos.s3Key });
       await tx.delete(plants).where(eq(plants.id, plant.id));
       return plantPhotos;
@@ -282,7 +289,7 @@ export class PlantsService {
     speciesId: string,
   ): Promise<void> {
     if (plant.speciesId) throw new DomainError('SPECIES_ALREADY_SET');
-    if (!(await this.speciesExists(speciesId))) {
+    if (!(await this.catalogService.exists(speciesId))) {
       throw invalidField('speciesId', 'no such species');
     }
     // Only a plant with no species yet: of two requests at once, one wins.
@@ -292,13 +299,5 @@ export class PlantsService {
       .where(and(eq(plants.id, plant.id), isNull(plants.speciesId)))
       .returning({ id: plants.id });
     if (updated.length === 0) throw new DomainError('SPECIES_ALREADY_SET');
-  }
-
-  private async speciesExists(speciesId: string): Promise<boolean> {
-    const [row] = await this.db
-      .select({ id: species.id })
-      .from(species)
-      .where(eq(species.id, speciesId));
-    return row !== undefined;
   }
 }

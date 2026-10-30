@@ -175,7 +175,7 @@ Fotos órfãs: o upload grava o objeto com a tag `unattached=true`, que sai quan
 | `expires_at` | timestamptz | Criação ou renovação + 30 dias |
 | `created_at`, `updated_at` | timestamptz | |
 
-**Expiração sem job:** um anúncio com `status = active` e `expires_at` no passado é tratado como **Encerrado** em todas as consultas e em toda resposta da API. O status efetivo é calculado numa só função no repositório. Renovar só é permitido nos últimos 7 dias (e não depois de expirado) e faz `expires_at = now() + 30 dias`.
+**Expiração sem job:** um anúncio com `status = active` e `expires_at` no passado é tratado como **Encerrado** em todas as consultas e em toda resposta da API. O status efetivo é calculado numa só função (`api/src/listings/listing-status.ts`), que toda consulta e toda resposta usam. Renovar só é permitido nos últimos 7 dias (e não depois de expirado) e faz `expires_at = now() + 30 dias`.
 
 **`interests`**: PK (`listing_id`, `user_id`), `created_at`, `last_opened_at`. Tocar de novo em "Tenho interesse" só atualiza `last_opened_at`. A contagem que o doador vê é o número de linhas.
 
@@ -281,7 +281,7 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 | `POST /plants` | `{ photoId, commonName, speciesId? }` → `201` com a planta no formato da lista. `commonName` de 1 a 80 caracteres depois de tirar os espaços das pontas. Anexa a foto (`attached_at`, tira a tag) e grava `photos.plant_id`. Foto de outro Usuário: `NOT_FOUND`. Foto que já é de outra planta ou `speciesId` que não existe: `VALIDATION_FAILED`. Não gera as dicas |
 | `GET /plants/:id` | `{ id, commonName, photo, species }`, com `species` igual ao corpo do `GET /species/:id` (nomes, foto de referência, `careGuide` e `careGuideStatus`, pela mesma função de geração, inclusive o `202`), ou `null` na planta salva só com o nome. Planta de outro Usuário: `NOT_FOUND` |
 | `PATCH /plants/:id` | `{ commonName? , speciesId? }`, com pelo menos um dos dois (senão, `VALIDATION_FAILED`), e responde a planta no formato da lista; com os dois, aplica os dois. `commonName` segue a regra do `POST`. Só aceita `speciesId` se a planta ainda não tiver espécie (`SPECIES_ALREADY_SET`, inclusive com o mesmo `speciesId`); `speciesId` que não existe: `VALIDATION_FAILED`. A espécie é conferida primeiro: se ela falha, o nome também não muda. Não gera as dicas. Planta de outro Usuário: `NOT_FOUND` |
-| `DELETE /plants/:id` | `204`. Apaga a planta e as linhas das fotos dela numa transação e depois os objetos no armazenamento; uma falha ao apagar o objeto vai para o log e não falha a resposta. Planta de outro Usuário: `NOT_FOUND` |
+| `DELETE /plants/:id` | `204`. Apaga a planta e as linhas das fotos dela numa transação e depois os objetos no armazenamento; uma falha ao apagar o objeto vai para o log e não falha a resposta. A foto que algum anúncio usa fica, com `plant_id = null`, e os anúncios ficam (ver "Remover a planta"). Planta de outro Usuário: `NOT_FOUND` |
 
 ### Anúncios e interesse
 
@@ -289,8 +289,8 @@ Um `generating` com mais de 60 s é tratado como `failed`.
 |---|---|
 | `GET /listings/nearby?page=` | Usa a localização de quem procura (abaixo). Lista os anúncios efetivamente ativos até 30 km (`ST_DWithin`), exceto os do próprio usuário, ordenados por distância, 30 por página. Cada item: `{ id, commonName, scientificName \| null, photo, quantity, distanceKm, neighborhood }` |
 | `GET /listings/:id` | `{ ...item, note, donorFirstName, createdAt, careGuide \| null }`. Usa a localização de quem procura para calcular a distância. **Sem telefone** |
-| `POST /listings` | `{ photoId, commonName, speciesId?, plantId?, quantity (1..99), note? }`. Sem telefone ou sem localização no perfil: `DONATION_PROFILE_REQUIRED` |
-| `GET /me/listings` | Os anúncios do usuário: `{ id, commonName, photo, status, quantity, interestCount, expiresAt, canRenew }` |
+| `POST /listings` | `{ photoId, commonName, speciesId?, plantId?, quantity (1..99), note? }` → `201` com o anúncio no formato de `GET /me/listings`. Sem telefone ou sem localização no perfil: `DONATION_PROFILE_REQUIRED`, antes de qualquer outra regra. `commonName` de 1 a 80 caracteres depois do trim, como na planta; `note` até 200 depois do trim, e vazia vira `null`. Foto de outro Usuário ou inexistente: `NOT_FOUND`; a foto pode ser a de uma planta (que continua com ela) ou uma nova, e é anexada como no `POST /plants`, sem gravar `photos.plant_id`. `plantId` que não é do Usuário ou `speciesId` que não existe: `VALIDATION_FAILED`. Copia `donation_location` e `donation_neighborhood` do perfil; `expires_at = now() + 30 dias` |
+| `GET /me/listings` | Todos os anúncios do usuário, do mais novo ao mais antigo: `{ id, commonName, photo, status, quantity, interestCount, expiresAt, canRenew }`. `canRenew` só é `true` no anúncio efetivamente ativo com `expires_at` nos próximos 7 dias |
 | `PATCH /listings/:id` | `{ quantity? (1..99), note? }`. Só se o anúncio estiver ativo |
 | `POST /listings/:id/donations` | `{ count }`. Desconta da quantidade e, se chegar a 0, o anúncio vira `donated`. `count` maior que a quantidade: `INVALID_DONATION_COUNT` |
 | `POST /listings/:id/close` | Vira `closed` |

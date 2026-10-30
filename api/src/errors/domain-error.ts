@@ -17,6 +17,7 @@ export const ERROR_STATUS = {
   IDENTIFICATION_ALREADY_CHOSEN: HttpStatus.CONFLICT,
   SPECIES_ALREADY_SET: HttpStatus.CONFLICT,
   INVALID_PHONE: HttpStatus.BAD_REQUEST,
+  DONATION_PROFILE_REQUIRED: HttpStatus.CONFLICT,
   /** Not a failure: another request is writing the care guide; try again. */
   CARE_GUIDE_GENERATING: HttpStatus.ACCEPTED,
   INTERNAL_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
