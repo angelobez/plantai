@@ -13,6 +13,7 @@ import {
   expireListingIn,
   type MyListingBody,
   myListings,
+  nearbyIds,
   publishListing,
 } from './support/listings';
 import { startPostgis } from './support/postgis';
@@ -141,9 +142,11 @@ describe("the donor's actions on a listing", () => {
   });
 
   describe('POST /listings/:id/close', () => {
-    it('closes the listing, which stays in Meus anúncios as closed', async () => {
+    it('closes the listing, which stays in Meus anúncios as closed and leaves the nearby of other Users', async () => {
       const donor = await newDonor();
       const listing = await publishListing(app, donor);
+      const neighbor = await newDonor();
+      expect(await nearbyIds(app, neighbor)).toContain(listing.id);
 
       const response = await closeListing(app, donor, listing.id).expect(200);
 
@@ -153,6 +156,7 @@ describe("the donor's actions on a listing", () => {
       expect(await mineById(donor, listing.id)).toMatchObject({
         status: 'closed',
       });
+      expect(await nearbyIds(app, neighbor)).not.toContain(listing.id);
     });
   });
 

@@ -129,3 +129,22 @@ export async function expireListingIn(
     .set({ expiresAt: sql`now() + ${interval}::interval` })
     .where(eq(listings.id, listingId));
 }
+
+/**
+ * The ids of `GET /v1/listings/nearby` as [session] sees it from [from]
+ * (Vila Mariana by default), expecting the `200`.
+ */
+export async function nearbyIds(
+  app: INestApplication<App>,
+  session: AuthTokensBody,
+  from = '-23.5874,-46.6345',
+  page = 1,
+): Promise<string[]> {
+  const response = await request(app.getHttpServer())
+    .get('/v1/listings/nearby')
+    .query({ page })
+    .set('Authorization', `Bearer ${session.accessToken}`)
+    .set('X-Search-Location', from)
+    .expect(200);
+  return (response.body as { id: string }[]).map((item) => item.id);
+}
