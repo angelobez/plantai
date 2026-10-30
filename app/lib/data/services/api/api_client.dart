@@ -53,8 +53,8 @@ class ApiClient {
     T Function(Map<String, dynamic> json) fromJson, {
     Map<String, String>? queryParameters,
     Duration? receiveTimeout,
-  }) async {
-    try {
+  }) {
+    return _guard(() async {
       final response = await _dio.get<Map<String, dynamic>>(
         path,
         queryParameters: queryParameters,
@@ -63,9 +63,7 @@ class ApiClient {
             : Options(receiveTimeout: receiveTimeout),
       );
       return fromJson(response.data ?? const {});
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
   /// `GET` [path] (with [queryParameters]) whose body is a JSON array of
@@ -74,8 +72,8 @@ class ApiClient {
     String path,
     T Function(Map<String, dynamic> json) fromJson, {
     Map<String, String>? queryParameters,
-  }) async {
-    try {
+  }) {
+    return _guard(() async {
       final response = await _dio.get<List<dynamic>>(
         path,
         queryParameters: queryParameters,
@@ -84,9 +82,7 @@ class ApiClient {
         for (final item in response.data ?? const <dynamic>[])
           fromJson(item as Map<String, dynamic>),
       ];
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
   /// How long a call that waits on an external service may take to answer
@@ -100,8 +96,8 @@ class ApiClient {
     Map<String, Object?> body,
     T Function(Map<String, dynamic> json) fromJson, {
     Duration? receiveTimeout,
-  }) async {
-    try {
+  }) {
+    return _guard(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         path,
         data: body,
@@ -110,9 +106,7 @@ class ApiClient {
             : Options(receiveTimeout: receiveTimeout),
       );
       return fromJson(response.data ?? const {});
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
   /// `PATCH` [body] as JSON to [path] and parse its JSON object answer with
@@ -121,32 +115,26 @@ class ApiClient {
     String path,
     Map<String, Object?> body,
     T Function(Map<String, dynamic> json) fromJson,
-  ) async {
-    try {
+  ) {
+    return _guard(() async {
       final response = await _dio.patch<Map<String, dynamic>>(path, data: body);
       return fromJson(response.data ?? const {});
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
   /// `DELETE` [path], for routes that answer `204` without a body.
-  Future<void> delete(String path) async {
-    try {
+  Future<void> delete(String path) {
+    return _guard(() async {
       await _dio.delete<void>(path);
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
   /// `POST` [body] as JSON to [path], for routes that answer without a body
   /// (`202`, `204`).
-  Future<void> postWithoutBody(String path, Map<String, Object?> body) async {
-    try {
+  Future<void> postWithoutBody(String path, Map<String, Object?> body) {
+    return _guard(() async {
       await _dio.post<void>(path, data: body);
-    } on DioException catch (error) {
-      throw _toApiError(error);
-    }
+    });
   }
 
   /// How long sending a multipart body may take: a photo of up to ~1 MB on a
@@ -160,7 +148,7 @@ class ApiClient {
     String path,
     Map<String, UploadFile> files,
     T Function(Map<String, dynamic> json) fromJson,
-  ) async {
+  ) {
     final form = FormData.fromMap({
       for (final MapEntry(key: field, value: file) in files.entries)
         field: MultipartFile.fromBytes(
@@ -169,13 +157,21 @@ class ApiClient {
           contentType: DioMediaType.parse(file.contentType),
         ),
     });
-    try {
+    return _guard(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         path,
         data: form,
         options: Options(sendTimeout: uploadSendTimeout),
       );
       return fromJson(response.data ?? const {});
+    });
+  }
+
+  /// Runs [call], turning a [DioException] into the [ApiException] or
+  /// [ApiConnectionException] every method promises.
+  static Future<T> _guard<T>(Future<T> Function() call) async {
+    try {
+      return await call();
     } on DioException catch (error) {
       throw _toApiError(error);
     }
