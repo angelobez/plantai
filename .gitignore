@@ -12,3 +12,6 @@ build/
 
 # Catalog seed script: cached API responses
 api/catalog/.cache/
+
+# Personal Claude Code settings
+.claude/settings.local.json

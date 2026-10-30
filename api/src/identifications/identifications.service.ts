@@ -187,7 +187,7 @@ export class IdentificationsService {
       if (!(error instanceof IdentificationServiceUnavailableError)) {
         throw error;
       }
-      this.logger.warn(`Pl@ntNet is unavailable: ${error.message}`);
+      this.logger.warn(`Pl@ntNet is unavailable: ${messageOf(error)}`);
       throw new DomainError('IDENTIFICATION_SERVICE_UNAVAILABLE', {
         cause: error,
       });

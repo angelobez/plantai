@@ -20,6 +20,17 @@ export default tseslint.config(
     rules: {
       // Nest modules are decorated empty classes.
       '@typescript-eslint/no-extraneous-class': 'off',
+      // A failed query's message carries its parameter values (see
+      // docs/agents/gotchas.md); logs go through messageOf() / stackOf().
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.property.name='logger'] MemberExpression[property.name=/^(message|stack)$/]",
+          message:
+            'Log errors through messageOf() / stackOf() from src/errors/message-of.ts.',
+        },
+      ],
     },
   },
 );

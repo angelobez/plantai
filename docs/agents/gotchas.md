@@ -18,5 +18,11 @@ Traps that no config or error message reveals, found while building the deliveri
 
 ## Local environment
 
+- **A new worktree has no dependencies and no pre-commit hook.** `core.hooksPath` is `.husky/_`, which only the root `npm ci` creates, so without it commits skip lint-staged silently. Run `scripts/setup-worktree.sh` inside the worktree (`--env` also copies `api/.env`, needed only by `db:generate` and `start:dev`), and again after a merge that changes a lockfile.
+
 - **`api/.env` drifts from `api/.env.example`** when a ticket adds a variable. `scripts/check-env.sh` lists what is missing, and `dev:phone` and `catalog:load` run it first. In `.env.example`, a commented key is optional and an uncommented one is required.
 - **`dev:phone` covers the API, not the app.** It applies the pending migrations before starting the API (until #68 it did not, and a merged `listings` migration left the phone with `500`s). The APK on the phone stays whatever was last installed: after app changes, rebuild with `flutter build apk --release --dart-define=...` and `adb install -r` it (see the README's phone section).
+
+## GitHub
+
+- **A PR in conflict with `main` runs no CI.** GitHub creates no `pull_request` run while the PR is not mergeable, and says nothing about it. Branch a delivery from `origin/main` right after `git fetch`, and after each push check `gh pr view --json mergeable`: `CONFLICTING` means merge `origin/main` first.
