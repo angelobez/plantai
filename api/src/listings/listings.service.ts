@@ -3,11 +3,17 @@ import { and, desc, eq, type SQL, sql } from 'drizzle-orm';
 import { CatalogService } from '../catalog/catalog.service';
 import { DATABASE, type Database } from '../database/database.module';
 import { interests, listings, photos, plants, users } from '../database/schema';
-import { DomainError } from '../errors/domain-error';
+import type { PgUpdateSetSource } from 'drizzle-orm/pg-core';
+import { DomainError, type ErrorCode } from '../errors/domain-error';
 import { invalidField } from '../errors/validation';
 import { PhotosService } from '../photos/photos.service';
 import type { MyListingResponse } from './listing.dto';
-import { canRenew, effectiveStatus, newExpiry } from './listing-status';
+import {
+  canRenew,
+  effectiveStatus,
+  isEffectivelyActive,
+  newExpiry,
+} from './listing-status';
 
 /** What `POST /listings` takes, already validated. */
 export interface NewListing {
@@ -17,6 +23,22 @@ export interface NewListing {
   plantId?: string | undefined;
   quantity: number;
   note?: string | undefined;
+}
+
+/** What `PATCH /listings/:id` takes, already validated: at least one field. */
+export interface ListingChanges {
+  quantity?: number | undefined;
+  /** `null` or empty clears the note; `undefined` keeps it. */
+  note?: string | null | undefined;
+}
+
+/**
+ * A rule a donor action checks on top of the common ones, in the same
+ * atomic `UPDATE`: [where] must hold, or the action answers [error].
+ */
+export interface DonorActionPrecondition {
+  where: SQL;
+  error: ErrorCode;
 }
 
 /**
@@ -131,6 +153,80 @@ export class ListingsService {
     const [item] = await this.mine(userId, eq(listings.id, listingId));
     if (!item) throw new Error(`The listing ${listingId} was not found`);
     return item;
+  }
+
+  /**
+   * `PATCH /listings/:id`: a new quantity and/or note on one of [userId]'s
+   * active listings; an empty note clears it. Answers the listing as
+   * `GET /me/listings` shows it. See {@link actOnActive} for the errors.
+   */
+  update(
+    userId: string,
+    listingId: string,
+    changes: ListingChanges,
+  ): Promise<MyListingResponse> {
+    return this.actOnActive(userId, listingId, {
+      quantity: changes.quantity,
+      note: changes.note === undefined ? undefined : changes.note || null,
+    });
+  }
+
+  /**
+   * `POST /listings/:id/close`: the donor gives up on one of their active
+   * listings, which stays in Meus anúncios as `closed` and cannot reopen.
+   */
+  close(userId: string, listingId: string): Promise<MyListingResponse> {
+    return this.actOnActive(userId, listingId, { status: 'closed' });
+  }
+
+  /**
+   * The common rules of the donor routes (`PATCH`, `close`, `donations`,
+   * `renew`), applied in one atomic `UPDATE` so a concurrent action cannot
+   * slip between the check and the write: another User's listing, or one
+   * that does not exist, is `NOT_FOUND`; one that is not effectively active
+   * (expired included) is `LISTING_NOT_ACTIVE`. An action with a rule of its
+   * own passes it as [precondition]. Answers the changed listing as
+   * `GET /me/listings` shows it.
+   */
+  async actOnActive(
+    userId: string,
+    listingId: string,
+    changes: PgUpdateSetSource<typeof listings>,
+    precondition?: DonorActionPrecondition,
+  ): Promise<MyListingResponse> {
+    const [changed] = await this.db
+      .update(listings)
+      .set({ ...changes, updatedAt: sql`now()` })
+      .where(
+        and(
+          eq(listings.id, listingId),
+          eq(listings.userId, userId),
+          isEffectivelyActive(),
+          precondition?.where,
+        ),
+      )
+      .returning({ id: listings.id });
+    if (!changed) {
+      throw await this.whyNotChanged(userId, listingId, precondition);
+    }
+    return this.mineItem(userId, listingId);
+  }
+
+  /** Which rule stopped a donor action that changed no row. */
+  private async whyNotChanged(
+    userId: string,
+    listingId: string,
+    precondition: DonorActionPrecondition | undefined,
+  ): Promise<DomainError> {
+    const [listing] = await this.db
+      .select({ active: isEffectivelyActive() })
+      .from(listings)
+      .where(and(eq(listings.id, listingId), eq(listings.userId, userId)));
+    if (!listing) return new DomainError('NOT_FOUND');
+    if (!listing.active || !precondition) {
+      return new DomainError('LISTING_NOT_ACTIVE');
+    }
+    return new DomainError(precondition.error);
   }
 
   private async ownsPlant(userId: string, plantId: string): Promise<boolean> {

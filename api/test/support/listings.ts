@@ -89,6 +89,30 @@ export function myListings(
     .set('Authorization', `Bearer ${session.accessToken}`);
 }
 
+/** `PATCH /v1/listings/:id` as [session], without checking the answer. */
+export function editListing(
+  app: INestApplication<App>,
+  session: AuthTokensBody,
+  listingId: string,
+  body: object,
+): request.Test {
+  return request(app.getHttpServer())
+    .patch(`/v1/listings/${listingId}`)
+    .set('Authorization', `Bearer ${session.accessToken}`)
+    .send(body);
+}
+
+/** `POST /v1/listings/:id/close` as [session], without checking the answer. */
+export function closeListing(
+  app: INestApplication<App>,
+  session: AuthTokensBody,
+  listingId: string,
+): request.Test {
+  return request(app.getHttpServer())
+    .post(`/v1/listings/${listingId}/close`)
+    .set('Authorization', `Bearer ${session.accessToken}`);
+}
+
 /**
  * Moves [listingId]'s expiry to now + [interval] (`'3 days'`, `'-1 day'`):
  * deadlines are tested by changing the date in the database, with no fake

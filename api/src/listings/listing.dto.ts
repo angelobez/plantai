@@ -54,6 +54,29 @@ export class CreateListingRequest extends createZodDto(
 ) {}
 
 /**
+ * `PATCH /listings/:id`: a new quantity, a new note, or both. At least one of
+ * them. A `null`, empty or blank note clears it.
+ */
+export const updateListingRequestSchema = z
+  .object({
+    quantity: listingQuantitySchema.optional(),
+    note: listingNoteSchema
+      .meta({ example: 'pegar à tarde' })
+      .nullable()
+      .optional()
+      .describe(
+        'Up to 200 characters after the trim; null, empty or blank clears it',
+      ),
+  })
+  .refine((body) => body.quantity !== undefined || body.note !== undefined, {
+    message: 'send quantity, note or both',
+  });
+
+export class UpdateListingRequest extends createZodDto(
+  updateListingRequestSchema,
+) {}
+
+/**
  * One of the donor's listings, as `GET /me/listings` shows it; also the
  * answer of `POST /listings` and of the donor's actions.
  */
