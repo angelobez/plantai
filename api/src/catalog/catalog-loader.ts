@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { CareGuideService } from '../care-guides/care-guide.service';
 import { DATABASE, type Database } from '../database/database.module';
 import { species, speciesNames } from '../database/schema';
+import { messageOf } from '../errors/message-of';
 import { PhotoStorage } from '../photo-storage/photo-storage';
 import type { CatalogSeedSpecies } from './catalog-seed';
 import { ReferencePhotoDownloader } from './reference-photo-downloader';
@@ -38,10 +39,6 @@ export interface CatalogLoadSummary {
 /** The storage key of a species' own reference photo. */
 export function referencePhotoKey(speciesId: string): string {
   return `species/${speciesId}.jpg`;
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 /** Runs [task] on every item, at most [limit] at a time. */

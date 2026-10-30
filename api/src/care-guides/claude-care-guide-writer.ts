@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { transformJSONSchema } from '@anthropic-ai/sdk/lib/transform-json-schema';
 import { z } from 'zod';
 import type { Env } from '../config/env';
+import { messageOf } from '../errors/message-of';
 import { careGuideContentSchema } from './care-guide-content';
 import {
   CareGuideNotWrittenError,
@@ -46,10 +47,6 @@ Preencha as dicas:
 - watering: de quanto em quanto tempo regar e como saber a hora.
 - light: quanta luz ela quer e se aguenta sol direto.
 - propagation: o jeito mais fácil de fazer muda para doar (estaca, divisão, semente…).`;
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 /**

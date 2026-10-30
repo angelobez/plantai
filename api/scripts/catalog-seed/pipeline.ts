@@ -3,6 +3,7 @@ import {
   floraTaxonUrl,
   splitCommonNames,
 } from './common-names';
+import { messageOf } from '../../src/errors/message-of';
 import { type FetchJson, HttpGbifNames } from '../../src/gbif/http-gbif-names';
 import { gbifPortugueseNames, gbifVernacularNamesUrl } from './gbif';
 import {
@@ -120,7 +121,7 @@ export async function buildSeed(
       if ('reason' in result) discards.push(result);
       else species.push(result);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = messageOf(error);
       discards.push({ name, reason: `erro: ${message}` });
     }
   }

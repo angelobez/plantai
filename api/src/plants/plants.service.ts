@@ -11,6 +11,7 @@ import {
   speciesNames,
 } from '../database/schema';
 import { DomainError } from '../errors/domain-error';
+import { messageOf } from '../errors/message-of';
 import { PhotoStorage } from '../photo-storage/photo-storage';
 import { PhotosService } from '../photos/photos.service';
 import type { PlantItemResponse, PlantResponse } from './plant.dto';
@@ -190,7 +191,7 @@ export class PlantsService {
         try {
           await this.storage.delete(s3Key);
         } catch (error) {
-          const reason = error instanceof Error ? error.message : String(error);
+          const reason = messageOf(error);
           this.logger.warn(
             `Photo ${s3Key} of removed plant ${plant.id} not deleted from the storage: ${reason}`,
           );

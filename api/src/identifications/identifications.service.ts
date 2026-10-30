@@ -7,6 +7,7 @@ import { DATABASE, type Database } from '../database/database.module';
 import { identifications, species, speciesNames } from '../database/schema';
 import { startOfToday } from '../database/today';
 import { DomainError } from '../errors/domain-error';
+import { messageOf } from '../errors/message-of';
 import { GbifNames } from '../gbif/gbif-names';
 import { PhotosService } from '../photos/photos.service';
 import { plausibleCommonName } from './candidate-common-name';
@@ -247,7 +248,7 @@ export class IdentificationsService {
       };
     } catch (error) {
       this.logger.warn(
-        `Dropped the candidate ${candidate.scientificName}: ${error instanceof Error ? error.message : String(error)}`,
+        `Dropped the candidate ${candidate.scientificName}: ${messageOf(error)}`,
       );
       return null;
     }

@@ -7,6 +7,7 @@ import {
   passwordResetCodeEmail,
   signupCodeEmail,
 } from '../email/emails';
+import { messageOf } from '../errors/message-of';
 import { EmailCodes } from './email-codes';
 
 /**
@@ -51,7 +52,7 @@ export class AuthEmails {
     try {
       await this.emailSender.send(to, email);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = messageOf(error);
       this.logger.error(
         `The ${email.template} e-mail to User ${user.id} was not sent: ${reason}`,
       );

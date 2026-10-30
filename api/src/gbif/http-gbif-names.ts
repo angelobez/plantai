@@ -1,3 +1,4 @@
+import { messageOf } from '../errors/message-of';
 import { gbifMatchUrl, resolveGbifMatch } from './gbif-match';
 import {
   GbifNames,
@@ -38,10 +39,7 @@ export class HttpGbifNames extends GbifNames {
         await this.fetchJson(gbifMatchUrl(scientificName)),
       );
     } catch (error) {
-      throw new GbifUnavailableError(
-        error instanceof Error ? error.message : String(error),
-        { cause: error },
-      );
+      throw new GbifUnavailableError(messageOf(error), { cause: error });
     }
   }
 }

@@ -8,6 +8,7 @@ import {
   speciesNames,
 } from '../database/schema';
 import { DomainError } from '../errors/domain-error';
+import { messageOf } from '../errors/message-of';
 import {
   type CareGuideContent,
   careGuideContentSchema,
@@ -29,10 +30,6 @@ export type CareGuideOutcome =
   | { status: 'unavailable'; reason: string }
   /** Another call is writing it right now. */
   | { status: 'generating' };
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /** The row a call reserved, as it reserved it. */
 interface Reservation {
