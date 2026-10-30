@@ -8,7 +8,8 @@ import '../../auth/validators.dart';
 import '../../core/view_models/safe_notify.dart';
 import '../../core/failure_messages.dart';
 
-/// Perfil: shows the profile, changes the name and signs out. Once signed
+/// Perfil: shows the profile, changes the name and signs out (the phone and
+/// the donation location change in the donation-profile screen). Once signed
 /// out, the router takes the User to Login.
 class ProfileViewModel extends ChangeNotifier with SafeNotify {
   ProfileViewModel({
@@ -75,6 +76,12 @@ class ProfileViewModel extends ChangeNotifier with SafeNotify {
     }
   }
 
+  /// Shows [profile], as the donation-profile screen saved it.
+  void showProfile(UserProfile profile) {
+    _profile = profile;
+    notify();
+  }
+
   /// Forgets the last name error, for a fresh edit.
   void clearNameError() {
     if (_nameError == null) return;
@@ -96,6 +103,8 @@ class ProfileViewModel extends ChangeNotifier with SafeNotify {
 
   static String _message(ProfileFailure failure) => switch (failure) {
     ProfileFailure.noConnection => noConnectionMessage,
+    // Only the donation-profile screen sends a phone.
+    ProfileFailure.invalidPhone ||
     ProfileFailure.unknown => unknownFailureMessage,
   };
 }

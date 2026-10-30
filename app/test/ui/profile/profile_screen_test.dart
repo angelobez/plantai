@@ -16,6 +16,7 @@ void main() {
   late FakeAuthRepository authRepository;
   late ProfileViewModel viewModel;
   late int aboutOpened;
+  late List<UserProfile> donationProfileOpened;
 
   setUp(() {
     profileRepository = FakeProfileRepository();
@@ -25,13 +26,18 @@ void main() {
       authRepository: authRepository,
     );
     aboutOpened = 0;
+    donationProfileOpened = [];
   });
 
   Future<void> pump(WidgetTester tester) async {
     unawaited(viewModel.load());
     await pumpScreen(
       tester,
-      ProfileScreen(viewModel: viewModel, onAbout: () => aboutOpened++),
+      ProfileScreen(
+        viewModel: viewModel,
+        onAbout: () => aboutOpened++,
+        onEditDonationProfile: donationProfileOpened.add,
+      ),
     );
   }
 
@@ -80,15 +86,51 @@ void main() {
 
     await pump(tester);
 
-    expect(find.text('+5511987654321'), findsOneWidget);
+    expect(find.text('(11) 98765-4321'), findsOneWidget);
     expect(find.text('Vila Mariana'), findsOneWidget);
     expect(find.text('Não informado'), findsNothing);
   });
 
-  testWidgets('only the name can be edited; the e-mail cannot', (tester) async {
+  testWidgets('the WhatsApp and the location open the donation profile', (
+    tester,
+  ) async {
     await pump(tester);
 
-    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    await tester.tap(find.text('WhatsApp'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Localização de doação'));
+    await tester.pumpAndSettle();
+
+    expect(donationProfileOpened.map((p) => p.id), [marina.id, marina.id]);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('shows the profile the donation-profile screen saved', (
+    tester,
+  ) async {
+    await pump(tester);
+
+    viewModel.showProfile(
+      const UserProfile(
+        id: 'id',
+        name: 'Marina Souza',
+        email: 'marina@email.com',
+        phone: '+5521998765432',
+        donationLocation: DonationLocation(neighborhood: 'Copacabana'),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('(21) 99876-5432'), findsOneWidget);
+    expect(find.text('Copacabana'), findsOneWidget);
+  });
+
+  testWidgets('name, phone and location can be edited; the e-mail cannot', (
+    tester,
+  ) async {
+    await pump(tester);
+
+    expect(find.byIcon(Icons.edit_outlined), findsNWidgets(3));
     await tester.tap(find.text('marina@email.com'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);

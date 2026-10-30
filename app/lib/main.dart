@@ -18,6 +18,8 @@ import 'data/repositories/profile/profile_repository_remote.dart';
 import 'data/services/api/api_client.dart';
 import 'data/services/api/update_required.dart';
 import 'data/services/google/google_id_tokens.dart';
+import 'data/services/location/geolocator_location_service.dart';
+import 'data/services/location/location_service.dart';
 import 'data/services/photo_picker/image_picker_photo_picker.dart';
 import 'data/services/photo_picker/photo_picker.dart';
 import 'data/services/session/session_store.dart';
@@ -75,6 +77,7 @@ Future<void> main() async {
         catalogRepository: catalogRepository,
         identificationRepository: identificationRepository,
         gardenRepository: gardenRepository,
+        locationService: GeolocatorLocationService(),
       ),
     ),
   );
@@ -91,6 +94,7 @@ class PlantaiApp extends StatefulWidget {
     required this.catalogRepository,
     required this.identificationRepository,
     required this.gardenRepository,
+    required this.locationService,
     this.openUrl = openExternally,
   });
 
@@ -102,6 +106,7 @@ class PlantaiApp extends StatefulWidget {
   final CatalogRepository catalogRepository;
   final IdentificationRepository identificationRepository;
   final GardenRepository gardenRepository;
+  final LocationService locationService;
   final UrlOpener openUrl;
 
   @override
@@ -118,6 +123,7 @@ class _PlantaiAppState extends State<PlantaiApp> {
     catalogRepository: widget.catalogRepository,
     identificationRepository: widget.identificationRepository,
     gardenRepository: widget.gardenRepository,
+    locationService: widget.locationService,
     openUrl: widget.openUrl,
   );
 

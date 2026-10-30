@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/themes/colors.dart';
 
@@ -18,6 +19,9 @@ class LabeledTextField extends StatelessWidget {
     this.enabled = true,
     this.textCapitalization = TextCapitalization.none,
     this.onSubmitted,
+    this.onChanged,
+    this.hintText,
+    this.inputFormatters,
   });
 
   final String label;
@@ -31,6 +35,9 @@ class LabeledTextField extends StatelessWidget {
   final bool enabled;
   final TextCapitalization textCapitalization;
   final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
+  final String? hintText;
+  final List<TextInputFormatter>? inputFormatters;
 
   static OutlineInputBorder _border(Color color) => OutlineInputBorder(
     borderRadius: BorderRadius.circular(14),
@@ -63,6 +70,8 @@ class LabeledTextField extends StatelessWidget {
           enableSuggestions: !obscureText,
           textCapitalization: textCapitalization,
           onSubmitted: onSubmitted,
+          onChanged: onChanged,
+          inputFormatters: inputFormatters,
           style: const TextStyle(fontSize: 16, color: AppColors.ink),
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(
@@ -76,6 +85,8 @@ class LabeledTextField extends StatelessWidget {
             errorBorder: _border(AppColors.danger),
             focusedErrorBorder: _border(AppColors.danger),
             errorText: errorText,
+            hintText: hintText,
+            hintStyle: const TextStyle(color: AppColors.inkMuted),
             helperText: helperText,
             helperMaxLines: 2,
             errorMaxLines: 2,

@@ -13,8 +13,10 @@ import 'update_required.dart';
 /// reached). A `426 APP_UPDATE_REQUIRED` on any call also raises
 /// [UpdateRequired].
 ///
-/// Repositories call [get], [getList], [post], [patch], [delete],
-/// [postWithoutBody] and [postMultipart];
+/// Repositories call [get], [getList], [post], [patch], [put], [delete],
+/// [postWithoutBody] and [postMultipart]; `headers` sends extra request
+/// headers on one call (such as `X-Search-Location`, which must stay out of
+/// the URL because the URL goes to the logs);
 /// cross-cutting behavior goes in as another [Interceptor] (the session's
 /// `Authorization` header is [BearerInterceptor]).
 class ApiClient {
@@ -52,15 +54,14 @@ class ApiClient {
     String path,
     T Function(Map<String, dynamic> json) fromJson, {
     Map<String, String>? queryParameters,
+    Map<String, String>? headers,
     Duration? receiveTimeout,
   }) {
     return _guard(() async {
       final response = await _dio.get<Map<String, dynamic>>(
         path,
         queryParameters: queryParameters,
-        options: receiveTimeout == null
-            ? null
-            : Options(receiveTimeout: receiveTimeout),
+        options: _options(headers: headers, receiveTimeout: receiveTimeout),
       );
       return fromJson(response.data ?? const {});
     });
@@ -72,11 +73,13 @@ class ApiClient {
     String path,
     T Function(Map<String, dynamic> json) fromJson, {
     Map<String, String>? queryParameters,
+    Map<String, String>? headers,
   }) {
     return _guard(() async {
       final response = await _dio.get<List<dynamic>>(
         path,
         queryParameters: queryParameters,
+        options: _options(headers: headers),
       );
       return [
         for (final item in response.data ?? const <dynamic>[])
@@ -95,15 +98,14 @@ class ApiClient {
     String path,
     Map<String, Object?> body,
     T Function(Map<String, dynamic> json) fromJson, {
+    Map<String, String>? headers,
     Duration? receiveTimeout,
   }) {
     return _guard(() async {
       final response = await _dio.post<Map<String, dynamic>>(
         path,
         data: body,
-        options: receiveTimeout == null
-            ? null
-            : Options(receiveTimeout: receiveTimeout),
+        options: _options(headers: headers, receiveTimeout: receiveTimeout),
       );
       return fromJson(response.data ?? const {});
     });
@@ -114,12 +116,44 @@ class ApiClient {
   Future<T> patch<T>(
     String path,
     Map<String, Object?> body,
-    T Function(Map<String, dynamic> json) fromJson,
-  ) {
+    T Function(Map<String, dynamic> json) fromJson, {
+    Map<String, String>? headers,
+  }) {
     return _guard(() async {
-      final response = await _dio.patch<Map<String, dynamic>>(path, data: body);
+      final response = await _dio.patch<Map<String, dynamic>>(
+        path,
+        data: body,
+        options: _options(headers: headers),
+      );
       return fromJson(response.data ?? const {});
     });
+  }
+
+  /// `PUT` [body] as JSON to [path] and parse its JSON object answer with
+  /// [fromJson].
+  Future<T> put<T>(
+    String path,
+    Map<String, Object?> body,
+    T Function(Map<String, dynamic> json) fromJson, {
+    Map<String, String>? headers,
+  }) {
+    return _guard(() async {
+      final response = await _dio.put<Map<String, dynamic>>(
+        path,
+        data: body,
+        options: _options(headers: headers),
+      );
+      return fromJson(response.data ?? const {});
+    });
+  }
+
+  /// The per-call [Options], or null when the call changes nothing.
+  static Options? _options({
+    Map<String, String>? headers,
+    Duration? receiveTimeout,
+  }) {
+    if (headers == null && receiveTimeout == null) return null;
+    return Options(headers: headers, receiveTimeout: receiveTimeout);
   }
 
   /// `DELETE` [path], for routes that answer `204` without a body.

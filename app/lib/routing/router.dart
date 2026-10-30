@@ -7,6 +7,8 @@ import '../data/repositories/garden/garden_repository.dart';
 import '../data/repositories/identification/identification_repository.dart';
 import '../data/repositories/photo/photo_repository.dart';
 import '../data/repositories/profile/profile_repository.dart';
+import '../data/services/api/models/user_profile.dart';
+import '../data/services/location/location_service.dart';
 import '../data/services/api/models/photo.dart';
 import '../data/services/api/models/species_summary.dart';
 import '../data/services/api/update_required.dart';
@@ -42,6 +44,8 @@ import '../ui/identification/widgets/candidates_screen.dart';
 import '../ui/photo/view_models/photo_view_model.dart';
 import '../ui/photo/widgets/photo_screen.dart';
 import '../ui/photo/widgets/photo_source_sheet.dart';
+import '../ui/donation_profile/view_models/donation_profile_view_model.dart';
+import '../ui/donation_profile/widgets/donation_profile_screen.dart';
 import '../ui/profile/view_models/profile_view_model.dart';
 import '../ui/profile/widgets/profile_screen.dart';
 import '../ui/tabs/widgets/tabs_shell.dart';
@@ -93,6 +97,12 @@ abstract final class Routes {
 
   static const nearby = '/perto';
   static const profile = '/perfil';
+
+  /// The phone and the donation location, over Perfil. Pushed with the
+  /// [UserProfile] as `extra` (to fill the fields); completes with the
+  /// profile as saved, or null when the User goes back.
+  static const donationProfile = '$profile/$_donationProfilePath';
+  static const _donationProfilePath = 'doacao';
 
   /// Foto, the start of the flow to identify a plant. Takes the source of
   /// the first photo in the `fonte` query parameter ([identifyFrom]).
@@ -184,6 +194,7 @@ GoRouter router({
   required CatalogRepository catalogRepository,
   required IdentificationRepository identificationRepository,
   required GardenRepository gardenRepository,
+  required LocationService locationService,
   UrlOpener openUrl = openExternally,
 }) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -265,8 +276,34 @@ GoRouter router({
                   builder: (viewModel) => ProfileScreen(
                     viewModel: viewModel,
                     onAbout: () => context.push(Routes.about),
+                    onEditDonationProfile: (profile) async {
+                      final saved = await context.push<UserProfile>(
+                        Routes.donationProfile,
+                        extra: profile,
+                      );
+                      if (saved != null) viewModel.showProfile(saved);
+                    },
                   ),
                 ),
+                routes: [
+                  // Over the whole shell, like the other forms.
+                  GoRoute(
+                    parentNavigatorKey: rootNavigatorKey,
+                    path: Routes._donationProfilePath,
+                    builder: (context, state) => ViewModelScope(
+                      create: () => DonationProfileViewModel(
+                        profileRepository: profileRepository,
+                        locationService: locationService,
+                        openUrl: openUrl,
+                        profile: state.extra as UserProfile?,
+                      ),
+                      builder: (viewModel) => DonationProfileScreen.profile(
+                        viewModel: viewModel,
+                        onSaved: (profile) => context.pop(profile),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

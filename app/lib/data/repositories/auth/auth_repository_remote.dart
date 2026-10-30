@@ -195,6 +195,7 @@ class AuthRepositoryRemote extends AuthRepository {
       ApiErrorCode.identificationAlreadyChosen ||
       ApiErrorCode.careGuideGenerating ||
       ApiErrorCode.speciesAlreadySet ||
+      ApiErrorCode.invalidPhone ||
       ApiErrorCode.unknown => AuthFailure.unknown,
     },
   );

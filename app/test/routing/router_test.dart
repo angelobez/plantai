@@ -14,6 +14,7 @@ import '../testing/fake_auth_repository.dart';
 import '../testing/fake_catalog_repository.dart';
 import '../testing/fake_garden_repository.dart';
 import '../testing/fake_identification_repository.dart';
+import '../testing/fake_location_service.dart';
 import '../testing/fake_photo_picker.dart';
 import '../testing/fake_photo_repository.dart';
 import '../testing/fake_profile_repository.dart';
@@ -26,6 +27,7 @@ void main() {
   late FakeCatalogRepository catalogRepository;
   late FakeIdentificationRepository identificationRepository;
   late FakeGardenRepository gardenRepository;
+  late FakeProfileRepository profileRepository;
   late List<Uri> openedUrls;
 
   setUp(() {
@@ -36,6 +38,7 @@ void main() {
     catalogRepository = FakeCatalogRepository();
     identificationRepository = FakeIdentificationRepository();
     gardenRepository = FakeGardenRepository();
+    profileRepository = FakeProfileRepository();
     openedUrls = [];
   });
 
@@ -44,12 +47,13 @@ void main() {
       PlantaiApp(
         updateRequired: updateRequired,
         authRepository: authRepository,
-        profileRepository: FakeProfileRepository(),
+        profileRepository: profileRepository,
         photoRepository: photoRepository,
         photoPicker: photoPicker,
         catalogRepository: catalogRepository,
         identificationRepository: identificationRepository,
         gardenRepository: gardenRepository,
+        locationService: FakeLocationService(),
         openUrl: (url) async {
           openedUrls.add(url);
           return true;
@@ -954,5 +958,50 @@ void main() {
     await pumpApp(tester);
 
     expect(find.text('Atualize o PlantAí'), findsOneWidget);
+  });
+
+  group('Perfil de doação', () {
+    testWidgets('the Perfil opens it, saves and shows the phone and the '
+        'neighborhood', (tester) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Perfil'));
+      await tester.pumpAndSettle();
+      expect(find.text('Não informado'), findsNWidgets(2));
+
+      await tester.tap(find.text('WhatsApp'));
+      await tester.pumpAndSettle();
+      expect(find.text('Perfil de doação'), findsOneWidget);
+      expect(find.byKey(const Key('bottom-bar')), findsNothing);
+
+      await tester.enterText(find.byType(TextField).first, '11987654321');
+      await tester.tap(find.text('Usar minha localização'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Salvar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Perfil de doação'), findsNothing);
+      expect(find.text('(11) 98765-4321'), findsOneWidget);
+      expect(find.text('Vila Mariana'), findsOneWidget);
+      expect(find.text('Não informado'), findsNothing);
+      expect(
+        profileRepository.donationProfiles.single.phone,
+        '(11) 98765-4321',
+      );
+    });
+
+    testWidgets('back returns to the Perfil without saving', (tester) async {
+      await pumpApp(tester);
+      await tester.tap(tab('Perfil'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Localização de doação'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Voltar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('marina@email.com'), findsOneWidget);
+      expect(find.text('Não informado'), findsNWidgets(2));
+      expect(profileRepository.donationProfiles, isEmpty);
+    });
   });
 }

@@ -16,6 +16,7 @@ enum ApiErrorCode {
   identificationServiceUnavailable('IDENTIFICATION_SERVICE_UNAVAILABLE'),
   identificationAlreadyChosen('IDENTIFICATION_ALREADY_CHOSEN'),
   speciesAlreadySet('SPECIES_ALREADY_SET'),
+  invalidPhone('INVALID_PHONE'),
 
   /// `202`: another request is writing the care guide; try again after
   /// [ApiException.retryAfter].
