@@ -248,6 +248,96 @@ describe('care guides (Dicas de cuidado) in GET /species/:id', () => {
     expect((await guideRow(id))?.requestedBy).toBe(session.user.id);
   });
 
+  describe('a writer whose reservation was taken over after 60 s', () => {
+    /**
+     * Starts a generation of [id] that waits for the returned `release`, then
+     * ages its row past 60 s and lets a second request take it over and
+     * finish with [winner].
+     */
+    async function staleWriterAfterTakeover(
+      id: string,
+      winner: ReturnType<typeof careGuideContent>,
+    ) {
+      let release = (): void => undefined;
+      writer.gate = new Promise((resolve) => {
+        release = resolve;
+      });
+      const stale = getSpecies(id).then((response) => response);
+      await waitFor(async () => writer.requests.length === 1);
+      await databaseOf(app)
+        .update(careGuides)
+        .set({ startedAt: sql`now() - make_interval(secs => 61)` })
+        .where(eq(careGuides.speciesId, id));
+      writer.gate = undefined;
+      writer.writes('Monstera deliciosa', winner);
+      await getSpecies(id).expect(200);
+      return { stale, release };
+    }
+
+    it("does not overwrite the winner's guide when it finishes", async () => {
+      const id = await addSpecies('Monstera deliciosa', {
+        primary: 'costela-de-adão',
+      });
+      const winner = careGuideContent({ commonName: 'costela-de-adão' });
+      const { stale, release } = await staleWriterAfterTakeover(id, winner);
+      writer.writes(
+        'Monstera deliciosa',
+        careGuideContent({ commonName: 'banana-de-macaco' }),
+      );
+
+      release();
+      const response = await stale;
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ careGuide: winner });
+      expect((await guideRow(id))?.content).toEqual(winner);
+      expect(await namesOf(id)).toEqual([
+        { name: 'costela-de-adão', isPrimary: true },
+      ]);
+    });
+
+    it("does not mark the winner's reservation failed when it fails", async () => {
+      const id = await addSpecies('Monstera deliciosa', {
+        primary: 'costela-de-adão',
+      });
+      let releaseStale = (): void => undefined;
+      writer.gate = new Promise((resolve) => {
+        releaseStale = resolve;
+      });
+      const stale = getSpecies(id).then((response) => response);
+      await waitFor(async () => writer.requests.length === 1);
+      await databaseOf(app)
+        .update(careGuides)
+        .set({ startedAt: sql`now() - make_interval(secs => 61)` })
+        .where(eq(careGuides.speciesId, id));
+      let releaseWinner = (): void => undefined;
+      writer.gate = new Promise((resolve) => {
+        releaseWinner = resolve;
+      });
+      const winner = getSpecies(id).then((response) => response);
+      await waitFor(async () => writer.requests.length === 2);
+      const reserved = await guideRow(id);
+
+      try {
+        writer.failing = true;
+        releaseStale();
+        expect((await stale).body).toMatchObject({
+          careGuideStatus: 'unavailable',
+        });
+
+        expect(await guideRow(id)).toMatchObject({
+          status: 'generating',
+          startedAt: reserved?.startedAt,
+        });
+      } finally {
+        writer.failing = false;
+        releaseWinner();
+      }
+      expect((await winner).status).toBe(200);
+      expect((await guideRow(id))?.status).toBe('ready');
+    });
+  });
+
   it("makes Claude's common name the primary one of a species that has none", async () => {
     const id = await addSpecies('Calathea orbifolia');
     writer.writes(

@@ -34,6 +34,12 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** The row a call reserved, as it reserved it. */
+interface Reservation {
+  speciesId: string;
+  startedAt: string;
+}
+
 /**
  * The care guide of each species, written once by Claude and the same for
  * everyone. {@link ensure} is the one generation function: the API (species
@@ -67,12 +73,15 @@ export class CareGuideService {
     if (current === undefined) throw new DomainError('NOT_FOUND');
     if (current.status === 'ready') return current;
 
-    if (!(await this.reserve(speciesId, requestedBy))) {
-      // Lost the reservation; the winner may have finished meanwhile.
-      const now = await this.current(speciesId);
-      return now?.status === 'ready' ? now : { status: 'generating' };
-    }
-    return this.generate(speciesId);
+    const reservation = await this.reserve(speciesId, requestedBy);
+    if (reservation === null) return this.afterLosing(speciesId);
+    return this.generate(reservation);
+  }
+
+  /** What a call that lost the row answers: the winner may have finished. */
+  private async afterLosing(speciesId: string): Promise<CareGuideOutcome> {
+    const now = await this.current(speciesId);
+    return now?.status === 'ready' ? now : { status: 'generating' };
   }
 
   /**
@@ -125,11 +134,12 @@ export class CareGuideService {
   /**
    * Marks the guide `generating` for this call, in one statement: it wins
    * when there is no row, the row `failed`, or its generation was abandoned.
+   * Null when it lost.
    */
   private async reserve(
     speciesId: string,
     requestedBy: string | null,
-  ): Promise<boolean> {
+  ): Promise<Reservation | null> {
     const rows = await this.db
       .insert(careGuides)
       .values({
@@ -153,12 +163,31 @@ export class CareGuideService {
         },
         setWhere: sql`${careGuides.status} = 'failed' OR (${careGuides.status} = 'generating' AND ${careGuides.startedAt} < now() - make_interval(secs => ${CARE_GUIDE_GENERATION_TIMEOUT_SECONDS}))`,
       })
-      .returning({ speciesId: careGuides.speciesId });
-    return rows.length > 0;
+      // As text, since a JS Date would drop the microseconds.
+      .returning({ startedAt: sql<string>`${careGuides.startedAt}::text` });
+    const [row] = rows;
+    return row ? { speciesId, startedAt: row.startedAt } : null;
   }
 
-  /** Asks Claude, then keeps the guide (and its name) or the failure. */
-  private async generate(speciesId: string): Promise<CareGuideOutcome> {
+  /**
+   * Matches the guide row only while [reservation] still owns it: once a
+   * generation is abandoned for 60 s, another call can take the row over,
+   * and the old one must not overwrite it.
+   */
+  private owned({ speciesId, startedAt }: Reservation) {
+    return and(
+      eq(careGuides.speciesId, speciesId),
+      eq(careGuides.status, 'generating'),
+      sql`${careGuides.startedAt} = ${startedAt}::timestamptz`,
+    );
+  }
+
+  /**
+   * Asks Claude, then keeps the guide (and its name) or the failure, as long
+   * as [reservation] still owns the row.
+   */
+  private async generate(reservation: Reservation): Promise<CareGuideOutcome> {
+    const { speciesId } = reservation;
     const [row] = await this.db
       .select({ scientificName: species.scientificName })
       .from(species)
@@ -184,17 +213,12 @@ export class CareGuideService {
       await this.db
         .update(careGuides)
         .set({ status: 'failed' })
-        .where(
-          and(
-            eq(careGuides.speciesId, speciesId),
-            eq(careGuides.status, 'generating'),
-          ),
-        );
+        .where(this.owned(reservation));
       return { status: 'unavailable', reason };
     }
 
-    await this.db.transaction(async (tx) => {
-      await tx
+    const kept = await this.db.transaction(async (tx) => {
+      const updated = await tx
         .update(careGuides)
         .set({
           status: 'ready',
@@ -203,9 +227,18 @@ export class CareGuideService {
           promptVersion: this.writer.promptVersion,
           generatedAt: sql`now()`,
         })
-        .where(eq(careGuides.speciesId, speciesId));
+        .where(this.owned(reservation))
+        .returning({ speciesId: careGuides.speciesId });
+      if (updated.length === 0) return false;
       await this.keepCommonName(tx, speciesId, written.content.commonName);
+      return true;
     });
+    if (!kept) {
+      this.logger.warn(
+        `Care guide of species ${speciesId} discarded: another call took it over`,
+      );
+      return this.afterLosing(speciesId);
+    }
     return { status: 'ready', content: written.content, generated: true };
   }
 
