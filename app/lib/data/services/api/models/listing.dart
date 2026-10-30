@@ -26,6 +26,7 @@ class MyListing {
     required this.photo,
     required this.status,
     required this.quantity,
+    this.note,
     required this.interestCount,
     required this.expiresAt,
     required this.canRenew,
@@ -45,6 +46,10 @@ class MyListing {
 
   /// Seedlings left; 0 only once donated.
   final int quantity;
+
+  /// The donor's note ("pegar à tarde"); null without one. "Editar"
+  /// starts from it.
+  final String? note;
 
   /// How many Users tapped "Tenho interesse"; never who.
   final int interestCount;

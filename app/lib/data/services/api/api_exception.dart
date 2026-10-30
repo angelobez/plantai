@@ -18,6 +18,7 @@ enum ApiErrorCode {
   speciesAlreadySet('SPECIES_ALREADY_SET'),
   invalidPhone('INVALID_PHONE'),
   donationProfileRequired('DONATION_PROFILE_REQUIRED'),
+  listingNotActive('LISTING_NOT_ACTIVE'),
 
   /// `202`: another request is writing the care guide; try again after
   /// [ApiException.retryAfter].

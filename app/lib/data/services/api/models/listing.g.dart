@@ -16,6 +16,7 @@ MyListing _$MyListingFromJson(Map<String, dynamic> json) => MyListing(
     unknownValue: ListingStatus.closed,
   ),
   quantity: (json['quantity'] as num).toInt(),
+  note: json['note'] as String?,
   interestCount: (json['interestCount'] as num).toInt(),
   expiresAt: DateTime.parse(json['expiresAt'] as String),
   canRenew: json['canRenew'] as bool,

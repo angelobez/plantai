@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../data/repositories/listing/listing_repository.dart';
 import '../../../data/services/api/models/listing.dart';
+import '../../../domain/models/listing_changes.dart';
 import '../../../domain/models/listing_failure.dart';
 import '../../core/view_models/safe_notify.dart';
 import '../listing_failure_message.dart';
@@ -14,6 +17,11 @@ import '../listing_failure_message.dart';
 /// [ListingRepository] (a listing published, and later the donor's actions)
 /// refreshes it too. Only the newest read counts: an older answer that comes
 /// late is dropped.
+///
+/// The donor's actions on an active listing ([edit], [close]) return
+/// whether they worked; on failure, [actionError] says why. A listing that
+/// is no longer active, or is gone, reads the list again so it shows as it
+/// is now.
 class MyListingsViewModel extends ChangeNotifier with SafeNotify {
   MyListingsViewModel({
     required this._listingRepository,
@@ -48,6 +56,44 @@ class MyListingsViewModel extends ChangeNotifier with SafeNotify {
   bool get canRetry => _canRetry;
 
   int _run = 0;
+
+  /// True while one of the donor's actions runs.
+  bool _isActing = false;
+  bool get isActing => _isActing;
+
+  /// Why the last action failed; null after one that worked.
+  String? _actionError;
+  String? get actionError => _actionError;
+
+  /// "Editar": applies [changes] to [listing].
+  Future<bool> edit(MyListing listing, ListingChanges changes) =>
+      _act(() => _listingRepository.update(listing.id, changes));
+
+  /// "Encerrar", after the User confirmed: closes [listing] for good.
+  Future<bool> close(MyListing listing) =>
+      _act(() => _listingRepository.close(listing.id));
+
+  /// Runs one of the donor's actions. When it works, the repository tells
+  /// its listeners and the list is read again ([_onListingsChanged]).
+  Future<bool> _act(Future<void> Function() action) async {
+    _isActing = true;
+    _actionError = null;
+    notify();
+    try {
+      await action();
+      return true;
+    } on ListingFailure catch (failure) {
+      _actionError = listingFailureMessage(failure);
+      if (failure == ListingFailure.notActive ||
+          failure == ListingFailure.notFound) {
+        unawaited(refresh());
+      }
+      return false;
+    } finally {
+      _isActing = false;
+      notify();
+    }
+  }
 
   /// Reads the listings, showing the loading state.
   Future<void> load() => _read(showLoading: true);

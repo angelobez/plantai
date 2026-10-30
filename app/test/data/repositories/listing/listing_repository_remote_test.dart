@@ -8,6 +8,7 @@ import 'package:plantai/data/services/api/api_client.dart';
 import 'package:plantai/data/services/api/models/listing.dart';
 import 'package:plantai/data/services/api/update_required.dart';
 import 'package:plantai/data/services/session/session_store.dart';
+import 'package:plantai/domain/models/listing_changes.dart';
 import 'package:plantai/domain/models/listing_failure.dart';
 import 'package:plantai/domain/models/new_listing.dart';
 
@@ -135,6 +136,60 @@ void main() {
     ]);
   });
 
+  test('myListings reads the note, null without one', () async {
+    adapter.respond = (_) async => jsonResponse(200, [
+      {..._listingJson, 'note': 'Pegar à tarde'},
+      {..._listingJson, 'note': null},
+    ]);
+
+    final listings = await repository.myListings();
+
+    expect(listings.map((listing) => listing.note), ['Pegar à tarde', null]);
+  });
+
+  test('update patches only the fields it has, trimming the note, and tells '
+      'the listeners', () async {
+    adapter.respond = (_) async =>
+        jsonResponse(200, {..._listingJson, 'quantity': 7});
+    var notified = 0;
+    repository.addListener(() => notified++);
+
+    final listing = await repository.update(
+      _listingId,
+      const ListingChanges(quantity: 7, note: '  pegar de manhã '),
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/v1/listings/$_listingId');
+    expect(await sentJson(), {'quantity': 7, 'note': 'pegar de manhã'});
+    expect(listing.quantity, 7);
+    expect(notified, 1);
+  });
+
+  test('update sends an empty note to clear it', () async {
+    adapter.respond = (_) async => jsonResponse(200, _listingJson);
+
+    await repository.update(_listingId, const ListingChanges(note: '   '));
+
+    expect(await sentJson(), {'note': ''});
+  });
+
+  test('close posts to close and tells the listeners', () async {
+    adapter.respond = (_) async =>
+        jsonResponse(200, {..._listingJson, 'status': 'closed'});
+    var notified = 0;
+    repository.addListener(() => notified++);
+
+    final listing = await repository.close(_listingId);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/v1/listings/$_listingId/close');
+    expect(listing.status, ListingStatus.closed);
+    expect(notified, 1);
+  });
+
   group('failures', () {
     Future<ListingFailure?> failureOf(Future<Object?> Function() call) async {
       try {
@@ -162,6 +217,30 @@ void main() {
       adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
 
       expect(await createFailure(), ListingFailure.notFound);
+    });
+
+    test('LISTING_NOT_ACTIVE', () async {
+      adapter.respond = (_) async => problemResponse(409, 'LISTING_NOT_ACTIVE');
+
+      expect(
+        await failureOf(() => repository.close(_listingId)),
+        ListingFailure.notActive,
+      );
+    });
+
+    test('a failed action does not tell the listeners', () async {
+      adapter.respond = (_) async => problemResponse(404, 'NOT_FOUND');
+      var notified = 0;
+      repository.addListener(() => notified++);
+
+      expect(
+        await failureOf(
+          () =>
+              repository.update(_listingId, const ListingChanges(quantity: 2)),
+        ),
+        ListingFailure.notFound,
+      );
+      expect(notified, 0);
     });
 
     test('any other code', () async {

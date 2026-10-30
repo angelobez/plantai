@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:plantai/data/repositories/listing/listing_repository.dart';
 import 'package:plantai/data/services/api/models/listing.dart';
 import 'package:plantai/data/services/api/models/photo.dart';
+import 'package:plantai/domain/models/listing_changes.dart';
 import 'package:plantai/domain/models/listing_failure.dart';
 import 'package:plantai/domain/models/new_listing.dart';
 
@@ -20,6 +21,7 @@ final costelaAtiva = MyListing(
   photo: costelaPhoto,
   status: ListingStatus.active,
   quantity: 3,
+  note: 'Pegar à tarde',
   interestCount: 3,
   expiresAt: DateTime.utc(2026, 11, 4, 15),
   canRenew: true,
@@ -54,6 +56,10 @@ final jiboiaEncerrada = MyListing(
 /// listeners. Every call throws [failure] when set (or [createFailures],
 /// one per [create], first). It records what [create] got in [created].
 ///
+/// The donor's actions ([update], [close]) change the listing in [mine] and
+/// tell the listeners, like the API; [actionFailure] makes only them fail.
+/// They record what they got in [updates] and [closed].
+///
 /// Set [gate] to hold every call until the test completes it.
 class FakeListingRepository extends ListingRepository {
   FakeListingRepository({List<MyListing>? mine}) : mine = mine ?? [];
@@ -72,6 +78,15 @@ class FakeListingRepository extends ListingRepository {
 
   /// What [create] got, in order (also the failed ones).
   final created = <NewListing>[];
+
+  /// Thrown by the next donor actions, until set back to null.
+  ListingFailure? actionFailure;
+
+  /// What [update] got, in order: the listing id and the changes.
+  final updates = <(String, ListingChanges)>[];
+
+  /// The ids [close] got, in order.
+  final closed = <String>[];
 
   /// How many times [myListings] was called.
   int listed = 0;
@@ -113,4 +128,69 @@ class FakeListingRepository extends ListingRepository {
     await _answer();
     return List.of(mine);
   }
+
+  @override
+  Future<MyListing> update(String id, ListingChanges changes) {
+    updates.add((id, changes));
+    final note = changes.note?.trim();
+    return _act(
+      id,
+      (listing) => _copy(
+        listing,
+        quantity: changes.quantity ?? listing.quantity,
+        note: note == null ? listing.note : (note.isEmpty ? null : note),
+      ),
+    );
+  }
+
+  @override
+  Future<MyListing> close(String id) {
+    closed.add(id);
+    return _act(
+      id,
+      (listing) => _copy(
+        listing,
+        note: listing.note,
+        status: ListingStatus.closed,
+        canRenew: false,
+      ),
+    );
+  }
+
+  Future<MyListing> _act(
+    String id,
+    MyListing Function(MyListing listing) change,
+  ) async {
+    await gate?.future;
+    final failure = actionFailure ?? this.failure;
+    if (failure != null) throw failure;
+    final index = mine.indexWhere((listing) => listing.id == id);
+    if (index < 0) throw ListingFailure.notFound;
+    if (mine[index].status != ListingStatus.active) {
+      throw ListingFailure.notActive;
+    }
+    final changed = change(mine[index]);
+    mine = [...mine]..[index] = changed;
+    notifyListeners();
+    return changed;
+  }
+
+  /// [listing] with the given fields; [note] is always replaced.
+  static MyListing _copy(
+    MyListing listing, {
+    required String? note,
+    int? quantity,
+    ListingStatus? status,
+    bool? canRenew,
+  }) => MyListing(
+    id: listing.id,
+    commonName: listing.commonName,
+    photo: listing.photo,
+    status: status ?? listing.status,
+    quantity: quantity ?? listing.quantity,
+    note: note,
+    interestCount: listing.interestCount,
+    expiresAt: listing.expiresAt,
+    canRenew: canRenew ?? listing.canRenew,
+  );
 }

@@ -1,3 +1,4 @@
+import '../../../domain/models/listing_changes.dart';
 import '../../../domain/models/listing_failure.dart';
 import '../../../domain/models/new_listing.dart';
 import '../../services/api/api_client.dart';
@@ -34,6 +35,29 @@ class ListingRepositoryRemote extends ListingRepository {
   Future<List<MyListing>> myListings() =>
       _guard(() => _apiClient.getList('/v1/me/listings', MyListing.fromJson));
 
+  @override
+  Future<MyListing> update(String id, ListingChanges changes) => _act(
+    () => _apiClient.patch(_path(id), {
+      'quantity': ?changes.quantity,
+      'note': ?changes.note?.trim(),
+    }, MyListing.fromJson),
+  );
+
+  @override
+  Future<MyListing> close(String id) => _act(
+    () => _apiClient.post('${_path(id)}/close', const {}, MyListing.fromJson),
+  );
+
+  static String _path(String id) => '/v1/listings/${Uri.encodeComponent(id)}';
+
+  /// Runs one of the donor's actions and, once it worked, tells the
+  /// listeners so Meus anúncios reads the list again.
+  Future<MyListing> _act(Future<MyListing> Function() call) async {
+    final listing = await _guard(call);
+    notifyListeners();
+    return listing;
+  }
+
   static Future<T> _guard<T>(Future<T> Function() call) => guardApiCall(
     call,
     noConnection: ListingFailure.noConnection,
@@ -41,6 +65,7 @@ class ListingRepositoryRemote extends ListingRepository {
       ApiErrorCode.donationProfileRequired =>
         ListingFailure.donationProfileRequired,
       ApiErrorCode.notFound => ListingFailure.notFound,
+      ApiErrorCode.listingNotActive => ListingFailure.notActive,
       _ => ListingFailure.unknown,
     },
   );

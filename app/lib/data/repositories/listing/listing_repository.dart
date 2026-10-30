@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../domain/models/listing_changes.dart';
 import '../../../domain/models/new_listing.dart';
 import '../../services/api/models/listing.dart';
 
@@ -17,4 +18,14 @@ abstract class ListingRepository extends ChangeNotifier {
 
   /// The User's own listings, newest first, with the effective status.
   Future<List<MyListing>> myListings();
+
+  // The donor's actions on an active listing. Another User's listing, or
+  // one that is gone, fails with `ListingFailure.notFound`; one that is no
+  // longer active (expired included) with `ListingFailure.notActive`.
+
+  /// "Editar": applies [changes] to the listing [id] and answers it.
+  Future<MyListing> update(String id, ListingChanges changes);
+
+  /// "Encerrar": closes the listing [id] for good and answers it.
+  Future<MyListing> close(String id);
 }

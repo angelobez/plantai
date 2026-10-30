@@ -14,6 +14,10 @@ enum ListingFailure implements Exception {
   /// gone (`NOT_FOUND`).
   notFound,
 
+  /// The listing is no longer active (closed, donated or expired), so the
+  /// donor's actions do not apply (`LISTING_NOT_ACTIVE`).
+  notActive,
+
   /// Anything else.
   unknown,
 }

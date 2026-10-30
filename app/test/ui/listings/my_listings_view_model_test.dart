@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:plantai/data/services/api/models/listing.dart';
+import 'package:plantai/domain/models/listing_changes.dart';
 import 'package:plantai/domain/models/listing_failure.dart';
 import 'package:plantai/domain/models/new_listing.dart';
 import 'package:plantai/ui/listings/view_models/my_listings_view_model.dart';
@@ -114,5 +116,117 @@ void main() {
     );
 
     expect(repository.listed, 1);
+  });
+
+  group("the donor's actions", () {
+    Future<MyListingsViewModel> loaded() async {
+      final viewModel = MyListingsViewModel(listingRepository: repository);
+      addTearDown(viewModel.dispose);
+      await viewModel.load();
+      return viewModel;
+    }
+
+    MyListing costelaIn(MyListingsViewModel viewModel) =>
+        viewModel.listings!.firstWhere((item) => item.id == costelaAtiva.id);
+
+    test('edit sends the changes and the list reads them again', () async {
+      final viewModel = await loaded();
+
+      final edited = await viewModel.edit(
+        costelaAtiva,
+        const ListingChanges(quantity: 5, note: ''),
+      );
+      await pumpEventQueue();
+
+      expect(edited, isTrue);
+      expect(repository.updates.single.$1, costelaAtiva.id);
+      expect(repository.updates.single.$2.quantity, 5);
+      expect(costelaIn(viewModel).quantity, 5);
+      expect(costelaIn(viewModel).note, isNull);
+      expect(viewModel.actionError, isNull);
+    });
+
+    test('close closes the listing and the list shows it closed', () async {
+      final viewModel = await loaded();
+
+      final closed = await viewModel.close(costelaAtiva);
+      await pumpEventQueue();
+
+      expect(closed, isTrue);
+      expect(repository.closed, [costelaAtiva.id]);
+      expect(costelaIn(viewModel).status, ListingStatus.closed);
+    });
+
+    test('isActing is true while an action runs', () async {
+      final viewModel = await loaded();
+      repository.gate = Completer<void>();
+
+      final closing = viewModel.close(costelaAtiva);
+      expect(viewModel.isActing, isTrue);
+
+      repository.gate!.complete();
+      await closing;
+      expect(viewModel.isActing, isFalse);
+    });
+
+    test('without connection, the action fails with the message and the '
+        'list stays', () async {
+      final viewModel = await loaded();
+      repository.actionFailure = ListingFailure.noConnection;
+
+      final closed = await viewModel.close(costelaAtiva);
+
+      expect(closed, isFalse);
+      expect(
+        viewModel.actionError,
+        'Sem conexão com a internet. Confira a rede e tente de novo.',
+      );
+      expect(costelaIn(viewModel).status, ListingStatus.active);
+      expect(viewModel.isActing, isFalse);
+    });
+
+    test(
+      'a listing no longer active says so and reads the list again',
+      () async {
+        final viewModel = await loaded();
+        repository.actionFailure = ListingFailure.notActive;
+        repository.mine = [jiboiaEncerrada];
+
+        final edited = await viewModel.edit(
+          costelaAtiva,
+          const ListingChanges(quantity: 2),
+        );
+        await pumpEventQueue();
+
+        expect(edited, isFalse);
+        expect(viewModel.actionError, 'Esse anúncio não está mais ativo.');
+        expect(viewModel.listings, [jiboiaEncerrada]);
+        expect(viewModel.loadError, isNull);
+      },
+    );
+
+    test('a listing that is gone says so and reads the list again', () async {
+      final viewModel = await loaded();
+      repository.actionFailure = ListingFailure.notFound;
+      final listedBefore = repository.listed;
+
+      await viewModel.close(costelaAtiva);
+      await pumpEventQueue();
+
+      expect(viewModel.actionError, 'Esse anúncio não existe mais.');
+      expect(repository.listed, listedBefore + 1);
+    });
+
+    test('the next action clears the previous error', () async {
+      final viewModel = await loaded();
+      repository.actionFailure = ListingFailure.unknown;
+      await viewModel.close(costelaAtiva);
+      expect(viewModel.actionError, 'Algo deu errado. Tente de novo.');
+
+      repository.actionFailure = null;
+      await viewModel.close(costelaAtiva);
+
+      expect(viewModel.actionError, isNull);
+    });
   });
 }
