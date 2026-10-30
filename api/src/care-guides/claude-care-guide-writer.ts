@@ -80,7 +80,9 @@ export class ClaudeCareGuideWriter extends CareGuideWriter {
         output_config: { effort: 'low' },
         system: SYSTEM_PROMPT,
         tools: [RECORD_CARE_GUIDE_TOOL],
-        // Forcing the tool is not supported by the current models.
+        // Not a forced tool (`any` or `tool`): Sonnet 5.5 rejects that with a
+        // 400. The system prompt asks for the tool, `strict` keeps its input
+        // schema-valid, and a reply without it fails below.
         tool_choice: { type: 'auto' },
         messages: [{ role: 'user', content: userPrompt(request) }],
       });
