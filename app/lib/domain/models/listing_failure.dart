@@ -18,6 +18,14 @@ enum ListingFailure implements Exception {
   /// donor's actions do not apply (`LISTING_NOT_ACTIVE`).
   notActive,
 
+  /// "Doei algumas" with more seedlings than the listing has now
+  /// (`INVALID_DONATION_COUNT`).
+  invalidDonationCount,
+
+  /// "Renovar" before the last 7 days before the expiry
+  /// (`RENEWAL_NOT_ALLOWED`).
+  renewalNotAllowed,
+
   /// Anything else.
   unknown,
 }

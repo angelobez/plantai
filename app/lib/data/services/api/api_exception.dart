@@ -20,6 +20,8 @@ enum ApiErrorCode {
   donationProfileRequired('DONATION_PROFILE_REQUIRED'),
   listingNotActive('LISTING_NOT_ACTIVE'),
   locationRequired('LOCATION_REQUIRED'),
+  invalidDonationCount('INVALID_DONATION_COUNT'),
+  renewalNotAllowed('RENEWAL_NOT_ALLOWED'),
 
   /// `202`: another request is writing the care guide; try again after
   /// [ApiException.retryAfter].

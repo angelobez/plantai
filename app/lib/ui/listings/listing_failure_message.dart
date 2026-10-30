@@ -12,5 +12,9 @@ String listingFailureMessage(
     'Antes de doar, informe o seu WhatsApp e de onde você doa.',
   ListingFailure.notFound => notFound,
   ListingFailure.notActive => 'Esse anúncio não está mais ativo.',
+  ListingFailure.invalidDonationCount =>
+    'O anúncio tem menos mudas do que isso agora.',
+  ListingFailure.renewalNotAllowed =>
+    'Só dá para renovar nos últimos 7 dias antes de expirar.',
   ListingFailure.unknown => unknownFailureMessage,
 };

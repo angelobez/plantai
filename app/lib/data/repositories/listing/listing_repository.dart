@@ -27,8 +27,17 @@ abstract class ListingRepository extends ChangeNotifier {
   /// "Editar": applies [changes] to the listing [id] and answers it.
   Future<MyListing> update(String id, ListingChanges changes);
 
+  /// "Doei algumas": [count] seedlings (1 up to the quantity) left the
+  /// listing [id]; at zero it is donated. More than it has fails with
+  /// `ListingFailure.invalidDonationCount`.
+  Future<MyListing> donate(String id, int count);
+
   /// "Encerrar": closes the listing [id] for good and answers it.
   Future<MyListing> close(String id);
+
+  /// "Renovar": the listing [id] expires 30 days from now. Before its last
+  /// 7 days, fails with `ListingFailure.renewalNotAllowed`.
+  Future<MyListing> renew(String id);
 
   /// Page [page] (from 1) of the active listings of other Users within
   /// 30 km of [from], nearest first; [nearbyPageSize] per page, so a shorter

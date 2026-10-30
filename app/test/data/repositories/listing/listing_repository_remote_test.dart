@@ -279,6 +279,39 @@ void main() {
     );
   });
 
+  test('donate posts the count and tells the listeners', () async {
+    adapter.respond = (_) async =>
+        jsonResponse(200, {..._listingJson, 'quantity': 1});
+    var notified = 0;
+    repository.addListener(() => notified++);
+
+    final listing = await repository.donate(_listingId, 2);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/v1/listings/$_listingId/donations');
+    expect(await sentJson(), {'count': 2});
+    expect(listing.quantity, 1);
+    expect(notified, 1);
+  });
+
+  test('renew posts to renew and tells the listeners', () async {
+    adapter.respond = (_) async => jsonResponse(200, {
+      ..._listingJson,
+      'expiresAt': '2026-11-29T12:00:00.000Z',
+    });
+    var notified = 0;
+    repository.addListener(() => notified++);
+
+    final listing = await repository.renew(_listingId);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/v1/listings/$_listingId/renew');
+    expect(listing.expiresAt, DateTime.utc(2026, 11, 29, 12));
+    expect(notified, 1);
+  });
+
   group('failures', () {
     Future<ListingFailure?> failureOf(Future<Object?> Function() call) async {
       try {
@@ -314,6 +347,26 @@ void main() {
       expect(
         await failureOf(() => repository.close(_listingId)),
         ListingFailure.notActive,
+      );
+    });
+
+    test('INVALID_DONATION_COUNT', () async {
+      adapter.respond = (_) async =>
+          problemResponse(400, 'INVALID_DONATION_COUNT');
+
+      expect(
+        await failureOf(() => repository.donate(_listingId, 4)),
+        ListingFailure.invalidDonationCount,
+      );
+    });
+
+    test('RENEWAL_NOT_ALLOWED', () async {
+      adapter.respond = (_) async =>
+          problemResponse(409, 'RENEWAL_NOT_ALLOWED');
+
+      expect(
+        await failureOf(() => repository.renew(_listingId)),
+        ListingFailure.renewalNotAllowed,
       );
     });
 

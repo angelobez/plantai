@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import '../../../data/services/api/models/listing.dart';
 import '../../core/themes/colors.dart';
 import '../view_models/my_listings_view_model.dart';
+import 'donation_dialog.dart';
 import 'edit_listing_dialog.dart';
 
 /// What the donor can do with one of their listings in Meus anúncios, in
 /// the order of the actions menu.
 enum ListingAction {
+  donate('Doei algumas'),
   edit('Editar'),
-  close('Encerrar');
+  close('Encerrar'),
+  renew('Renovar');
 
   const ListingAction(this.label);
 
@@ -27,7 +30,8 @@ enum ListingAction {
   /// Rules of an action on top of "the listing is active" (such as
   /// `canRenew` for Renovar).
   bool _isAvailableFor(MyListing listing) => switch (this) {
-    edit || close => true,
+    donate || edit || close => true,
+    renew => listing.canRenew,
   };
 }
 
@@ -65,7 +69,7 @@ class ListingActionsMenu extends StatelessWidget {
 }
 
 /// Runs [action] on [listing] through [viewModel]: asks what it needs first
-/// (the Editar dialog, the Encerrar confirmation) and shows a SnackBar with
+/// (the Doei algumas and Editar dialogs, the Encerrar confirmation) and shows a SnackBar with
 /// [MyListingsViewModel.actionError] when it fails. The list itself
 /// refreshes through the repository.
 Future<void> runListingAction(
@@ -76,6 +80,10 @@ Future<void> runListingAction(
 }) async {
   final bool worked;
   switch (action) {
+    case ListingAction.donate:
+      final count = await showDonationDialog(context, listing: listing);
+      if (count == null) return;
+      worked = await viewModel.donate(listing, count);
     case ListingAction.edit:
       final changes = await showEditListingDialog(context, listing: listing);
       if (changes == null) return;
@@ -83,6 +91,8 @@ Future<void> runListingAction(
     case ListingAction.close:
       if (!await _confirmClose(context)) return;
       worked = await viewModel.close(listing);
+    case ListingAction.renew:
+      worked = await viewModel.renew(listing);
   }
   final error = viewModel.actionError;
   if (worked || error == null || !context.mounted) return;

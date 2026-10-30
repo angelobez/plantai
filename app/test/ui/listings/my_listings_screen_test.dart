@@ -190,8 +190,8 @@ void main() {
       ),
     );
 
-    testWidgets('only the active listing has the actions menu, with Editar '
-        'and Encerrar', (tester) async {
+    testWidgets('only the active listing has the actions menu, with Doei '
+        'algumas, Editar, Encerrar and Renovar', (tester) async {
       await pump(tester);
 
       expect(find.byTooltip('Ações do anúncio'), findsOneWidget);
@@ -202,8 +202,111 @@ void main() {
       await tester.tap(actionsOf('Costela-de-adão'));
       await tester.pumpAndSettle();
 
+      expect(find.text('Doei algumas'), findsOneWidget);
       expect(find.text('Editar'), findsOneWidget);
       expect(find.text('Encerrar'), findsOneWidget);
+      expect(find.text('Renovar'), findsOneWidget);
+    });
+
+    testWidgets('Renovar is only there when the listing can be renewed', (
+      tester,
+    ) async {
+      repository.mine = [
+        MyListing(
+          id: costelaAtiva.id,
+          commonName: costelaAtiva.commonName,
+          photo: costelaAtiva.photo,
+          status: ListingStatus.active,
+          quantity: costelaAtiva.quantity,
+          interestCount: costelaAtiva.interestCount,
+          expiresAt: DateTime.utc(2026, 11, 20, 15),
+          canRenew: false,
+        ),
+      ];
+      await pump(tester);
+
+      await tester.tap(actionsOf('Costela-de-adão'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Doei algumas'), findsOneWidget);
+      expect(find.text('Renovar'), findsNothing);
+    });
+
+    testWidgets('Doei algumas starts at 1 and goes up to the quantity', (
+      tester,
+    ) async {
+      await pump(tester);
+      await choose(tester, 'Doei algumas');
+
+      expect(find.text('Quantas mudas você doou?'), findsOneWidget);
+      Finder inDialog(String text) => find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text(text),
+      );
+      VoidCallback? onPressedOf(IconData icon) => tester
+          .widget<IconButton>(find.widgetWithIcon(IconButton, icon))
+          .onPressed;
+
+      expect(inDialog('1'), findsOneWidget);
+      expect(onPressedOf(Icons.remove), isNull);
+
+      for (var i = 0; i < 5; i++) {
+        await tester.tap(find.byTooltip('Mais uma'));
+      }
+      await tester.pump();
+
+      expect(inDialog('3'), findsOneWidget);
+      expect(onPressedOf(Icons.add), isNull);
+    });
+
+    testWidgets('Doei algumas sends the count and the row shows what is left', (
+      tester,
+    ) async {
+      await pump(tester);
+      await choose(tester, 'Doei algumas');
+
+      await tester.tap(find.byTooltip('Mais uma'));
+      await tester.tap(dialogButton('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(repository.donations, [(costelaAtiva.id, 2)]);
+      expect(find.text('1 muda · expira em 5 dias'), findsOneWidget);
+    });
+
+    testWidgets('donating every seedling left marks the listing Doado', (
+      tester,
+    ) async {
+      await pump(tester);
+      await choose(tester, 'Doei algumas');
+
+      await tester.tap(find.byTooltip('Mais uma'));
+      await tester.tap(find.byTooltip('Mais uma'));
+      await tester.tap(dialogButton('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ativo'), findsNothing);
+      expect(find.text('Doado'), findsNWidgets(2));
+      expect(find.byTooltip('Ações do anúncio'), findsNothing);
+    });
+
+    testWidgets('Doei algumas cancelled sends nothing', (tester) async {
+      await pump(tester);
+      await choose(tester, 'Doei algumas');
+
+      await tester.tap(dialogButton('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(repository.donations, isEmpty);
+    });
+
+    testWidgets('Renovar renews the listing for 30 more days', (tester) async {
+      await pump(tester);
+      await choose(tester, 'Renovar');
+
+      expect(repository.renewed, [costelaAtiva.id]);
+      expect(find.text('3 mudas · expira em 30 dias'), findsOneWidget);
     });
 
     testWidgets('Editar starts from the quantity and the note, and saving '

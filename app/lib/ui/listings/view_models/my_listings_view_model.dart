@@ -18,10 +18,11 @@ import '../listing_failure_message.dart';
 /// refreshes it too. Only the newest read counts: an older answer that comes
 /// late is dropped.
 ///
-/// The donor's actions on an active listing ([edit], [close]) return
-/// whether they worked; on failure, [actionError] says why. A listing that
-/// is no longer active, or is gone, reads the list again so it shows as it
-/// is now.
+/// The donor's actions on an active listing ([donate], [edit], [close],
+/// [renew]) return whether they worked; on failure, [actionError] says why.
+/// A failure that means the list on screen is out of date (the listing is
+/// no longer active or is gone, has fewer seedlings, or is not in its last
+/// days) reads the list again so it shows as it is now.
 class MyListingsViewModel extends ChangeNotifier with SafeNotify {
   MyListingsViewModel({
     required this._listingRepository,
@@ -65,6 +66,11 @@ class MyListingsViewModel extends ChangeNotifier with SafeNotify {
   String? _actionError;
   String? get actionError => _actionError;
 
+  /// "Doei algumas": [count] seedlings, from 1 up to the quantity, left
+  /// [listing]; at zero it shows as donated.
+  Future<bool> donate(MyListing listing, int count) =>
+      _act(() => _listingRepository.donate(listing.id, count));
+
   /// "Editar": applies [changes] to [listing].
   Future<bool> edit(MyListing listing, ListingChanges changes) =>
       _act(() => _listingRepository.update(listing.id, changes));
@@ -72,6 +78,19 @@ class MyListingsViewModel extends ChangeNotifier with SafeNotify {
   /// "Encerrar", after the User confirmed: closes [listing] for good.
   Future<bool> close(MyListing listing) =>
       _act(() => _listingRepository.close(listing.id));
+
+  /// "Renovar", only while [MyListing.canRenew]: [listing] expires 30 days
+  /// from now.
+  Future<bool> renew(MyListing listing) =>
+      _act(() => _listingRepository.renew(listing.id));
+
+  /// Failures that mean the list on screen no longer matches the API.
+  static const _staleListFailures = {
+    ListingFailure.notActive,
+    ListingFailure.notFound,
+    ListingFailure.invalidDonationCount,
+    ListingFailure.renewalNotAllowed,
+  };
 
   /// Runs one of the donor's actions. When it works, the repository tells
   /// its listeners and the list is read again ([_onListingsChanged]).
@@ -84,10 +103,7 @@ class MyListingsViewModel extends ChangeNotifier with SafeNotify {
       return true;
     } on ListingFailure catch (failure) {
       _actionError = listingFailureMessage(failure);
-      if (failure == ListingFailure.notActive ||
-          failure == ListingFailure.notFound) {
-        unawaited(refresh());
-      }
+      if (_staleListFailures.contains(failure)) unawaited(refresh());
       return false;
     } finally {
       _isActing = false;

@@ -45,8 +45,20 @@ class ListingRepositoryRemote extends ListingRepository {
   );
 
   @override
+  Future<MyListing> donate(String id, int count) => _act(
+    () => _apiClient.post('${_path(id)}/donations', {
+      'count': count,
+    }, MyListing.fromJson),
+  );
+
+  @override
   Future<MyListing> close(String id) => _act(
     () => _apiClient.post('${_path(id)}/close', const {}, MyListing.fromJson),
+  );
+
+  @override
+  Future<MyListing> renew(String id) => _act(
+    () => _apiClient.post('${_path(id)}/renew', const {}, MyListing.fromJson),
   );
 
   static String _path(String id) => '/v1/listings/${Uri.encodeComponent(id)}';
@@ -100,6 +112,8 @@ class ListingRepositoryRemote extends ListingRepository {
         ListingFailure.donationProfileRequired,
       ApiErrorCode.notFound => ListingFailure.notFound,
       ApiErrorCode.listingNotActive => ListingFailure.notActive,
+      ApiErrorCode.invalidDonationCount => ListingFailure.invalidDonationCount,
+      ApiErrorCode.renewalNotAllowed => ListingFailure.renewalNotAllowed,
       _ => ListingFailure.unknown,
     },
   );

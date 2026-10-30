@@ -157,6 +157,82 @@ void main() {
       expect(costelaIn(viewModel).status, ListingStatus.closed);
     });
 
+    test(
+      'donate takes the seedlings off and the list reads them again',
+      () async {
+        final viewModel = await loaded();
+
+        final donated = await viewModel.donate(costelaAtiva, 2);
+        await pumpEventQueue();
+
+        expect(donated, isTrue);
+        expect(repository.donations, [(costelaAtiva.id, 2)]);
+        expect(costelaIn(viewModel).quantity, 1);
+        expect(costelaIn(viewModel).status, ListingStatus.active);
+      },
+    );
+
+    test('donating every seedling left shows the listing donated', () async {
+      final viewModel = await loaded();
+
+      await viewModel.donate(costelaAtiva, costelaAtiva.quantity);
+      await pumpEventQueue();
+
+      expect(costelaIn(viewModel).quantity, 0);
+      expect(costelaIn(viewModel).status, ListingStatus.donated);
+      expect(costelaIn(viewModel).canRenew, isFalse);
+    });
+
+    test('renew renews the listing and the list reads it again', () async {
+      final viewModel = await loaded();
+
+      final renewed = await viewModel.renew(costelaAtiva);
+      await pumpEventQueue();
+
+      expect(renewed, isTrue);
+      expect(repository.renewed, [costelaAtiva.id]);
+      expect(costelaIn(viewModel).canRenew, isFalse);
+      expect(
+        costelaIn(viewModel).expiresAt.isAfter(costelaAtiva.expiresAt),
+        isTrue,
+      );
+    });
+
+    test(
+      'more seedlings than the listing has says so and reads the list again',
+      () async {
+        final viewModel = await loaded();
+        repository.actionFailure = ListingFailure.invalidDonationCount;
+        final listedBefore = repository.listed;
+
+        final donated = await viewModel.donate(costelaAtiva, 3);
+        await pumpEventQueue();
+
+        expect(donated, isFalse);
+        expect(
+          viewModel.actionError,
+          'O anúncio tem menos mudas do que isso agora.',
+        );
+        expect(repository.listed, listedBefore + 1);
+      },
+    );
+
+    test('renewing too early says so and reads the list again', () async {
+      final viewModel = await loaded();
+      repository.actionFailure = ListingFailure.renewalNotAllowed;
+      final listedBefore = repository.listed;
+
+      final renewed = await viewModel.renew(costelaAtiva);
+      await pumpEventQueue();
+
+      expect(renewed, isFalse);
+      expect(
+        viewModel.actionError,
+        'Só dá para renovar nos últimos 7 dias antes de expirar.',
+      );
+      expect(repository.listed, listedBefore + 1);
+    });
+
     test('isActing is true while an action runs', () async {
       final viewModel = await loaded();
       repository.gate = Completer<void>();

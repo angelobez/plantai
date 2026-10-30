@@ -102,9 +102,11 @@ ListingDetail detailOf(
 /// listeners. Every call throws [failure] when set (or [createFailures],
 /// one per [create], first). It records what [create] got in [created].
 ///
-/// The donor's actions ([update], [close]) change the listing in [mine] and
-/// tell the listeners, like the API; [actionFailure] makes only them fail.
-/// They record what they got in [updates] and [closed].
+/// The donor's actions ([update], [donate], [close], [renew]) change the
+/// listing in [mine] and tell the listeners, like the API (a renewed one
+/// expires at [renewedExpiresAt]); [actionFailure] makes only them fail.
+/// They record what they got in [updates], [donations], [closed] and
+/// [renewed].
 ///
 /// Set [gate] to hold every call until the test completes it.
 class FakeListingRepository extends ListingRepository {
@@ -131,8 +133,17 @@ class FakeListingRepository extends ListingRepository {
   /// What [update] got, in order: the listing id and the changes.
   final updates = <(String, ListingChanges)>[];
 
+  /// What [donate] got, in order: the listing id and the count.
+  final donations = <(String, int)>[];
+
   /// The ids [close] got, in order.
   final closed = <String>[];
+
+  /// The ids [renew] got, in order.
+  final renewed = <String>[];
+
+  /// The expiry [renew] gives: 30 days after 30/10 at noon in São Paulo.
+  DateTime renewedExpiresAt = DateTime.utc(2026, 11, 29, 15);
 
   /// How many times [myListings] was called.
   int listed = 0;
@@ -204,6 +215,36 @@ class FakeListingRepository extends ListingRepository {
   }
 
   @override
+  Future<MyListing> donate(String id, int count) {
+    donations.add((id, count));
+    return _act(id, (listing) {
+      if (count > listing.quantity) throw ListingFailure.invalidDonationCount;
+      final left = listing.quantity - count;
+      return _copy(
+        listing,
+        note: listing.note,
+        quantity: left,
+        status: left == 0 ? ListingStatus.donated : null,
+        canRenew: left == 0 ? false : null,
+      );
+    });
+  }
+
+  @override
+  Future<MyListing> renew(String id) {
+    renewed.add(id);
+    return _act(id, (listing) {
+      if (!listing.canRenew) throw ListingFailure.renewalNotAllowed;
+      return _copy(
+        listing,
+        note: listing.note,
+        expiresAt: renewedExpiresAt,
+        canRenew: false,
+      );
+    });
+  }
+
+  @override
   Future<MyListing> close(String id) {
     closed.add(id);
     return _act(
@@ -241,6 +282,7 @@ class FakeListingRepository extends ListingRepository {
     required String? note,
     int? quantity,
     ListingStatus? status,
+    DateTime? expiresAt,
     bool? canRenew,
   }) => MyListing(
     id: listing.id,
@@ -250,7 +292,7 @@ class FakeListingRepository extends ListingRepository {
     quantity: quantity ?? listing.quantity,
     note: note,
     interestCount: listing.interestCount,
-    expiresAt: listing.expiresAt,
+    expiresAt: expiresAt ?? listing.expiresAt,
     canRenew: canRenew ?? listing.canRenew,
   );
 
