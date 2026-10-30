@@ -24,7 +24,8 @@ void main() {
     WidgetTester tester, {
     String id = '0190e0d4-0000-7000-8000-0000000000c1',
     bool settle = true,
-    ValueChanged<Species>? onSaveToGarden,
+    ValueChanged<Species>? onSave,
+    String saveLabel = 'Salvar no meu jardim',
   }) async {
     final viewModel = SpeciesViewModel(
       catalogRepository: catalogRepository,
@@ -32,7 +33,8 @@ void main() {
     )..load();
     final screen = SpeciesScreen(
       viewModel: viewModel,
-      onSaveToGarden: onSaveToGarden,
+      onSave: onSave,
+      saveLabel: saveLabel,
       openUrl: (url) async {
         openedUrls.add(url);
         return true;
@@ -153,7 +155,7 @@ void main() {
   group('"Salvar no meu jardim"', () {
     testWidgets('saves the species shown', (tester) async {
       final saved = <Species>[];
-      await pump(tester, onSaveToGarden: saved.add);
+      await pump(tester, onSave: saved.add);
 
       await tester.tap(find.text('Salvar no meu jardim'));
 
@@ -168,13 +170,25 @@ void main() {
 
     testWidgets('waits for the species', (tester) async {
       catalogRepository.gate = Completer<void>();
-      await pump(tester, settle: false, onSaveToGarden: (_) {});
+      await pump(tester, settle: false, onSave: (_) {});
 
       expect(find.text('Salvar no meu jardim'), findsNothing);
 
       catalogRepository.gate!.complete();
       await tester.pumpAndSettle();
       expect(find.text('Salvar no meu jardim'), findsOneWidget);
+    });
+
+    testWidgets('can say what else it does, such as "Doar mudas"', (
+      tester,
+    ) async {
+      final saved = <Species>[];
+      await pump(tester, onSave: saved.add, saveLabel: 'Doar mudas');
+
+      expect(find.text('Salvar no meu jardim'), findsNothing);
+      await tester.tap(find.text('Doar mudas'));
+
+      expect(saved, [same(monstera)]);
     });
   });
 

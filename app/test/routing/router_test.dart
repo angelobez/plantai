@@ -1112,6 +1112,155 @@ void main() {
       expect(find.widgetWithText(FilledButton, 'Doar mudas'), findsOneWidget);
     });
 
+    /// Meus anúncios → "Doar mudas" ([fromEmptyState]: the empty state's
+    /// button; otherwise the header's) → "Escolher da galeria".
+    Future<void> donateFromMyListings(
+      WidgetTester tester, {
+      bool fromEmptyState = false,
+    }) async {
+      listingRepository.mine = fromEmptyState ? [] : [costelaAtiva];
+      await pumpApp(tester);
+      await tester.tap(innerTab('Meus anúncios'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        fromEmptyState
+            ? find.widgetWithText(FilledButton, 'Doar mudas')
+            : find.widgetWithText(HeaderPill, 'Doar mudas'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Tirar foto'), findsOneWidget);
+      await tester.tap(find.text('Escolher da galeria'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> searchAndOpenCostela(WidgetTester tester) async {
+      await tester.tap(find.text('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'costela');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Costela-de-adão'));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> publish(WidgetTester tester) async {
+      final button = find.widgetWithText(FilledButton, 'Publicar anúncio');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the photo flow opened by Meus anúncios ends in the form, '
+        'with no plant', (tester) async {
+      profileRepository.profile = marinaDonor;
+      await donateFromMyListings(tester);
+      await searchAndOpenCostela(tester);
+
+      expect(find.text('Salvar no meu jardim'), findsNothing);
+      await tester.tap(find.widgetWithText(FilledButton, 'Doar mudas'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Antes de doar'), findsNothing);
+      expect(find.text('Foto da muda'), findsOneWidget);
+      expect(find.text('Monstera deliciosa'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Costela-de-adão'), findsOneWidget);
+
+      await publish(tester);
+
+      final sent = listingRepository.created.single;
+      expect(sent.photoId, 'photo-1');
+      expect(sent.commonName, 'Costela-de-adão');
+      expect(sent.speciesId, monstera.id);
+      expect(sent.plantId, isNull);
+      expect(gardenRepository.created, isEmpty);
+      expect(innerTab('Meus anúncios'), findsOneWidget);
+    });
+
+    testWidgets('a candidate of the photo flow opened by Meus anúncios also '
+        'ends in the form', (tester) async {
+      profileRepository.profile = marinaDonor;
+      catalogRepository.speciesById = {jiboiaSpecies.id: monstera};
+      await donateFromMyListings(tester);
+      await tester.tap(find.text('Identificar pela foto'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('É esta').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Doar mudas'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Foto da muda'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Costela-de-adão'), findsOneWidget);
+    });
+
+    testWidgets('the photo flow opened by the Jardim still ends in "Salvar no '
+        'meu jardim"', (tester) async {
+      await pumpApp(tester);
+      await tester.tap(cameraButton());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Escolher da galeria'));
+      await tester.pumpAndSettle();
+      await searchAndOpenCostela(tester);
+
+      expect(find.text('Salvar no meu jardim'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Doar mudas'), findsNothing);
+    });
+
+    testWidgets('from the empty Meus anúncios, Foto não reconhecida: "Salvar '
+        'só com o nome" asks it and opens the form without species', (
+      tester,
+    ) async {
+      profileRepository.profile = marinaDonor;
+      identificationRepository.identification = notRecognized;
+      await donateFromMyListings(tester, fromEmptyState: true);
+      await tester.tap(find.text('Identificar pela foto'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Salvar só com o nome'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nome da muda'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Pimenta da vó');
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sem espécie'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Pimenta da vó'), findsOneWidget);
+      await publish(tester);
+
+      final sent = listingRepository.created.single;
+      expect(sent.photoId, 'photo-1');
+      expect(sent.commonName, 'Pimenta da vó');
+      expect(sent.speciesId, isNull);
+      expect(sent.plantId, isNull);
+      expect(gardenRepository.created, isEmpty);
+    });
+
+    testWidgets('Busca: "Salvar só com o nome", without a donation profile, '
+        'opens the Primeiro anúncio, then the form', (tester) async {
+      catalogRepository.results = [];
+      await donateFromMyListings(tester);
+      await tester.tap(find.text('Buscar pelo nome'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'pimenta da vó');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Salvar só com o nome “pimenta da vó”'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Antes de doar'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, '11987654321');
+      await tester.tap(find.text('Usar minha localização'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Foto da muda'), findsOneWidget);
+      expect(find.text('Sem espécie'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'pimenta da vó'), findsOneWidget);
+      expect(gardenRepository.created, isEmpty);
+    });
+
     testWidgets('DONATION_PROFILE_REQUIRED on publishing opens the Primeiro '
         'anúncio, then publishes', (tester) async {
       profileRepository.profile = marinaDonor;

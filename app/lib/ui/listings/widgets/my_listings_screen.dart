@@ -15,8 +15,8 @@ import 'listings_tab_page.dart';
 /// X dias" and how many Users had interest. Donated and closed listings are
 /// dimmed. Pulling the list down reads it again.
 ///
-/// Without listings, the empty state explains how to donate and, with
-/// [onDonate], offers "Doar mudas".
+/// With [onDonate], "Doar mudas" sits in the header and, without listings,
+/// in the empty state, which explains how to donate.
 class MyListingsScreen extends StatelessWidget {
   const MyListingsScreen({
     super.key,
@@ -38,6 +38,9 @@ class MyListingsScreen extends StatelessWidget {
     return ListingsTabPage(
       selected: ListingsTab.mine,
       onSelect: onSelectTab,
+      trailing: onDonate == null
+          ? null
+          : HeaderPill(icon: Icons.add, label: 'Doar mudas', onTap: onDonate),
       body: ListenableBuilder(
         listenable: viewModel,
         builder: (context, _) {
@@ -242,8 +245,8 @@ class _NoListings extends StatelessWidget {
       icon: const Icon(Icons.volunteer_activism_outlined),
       title: 'Você ainda não anunciou mudas',
       message:
-          'Na tela de uma planta do seu jardim, toque em "Doar mudas" para '
-          'anunciar as mudas que sobram.',
+          'Toque em "Doar mudas" aqui, com uma foto da muda, ou na tela de '
+          'uma planta do seu jardim, para anunciar as mudas que sobram.',
       action: onDonate == null
           ? null
           : FilledButton(onPressed: onDonate, child: const Text('Doar mudas')),

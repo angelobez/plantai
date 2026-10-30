@@ -52,6 +52,37 @@ class _ListingFlow {
     },
   );
 
+  /// "Doar mudas" in Meus anúncios: asks camera or gallery over it, then
+  /// opens the photo flow under [Routes.donate]. Closing the sheet stays.
+  Future<void> openPhotoFlow(BuildContext context) async {
+    final source = await showPhotoSourceSheet(context);
+    if (source == null || !context.mounted) return;
+    await context.push(Routes.donateFrom(source));
+  }
+
+  /// The end of the photo flow under [Routes.donate]: the Novo anúncio of
+  /// the photo with the name and the species chosen, with no plant. The
+  /// flow stays under the form, so back from it is the last choice.
+  late final donateEnd = _PhotoFlowEnd(
+    saveLabel: 'Doar mudas',
+    nameTitle: 'Nome da muda',
+    needsPhoto: true,
+    save: (context, choice) => donate(
+      context,
+      ListingDraft(
+        photo: choice.photo!,
+        commonName: choice.commonName,
+        species: switch (choice.species) {
+          final species? => ListingDraftSpecies(
+            id: species.id,
+            scientificName: species.scientificName,
+          ),
+          null => null,
+        },
+      ),
+    ),
+  );
+
   static void _selectTab(BuildContext context, ListingsTab tab) =>
       context.go(switch (tab) {
         ListingsTab.nearby => Routes.nearby,
@@ -87,6 +118,7 @@ class _ListingFlow {
           builder: (viewModel) => MyListingsScreen(
             viewModel: viewModel,
             onSelectTab: (tab) => _selectTab(context, tab),
+            onDonate: () => openPhotoFlow(context),
           ),
         ),
       ),

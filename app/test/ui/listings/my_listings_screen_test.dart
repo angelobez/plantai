@@ -131,12 +131,21 @@ void main() {
     expect(donateCalls, 1);
   });
 
+  testWidgets('"Doar mudas" in the header starts a listing', (tester) async {
+    await pump(tester, withDonate: true);
+
+    await tester.tap(find.widgetWithText(HeaderPill, 'Doar mudas'));
+
+    expect(donateCalls, 1);
+  });
+
   testWidgets('the empty state has no button without the flow', (tester) async {
     repository.mine = [];
     await pump(tester);
 
     expect(find.text('Você ainda não anunciou mudas'), findsOneWidget);
     expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(HeaderPill), findsNothing);
   });
 
   testWidgets('without connection, offers "Tentar de novo"', (tester) async {

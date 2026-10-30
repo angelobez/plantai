@@ -17,14 +17,16 @@ import '../view_models/species_view_model.dart';
 /// the photo's credit. While Claude writes the guide, the loading state says
 /// "gerando dicas…".
 ///
-/// With [onSaveToGarden] (a photo in the flow), "Salvar no meu jardim" sits
-/// at the bottom once the species is read.
+/// With [onSave] (a photo in the flow), [saveLabel] ("Salvar no meu jardim",
+/// or "Doar mudas" in the flow opened by Meus anúncios) sits at the bottom
+/// once the species is read.
 class SpeciesScreen extends StatelessWidget {
   const SpeciesScreen({
     super.key,
     required this.viewModel,
     required this.openUrl,
-    this.onSaveToGarden,
+    this.onSave,
+    this.saveLabel = 'Salvar no meu jardim',
   });
 
   final SpeciesViewModel viewModel;
@@ -32,8 +34,11 @@ class SpeciesScreen extends StatelessWidget {
   /// Opens the credit's link.
   final UrlOpener openUrl;
 
-  /// Saves the species shown as a plant, with the flow's photo.
-  final ValueChanged<Species>? onSaveToGarden;
+  /// Takes the species shown on, with the flow's photo: saves it as a plant
+  /// or starts a listing of it.
+  final ValueChanged<Species>? onSave;
+
+  final String saveLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +46,7 @@ class SpeciesScreen extends StatelessWidget {
       listenable: viewModel,
       builder: (context, _) {
         final species = viewModel.species;
-        final onSave = onSaveToGarden;
+        final onSave = this.onSave;
         final Widget body;
         if (species != null) {
           body = _SpeciesView(species: species, openUrl: openUrl);
@@ -63,7 +68,7 @@ class SpeciesScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                     child: FilledButton(
                       onPressed: () => onSave(species),
-                      child: const Text('Salvar no meu jardim'),
+                      child: Text(saveLabel),
                     ),
                   ),
                 ),

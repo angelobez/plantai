@@ -11,6 +11,7 @@ import '../data/repositories/profile/profile_repository.dart';
 import '../data/services/api/models/user_profile.dart';
 import '../data/services/location/location_service.dart';
 import '../data/services/api/models/photo.dart';
+import '../data/services/api/models/species.dart';
 import '../data/services/api/models/species_summary.dart';
 import '../data/services/api/update_required.dart';
 import '../data/services/photo_picker/photo_picker.dart';
@@ -138,32 +139,50 @@ abstract final class Routes {
   static const passwordReset = '$login/esqueci-a-senha';
 
   /// Foto, opening the camera or the gallery as it appears.
-  static String identifyFrom(PhotoSource source) => Uri(
-    path: identify,
+  static String identifyFrom(PhotoSource source) =>
+      _photoFlowFrom(identify, source);
+
+  /// Foto of the photo flow opened by "Doar mudas" in Meus anúncios: the
+  /// same screens as [identify] under this path, ending in Novo anúncio.
+  /// Takes the source in the `fonte` query parameter ([donateFrom]).
+  static const donate = '/doar';
+
+  /// Foto of [donate], opening the camera or the gallery as it appears.
+  static String donateFrom(PhotoSource source) =>
+      _photoFlowFrom(donate, source);
+
+  static String _photoFlowFrom(String root, PhotoSource source) => Uri(
+    path: root,
     queryParameters: {_photoSourceParam: source.name},
   ).toString();
 
   static const _photoSourceParam = 'fonte';
 
-  /// Busca no Catálogo, inside the photo flow. [photoId] is the photo already
-  /// sent, which "Salvar só com o nome" saves with the plant.
-  static String searchByName({String? photoId}) =>
-      _withPhoto('$identify/$_searchPath', photoId);
+  /// Busca no Catálogo, inside the photo flow under [root] ([identify] or
+  /// [donate]). [photoId] is the photo already sent, which "Salvar só com o
+  /// nome" saves with the plant (or the listing).
+  static String searchByName({String? photoId, String root = identify}) =>
+      _withPhoto('$root/$_searchPath', photoId);
 
-  /// Tela da espécie, inside the photo flow, with the photo "Salvar no meu
-  /// jardim" saves with the plant ([photoId]), when there is one.
-  static String species(String speciesId, {String? photoId}) => _withPhoto(
-    '$identify/$_speciesPath/${Uri.encodeComponent(speciesId)}',
+  /// Tela da espécie, inside the photo flow under [root], with the photo
+  /// "Salvar no meu jardim" (or "Doar mudas") takes ([photoId]), when there
+  /// is one.
+  static String species(
+    String speciesId, {
+    String? photoId,
+    String root = identify,
+  }) => _withPhoto(
+    '$root/$_speciesPath/${Uri.encodeComponent(speciesId)}',
     photoId,
   );
 
-  /// Candidatos, inside the photo flow: identifies the photo [photoId],
-  /// already sent, and leads to Candidatos, Foto não reconhecida or Limite
-  /// diário. Pushed with the [Photo] as `extra`, for its thumbnail; the
-  /// push completes with the source of another photo when the User asks for
-  /// one ("Tirar outra foto").
-  static String candidates(String photoId) =>
-      '$identify/$_candidatesPath/${Uri.encodeComponent(photoId)}';
+  /// Candidatos, inside the photo flow under [root]: identifies the photo
+  /// [photoId], already sent, and leads to Candidatos, Foto não reconhecida
+  /// or Limite diário. Pushed with the [Photo] as `extra`, for its
+  /// thumbnail; the push completes with the source of another photo when
+  /// the User asks for one ("Tirar outra foto").
+  static String candidates(String photoId, {String root = identify}) =>
+      '$root/$_candidatesPath/${Uri.encodeComponent(photoId)}';
 
   static const _candidatesPath = 'candidatos';
   static const _searchPath = 'busca';
@@ -332,7 +351,8 @@ GoRouter router({
           ),
         ],
       ),
-      _identifyRoute(flow),
+      _photoFlowRoute(flow, root: Routes.identify, end: flow.savePlantEnd),
+      _photoFlowRoute(flow, root: Routes.donate, end: listingFlow.donateEnd),
       ...listingFlow.formRoutes(),
       GoRoute(
         path: Routes.about,
