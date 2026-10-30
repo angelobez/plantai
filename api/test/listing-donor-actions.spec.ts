@@ -9,12 +9,14 @@ import { testEnv } from './support/env';
 import { FakeOutbox } from './support/fake-outbox';
 import {
   closeListing,
+  donateFromListing,
   editListing,
   expireListingIn,
   type MyListingBody,
   myListings,
   nearbyIds,
   publishListing,
+  renewListing,
 } from './support/listings';
 import { startPostgis } from './support/postgis';
 
@@ -65,17 +67,23 @@ describe("the donor's actions on a listing", () => {
     return (response.body as MyListingBody[]).find((item) => item.id === id);
   }
 
-  /**
-   * Every donor route, so the common rules are checked on all of them. #67
-   * adds `donations` and `renew` here.
-   */
+  /** Every donor route, so the common rules are checked on all of them. */
   const donorRoutes: [
     string,
     (session: AuthTokensBody, id: string) => request.Test,
   ][] = [
     ['PATCH', (session, id) => editListing(app, session, id, { quantity: 2 })],
     ['close', (session, id) => closeListing(app, session, id)],
+    ['donations', (session, id) => donateFromListing(app, session, id, 1)],
+    ['renew', (session, id) => renewListing(app, session, id)],
   ];
+
+  /** Seconds between [later] and [earlier], two ISO dates. */
+  function secondsBetween(later: string, earlier: string): number {
+    return (Date.parse(later) - Date.parse(earlier)) / 1000;
+  }
+
+  const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60;
 
   describe('PATCH /listings/:id', () => {
     it('changes the quantity and answers the listing as Meus anúncios shows it', async () => {
@@ -157,6 +165,170 @@ describe("the donor's actions on a listing", () => {
         status: 'closed',
       });
       expect(await nearbyIds(app, neighbor)).not.toContain(listing.id);
+    });
+  });
+
+  describe('POST /listings/:id/donations', () => {
+    it('takes the donated seedlings off the quantity, keeping the listing active', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor, { quantity: 5 });
+
+      const response = await donateFromListing(
+        app,
+        donor,
+        listing.id,
+        2,
+      ).expect(200);
+
+      expect(response.body).toEqual(asLater(listing, { quantity: 3 }));
+      expect(await mineById(donor, listing.id)).toEqual(
+        asLater(listing, { quantity: 3 }),
+      );
+    });
+
+    it('marks the listing donated when the quantity reaches zero, and it leaves the nearby of other Users', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor, { quantity: 3 });
+      const neighbor = await newDonor();
+      await donateFromListing(app, donor, listing.id, 1).expect(200);
+      expect(await nearbyIds(app, neighbor)).toContain(listing.id);
+
+      const response = await donateFromListing(
+        app,
+        donor,
+        listing.id,
+        2,
+      ).expect(200);
+
+      expect(response.body).toEqual(
+        asLater(listing, { quantity: 0, status: 'donated' }),
+      );
+      expect(await mineById(donor, listing.id)).toMatchObject({
+        quantity: 0,
+        status: 'donated',
+        canRenew: false,
+      });
+      expect(await nearbyIds(app, neighbor)).not.toContain(listing.id);
+    });
+
+    it('takes two concurrent donations one after the other, never below zero', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor, { quantity: 3 });
+
+      const responses = await Promise.all([
+        donateFromListing(app, donor, listing.id, 2),
+        donateFromListing(app, donor, listing.id, 2),
+      ]);
+
+      expect(responses.map((r) => r.status).sort()).toEqual([200, 400]);
+      expect(await mineById(donor, listing.id)).toMatchObject({
+        quantity: 1,
+        status: 'active',
+      });
+    });
+
+    it('answers INVALID_DONATION_COUNT above the quantity, and leaves the listing as it is', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor, { quantity: 3 });
+
+      const response = await donateFromListing(
+        app,
+        donor,
+        listing.id,
+        4,
+      ).expect(400);
+
+      expect(response.body).toMatchObject({ code: 'INVALID_DONATION_COUNT' });
+      expect(await mineById(donor, listing.id)).toEqual(asLater(listing));
+    });
+
+    it.each([
+      ['no count', undefined],
+      ['a count of 0', 0],
+      ['a negative count', -1],
+      ['a fractional count', 1.5],
+      ['a text count', '1'],
+    ])('answers VALIDATION_FAILED for %s', async (_, count) => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor);
+
+      const response = await donateFromListing(
+        app,
+        donor,
+        listing.id,
+        count,
+      ).expect(400);
+
+      expect(response.body).toMatchObject({ code: 'VALIDATION_FAILED' });
+    });
+
+    it('answers LISTING_NOT_ACTIVE once donated', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor, { quantity: 1 });
+      await donateFromListing(app, donor, listing.id, 1).expect(200);
+
+      const response = await donateFromListing(
+        app,
+        donor,
+        listing.id,
+        1,
+      ).expect(409);
+
+      expect(response.body).toMatchObject({ code: 'LISTING_NOT_ACTIVE' });
+    });
+  });
+
+  describe('POST /listings/:id/renew', () => {
+    it('renews a listing in its last 7 days for 30 days from now', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor);
+      await expireListingIn(app, listing.id, '3 days');
+      expect(await mineById(donor, listing.id)).toMatchObject({
+        canRenew: true,
+      });
+      const before = new Date().toISOString();
+
+      const response = await renewListing(app, donor, listing.id).expect(200);
+
+      const body = response.body as MyListingBody;
+      expect(body).toEqual(
+        asLater(listing, {
+          expiresAt: expect.any(String) as unknown as string,
+          canRenew: false,
+        }),
+      );
+      expect(secondsBetween(body.expiresAt, before)).toBeGreaterThanOrEqual(
+        THIRTY_DAYS_IN_SECONDS - 5,
+      );
+      expect(secondsBetween(body.expiresAt, before)).toBeLessThanOrEqual(
+        THIRTY_DAYS_IN_SECONDS + 5,
+      );
+      expect(await mineById(donor, listing.id)).toMatchObject({
+        expiresAt: body.expiresAt,
+        canRenew: false,
+      });
+    });
+
+    it('answers RENEWAL_NOT_ALLOWED before the last 7 days, and leaves the listing as it is', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor);
+      await expireListingIn(app, listing.id, '8 days');
+      const before = await mineById(donor, listing.id);
+      expect(before).toMatchObject({ canRenew: false });
+
+      const response = await renewListing(app, donor, listing.id).expect(409);
+
+      expect(response.body).toMatchObject({ code: 'RENEWAL_NOT_ALLOWED' });
+      expect(await mineById(donor, listing.id)).toEqual(asLater(before));
+    });
+
+    it('answers RENEWAL_NOT_ALLOWED for a listing just published', async () => {
+      const donor = await newDonor();
+      const listing = await publishListing(app, donor);
+
+      const response = await renewListing(app, donor, listing.id).expect(409);
+
+      expect(response.body).toMatchObject({ code: 'RENEWAL_NOT_ALLOWED' });
     });
   });
 

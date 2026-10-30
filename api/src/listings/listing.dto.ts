@@ -78,6 +78,19 @@ export class UpdateListingRequest extends createZodDto(
 ) {}
 
 /**
+ * `POST /listings/:id/donations`: how many seedlings left, an integer from 1;
+ * above the listing's quantity is `INVALID_DONATION_COUNT`.
+ */
+export class DonationRequest extends createZodDto(
+  z.object({
+    count: z
+      .int()
+      .min(1)
+      .describe('Seedlings donated, from 1 up to the listing’s quantity'),
+  }),
+) {}
+
+/**
  * One of the donor's listings, as `GET /me/listings` shows it; also the
  * answer of `POST /listings` and of the donor's actions.
  */

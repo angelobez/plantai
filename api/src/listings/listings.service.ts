@@ -197,6 +197,45 @@ export class ListingsService {
   }
 
   /**
+   * `POST /listings/:id/donations`: [count] seedlings left one of [userId]'s
+   * active listings. The quantity drops and, at zero, the listing is
+   * `donated`, in the same atomic `UPDATE`, so two concurrent donations
+   * cannot take more than there is. Above the quantity,
+   * `INVALID_DONATION_COUNT`.
+   */
+  donate(
+    userId: string,
+    listingId: string,
+    count: number,
+  ): Promise<MyListingResponse> {
+    return this.actOnActive(
+      userId,
+      listingId,
+      {
+        quantity: sql`${listings.quantity} - ${count}`,
+        status: sql`CASE WHEN ${listings.quantity} - ${count} = 0 THEN 'donated'::listing_status ELSE ${listings.status} END`,
+      },
+      {
+        where: sql`${listings.quantity} >= ${count}`,
+        error: 'INVALID_DONATION_COUNT',
+      },
+    );
+  }
+
+  /**
+   * `POST /listings/:id/renew`: one of [userId]'s active listings in its last
+   * days expires 30 days from now. Earlier, `RENEWAL_NOT_ALLOWED`.
+   */
+  renew(userId: string, listingId: string): Promise<MyListingResponse> {
+    return this.actOnActive(
+      userId,
+      listingId,
+      { expiresAt: newExpiry() },
+      { where: canRenew(), error: 'RENEWAL_NOT_ALLOWED' },
+    );
+  }
+
+  /**
    * The common rules of the donor routes (`PATCH`, `close`, `donations`,
    * `renew`), applied in one atomic `UPDATE` so a concurrent action cannot
    * slip between the check and the write: another User's listing, or one

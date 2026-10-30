@@ -22,6 +22,7 @@ import {
   CreateListingRequest,
   ListingDetail,
   type ListingDetailResponse,
+  DonationRequest,
   MyListing,
   type MyListingResponse,
   UpdateListingRequest,
@@ -121,6 +122,50 @@ export class ListingsController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<MyListingResponse> {
     return this.listingsService.close(user.id, id);
+  }
+
+  /**
+   * "Doei algumas": the donor tells how many seedlings left the listing. The
+   * quantity drops and, at zero, the listing is `donated`, in one atomic
+   * update. Above the quantity, `INVALID_DONATION_COUNT`. Same common donor
+   * rules as `PATCH`.
+   */
+  @Post(':id/donations')
+  @HttpCode(HttpStatus.OK)
+  @ZodResponse({ status: 200, type: MyListing })
+  @ApiProblems(
+    'UNAUTHENTICATED',
+    'NOT_FOUND',
+    'LISTING_NOT_ACTIVE',
+    'INVALID_DONATION_COUNT',
+  )
+  donate(
+    @Param() { id }: IdParam,
+    @Body() { count }: DonationRequest,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<MyListingResponse> {
+    return this.listingsService.donate(user.id, id, count);
+  }
+
+  /**
+   * In the last 7 days before it expires, the donor renews the listing for 30
+   * days from now. Earlier, `RENEWAL_NOT_ALLOWED`; once expired it is closed,
+   * so `LISTING_NOT_ACTIVE`. Same common donor rules as `PATCH`.
+   */
+  @Post(':id/renew')
+  @HttpCode(HttpStatus.OK)
+  @ZodResponse({ status: 200, type: MyListing })
+  @ApiProblems(
+    'UNAUTHENTICATED',
+    'NOT_FOUND',
+    'LISTING_NOT_ACTIVE',
+    'RENEWAL_NOT_ALLOWED',
+  )
+  renew(
+    @Param() { id }: IdParam,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<MyListingResponse> {
+    return this.listingsService.renew(user.id, id);
   }
 }
 

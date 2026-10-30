@@ -115,6 +115,33 @@ export function closeListing(
 }
 
 /**
+ * `POST /v1/listings/:id/donations` with [count] as [session], without
+ * checking the answer.
+ */
+export function donateFromListing(
+  app: INestApplication<App>,
+  session: AuthTokensBody,
+  listingId: string,
+  count: unknown,
+): request.Test {
+  return request(app.getHttpServer())
+    .post(`/v1/listings/${listingId}/donations`)
+    .set('Authorization', `Bearer ${session.accessToken}`)
+    .send({ count });
+}
+
+/** `POST /v1/listings/:id/renew` as [session], without checking the answer. */
+export function renewListing(
+  app: INestApplication<App>,
+  session: AuthTokensBody,
+  listingId: string,
+): request.Test {
+  return request(app.getHttpServer())
+    .post(`/v1/listings/${listingId}/renew`)
+    .set('Authorization', `Bearer ${session.accessToken}`);
+}
+
+/**
  * Moves [listingId]'s expiry to now + [interval] (`'3 days'`, `'-1 day'`):
  * deadlines are tested by changing the date in the database, with no fake
  * clock.
