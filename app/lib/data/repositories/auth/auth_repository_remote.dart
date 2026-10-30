@@ -185,17 +185,8 @@ class AuthRepositoryRemote extends AuthRepository {
       ApiErrorCode.tooManyRequests => AuthFailure.tooManyRequests,
       ApiErrorCode.validationFailed => AuthFailure.validationFailed,
       ApiErrorCode.appUpdateRequired => AuthFailure.updateRequired,
-      ApiErrorCode.notFound ||
-      ApiErrorCode.unauthenticated ||
-      ApiErrorCode.internalError ||
-      ApiErrorCode.healthCheckFailed ||
-      ApiErrorCode.photoDailyLimit ||
-      ApiErrorCode.identificationDailyLimit ||
-      ApiErrorCode.identificationServiceUnavailable ||
-      ApiErrorCode.identificationAlreadyChosen ||
-      ApiErrorCode.careGuideGenerating ||
-      ApiErrorCode.speciesAlreadySet ||
-      ApiErrorCode.unknown => AuthFailure.unknown,
+      // The auth routes answer none of the other codes.
+      _ => AuthFailure.unknown,
     },
   );
 

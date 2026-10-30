@@ -16,16 +16,8 @@ const validEnv = {
 describe('parseEnv', () => {
   it('returns the typed config for a valid environment', () => {
     expect(parseEnv(validEnv)).toEqual({
-      DATABASE_URL: 'postgres://plantai:plantai@localhost:5432/plantai',
+      ...validEnv,
       PORT: 3000,
-      MIN_APP_VERSION: '1.2.0',
-      JWT_SECRET: 'a-test-secret-that-is-at-least-32-chars',
-      GOOGLE_WEB_CLIENT_ID: 'web-client.apps.googleusercontent.com',
-      EMAIL_FROM: 'PlantAí <onboarding@resend.dev>',
-      S3_BUCKET: 'plantai-photos',
-      S3_REGION: 'us-east-1',
-      PLANTNET_API_KEY: 'plantnet-key',
-      ANTHROPIC_API_KEY: 'sk-ant-test',
       CARE_GUIDE_MODEL: 'claude-sonnet-5-5',
     });
   });
