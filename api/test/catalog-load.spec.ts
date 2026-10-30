@@ -231,6 +231,26 @@ describe('catalog load (npm run catalog:load)', () => {
     ]);
   });
 
+  it('makes a corrected primary name primary, keeping the old one as an alternative', async () => {
+    await load();
+
+    // The seed's primary name was corrected by hand (seed-overrides.json).
+    await load([
+      {
+        ...jiboia,
+        commonName: 'jiboia-amarela',
+        otherNames: ['jiboia', 'hera-do-diabo'],
+      },
+      avenca,
+    ]);
+
+    expect(await namesOf(jiboia.gbifKey)).toEqual([
+      { name: 'hera-do-diabo', isPrimary: false },
+      { name: 'jiboia', isPrimary: false },
+      { name: 'jiboia-amarela', isPrimary: true },
+    ]);
+  });
+
   it('keeps going when a photo cannot be decoded', async () => {
     photoDownloader.serves(
       jiboia.referencePhoto.imageUrl,

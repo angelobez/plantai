@@ -58,6 +58,8 @@ The `PhotoStorage` port (`src/photo-storage/`) is what the rest of the API uses;
 ### Catalog
 The Catalog (species, names, reference photos) lives in the database. `npm run catalog:load` loads `catalog/catalog-seed.json` (built by `npm run catalog:build`; see `docs/spec/modelo-de-dados-e-api.md`, "Semente do Catálogo"): it upserts each species by `gbifKey`, syncs its names, downloads its Wikimedia photo (with an identifying `User-Agent`), shrinks it to 1200 px and stores it without the `unattached` tag. It mounts only the modules it needs (`CatalogLoadModule`), not the HTTP server, then has Claude write the missing or failed care guides through the same code as the API (`CareGuideService.ensure`, at most 3 at a time; it needs `ANTHROPIC_API_KEY` in `api/.env`), and ends with a summary of species, photos copied, care guides written and failures. Running it again duplicates nothing and only retries what failed; until its photo is copied, a species shows the Wikimedia one by URL. `-- --seed <file>` loads another seed file.
 
+To correct a species by hand (a wrong primary name, or no usable Wikidata photo), add it to `catalog/seed-overrides.json`, keyed by its accepted scientific name: `commonName` and `otherNames` replace the names Flora and GBIF gave, and an optional `photoFile` (a Commons file name) replaces the Wikidata photo. `catalog:build` applies it, and `catalog:load` then makes the corrected name primary, keeping the old one as an alternative.
+
 GBIF name resolution (`species/match`) is the `GbifNames` port (`src/gbif/`), used by the API and by `catalog:build`; tests swap it for `FakeGbifNames` (`createTestApp(env, { gbifNames })`).
 
 ### Authentication

@@ -1050,13 +1050,25 @@
   {
     "gbifKey": 2868136,
     "scientificName": "Monstera adansonii",
-    "commonName": "costela-de-adão",
-    "otherNames": [],
+    "commonName": "costela-de-eva",
+    "otherNames": ["costela-de-adão", "monstera-adansonii"],
     "referencePhoto": {
       "sourceUrl": "https://commons.wikimedia.org/wiki/File:Monstera_adansonii_CBM.png",
       "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/34/Monstera_adansonii_CBM.png",
       "author": "Walter Hood Fitch",
       "license": "Public domain"
+    }
+  },
+  {
+    "gbifKey": 2868241,
+    "scientificName": "Monstera deliciosa",
+    "commonName": "costela-de-adão",
+    "otherNames": ["monstera"],
+    "referencePhoto": {
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Monstera_deliciosa_foliage.JPG",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/da/Monstera_deliciosa_foliage.JPG",
+      "author": "B.navez",
+      "license": "CC BY-SA 3.0"
     }
   },
   {

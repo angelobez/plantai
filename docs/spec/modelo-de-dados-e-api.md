@@ -86,7 +86,7 @@ Exatamente um dos dois campos de foto (`reference_photo_s3_key` ou `reference_ph
 **`species_names`**: `id`, `species_id`, `name`, `name_normalized` (coluna gerada com `lower(unaccent(name))`), `is_primary`.
 - Um índice único parcial garante um só `is_primary` por espécie, e `(species_id, name)` é único, para a carga da semente não duplicar nomes.
 - O `unaccent` não é `IMMUTABLE`; a coluna gerada e os índices usam o wrapper `public.immutable_unaccent`. A busca tem índices trigram (`pg_trgm`) em `name_normalized` e em `lower(immutable_unaccent(scientific_name))`.
-- **O nome principal da semente:** vem da Flora e Funga do Brasil.
+- **O nome principal da semente:** vem da Flora e Funga do Brasil, a não ser que o `api/catalog/seed-overrides.json` o corrija à mão.
 - **O nome principal de uma espécie nova:** o `commonName` que o candidato mostrou na identificação, exatamente como apareceu. Só quando o candidato não mostrou nome (`null`), o principal vem do Claude, nas primeiras dicas.
 - **O nome do Claude quando já existe um principal:** entra como nome alternativo, se for diferente.
 
@@ -334,6 +334,7 @@ Um `generating` com mais de 60 s é tratado como `failed`.
   2. O script valida cada nome no GBIF, descarta o que não bate e corrige os sinônimos, guardando a `gbifKey`.
   3. Busca os nomes populares na Flora e Funga do Brasil, com o GBIF (`por`) de reserva.
   4. Escolhe uma foto do Wikimedia Commons com licença livre (nunca NC) e registra autor, licença e URL de origem.
+  5. Aplica as correções à mão do `api/catalog/seed-overrides.json`, versionado, com uma entrada por nome científico aceito: `commonName` e `otherNames` substituem os nomes das fontes, e `photoFile` (opcional, um arquivo do Commons) substitui a foto do Wikidata, ainda conferida quanto a licença e autor. Exemplo: a *Monstera adansonii* é "costela-de-eva" (a Flora dá "costela-de-adão", que é a *Monstera deliciosa*).
 - **Revisão:** o Ângelo revisa o JSON no PR.
-- **`npm run catalog:load`:** roda à mão, uma vez por ambiente. Lê o JSON, faz o upsert pela `gbif_key`, copia as fotos para o S3 e gera, pelo mesmo código da API, as dicas que faltam (inexistentes ou `failed`), no máximo 3 em paralelo, com `requested_by` nulo. É idempotente: rodar de novo só completa o que falhou. O resumo traz as dicas geradas e as que falharam. A chave do Claude (`ANTHROPIC_API_KEY`) vem do mesmo `api/.env` da API, também no `catalog:build`.
+- **`npm run catalog:load`:** roda à mão, uma vez por ambiente. Lê o JSON, faz o upsert pela `gbif_key`, sincroniza os nomes (o principal da semente vira o principal, o antigo principal fica como alternativo e nenhum nome é apagado), copia as fotos para o S3 e gera, pelo mesmo código da API, as dicas que faltam (inexistentes ou `failed`), no máximo 3 em paralelo, com `requested_by` nulo. É idempotente: rodar de novo só completa o que falhou. O resumo traz as dicas geradas e as que falharam. A chave do Claude (`ANTHROPIC_API_KEY`) vem do mesmo `api/.env` da API, também no `catalog:build`.
 - **Não é uma migration:** a carga chama serviços externos e pode parar no meio, e as migrations do Drizzle ficam só com o schema.
