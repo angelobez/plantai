@@ -263,7 +263,7 @@ describe('care guides (Dicas de cuidado) in GET /species/:id', () => {
         release = resolve;
       });
       const stale = getSpecies(id).then((response) => response);
-      await waitFor(async () => writer.requests.length === 1);
+      await waitFor(() => Promise.resolve(writer.requests.length === 1));
       await databaseOf(app)
         .update(careGuides)
         .set({ startedAt: sql`now() - make_interval(secs => 61)` })
@@ -305,7 +305,7 @@ describe('care guides (Dicas de cuidado) in GET /species/:id', () => {
         releaseStale = resolve;
       });
       const stale = getSpecies(id).then((response) => response);
-      await waitFor(async () => writer.requests.length === 1);
+      await waitFor(() => Promise.resolve(writer.requests.length === 1));
       await databaseOf(app)
         .update(careGuides)
         .set({ startedAt: sql`now() - make_interval(secs => 61)` })
@@ -315,7 +315,7 @@ describe('care guides (Dicas de cuidado) in GET /species/:id', () => {
         releaseWinner = resolve;
       });
       const winner = getSpecies(id).then((response) => response);
-      await waitFor(async () => writer.requests.length === 2);
+      await waitFor(() => Promise.resolve(writer.requests.length === 2));
       const reserved = await guideRow(id);
 
       try {
