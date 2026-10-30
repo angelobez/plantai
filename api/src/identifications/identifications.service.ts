@@ -279,8 +279,9 @@ export class IdentificationsService {
 
   /**
    * The species with [candidate]'s `gbifKey`, added when new: origin
-   * `identification`, no name until its care guide gives one, and the
-   * candidate's first image as the external reference photo.
+   * `identification`, the candidate's first image as the external reference
+   * photo, and the name the candidate showed as its primary name (none when
+   * it showed the scientific one). A species already there keeps its names.
    */
   private async upsertSpecies(
     tx: Parameters<Parameters<Database['transaction']>[0]>[0],
@@ -302,7 +303,17 @@ export class IdentificationsService {
         })
         .onConflictDoNothing()
         .returning({ id: species.id });
-      if (inserted) return inserted.id;
+      if (inserted) {
+        // New now, so it was not in the Catalog when identified either: the
+        // candidate showed Pl@ntNet's name, worked out the same way again.
+        const name = plausibleCommonName(candidate.commonNames);
+        if (name !== null) {
+          await tx
+            .insert(speciesNames)
+            .values({ speciesId: inserted.id, name, isPrimary: true });
+        }
+        return inserted.id;
+      }
     }
 
     const [existing] = await tx

@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { eq, sql } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import sharp from 'sharp';
 import request from 'supertest';
 import type { App } from 'supertest/types';
@@ -28,6 +28,10 @@ import {
   FakePlantIdentifier,
   rawCandidate,
 } from './support/fake-plant-identifier';
+import {
+  careGuideContent,
+  FakeCareGuideWriter,
+} from './support/fake-care-guide-writer';
 import { startPostgis } from './support/postgis';
 
 interface PhotoBody {
@@ -71,6 +75,7 @@ describe('identifications (Identificação)', () => {
   const photoStorage = new FakePhotoStorage();
   const gbifNames = new FakeGbifNames();
   const plantIdentifier = new FakePlantIdentifier();
+  const careGuideWriter = new FakeCareGuideWriter();
   let gbifKeys = 5000;
 
   beforeAll(async () => {
@@ -80,6 +85,7 @@ describe('identifications (Identificação)', () => {
       photoStorage,
       gbifNames,
       plantIdentifier,
+      careGuideWriter,
     });
   });
 
@@ -94,6 +100,7 @@ describe('identifications (Identificação)', () => {
     plantIdentifier.answers(rawCandidate());
     plantIdentifier.failing = false;
     gbifNames.failing = false;
+    careGuideWriter.requests.length = 0;
   });
 
   /** A new User, so each test has its own daily limit. */
@@ -146,6 +153,15 @@ describe('identifications (Identificação)', () => {
   /** The storage key behind a photo the API answered with. */
   function keyOf(photo: PhotoBody): string {
     return new URL(photo.url).pathname.slice(1);
+  }
+
+  /** The names of species [speciesId], primary first. */
+  function namesOf(speciesId: string) {
+    return databaseOf(app)
+      .select({ name: speciesNames.name, isPrimary: speciesNames.isPrimary })
+      .from(speciesNames)
+      .where(eq(speciesNames.speciesId, speciesId))
+      .orderBy(desc(speciesNames.isPrimary), asc(speciesNames.name));
   }
 
   /** Adds identification rows for [session]'s User, created at [createdAt]. */
@@ -546,7 +562,7 @@ describe('identifications (Identificação)', () => {
   });
 
   describe('POST /identifications/:id/choice', () => {
-    it('adds a new species to the Catalog, with the external photo and no name', async () => {
+    it("adds a new species to the Catalog, with the external photo and the candidate's name", async () => {
       const session = await newSession();
       gbifKeys += 1;
       const first = candidateImage({ author: 'Pedro Alves' });
@@ -567,9 +583,10 @@ describe('identifications (Identificação)', () => {
       }).expect(200);
 
       const chosen = (response.body as { species: SpeciesItemBody }).species;
+      expect(identification.candidates[1]?.commonName).toBe('Jiboia');
       expect(chosen).toEqual({
         id: expect.any(String) as string,
-        commonName: 'Epipremnum pinnatum',
+        commonName: 'Jiboia',
         scientificName: 'Epipremnum pinnatum',
         referencePhoto: first,
         matchedAlternativeName: null,
@@ -584,11 +601,9 @@ describe('identifications (Identificação)', () => {
         referencePhotoUrl: first.url,
         referencePhotoS3Key: null,
       });
-      const names = await databaseOf(app)
-        .select()
-        .from(speciesNames)
-        .where(eq(speciesNames.speciesId, chosen.id));
-      expect(names).toEqual([]);
+      expect(await namesOf(chosen.id)).toEqual([
+        { name: 'Jiboia', isPrimary: true },
+      ]);
       // It is now in the Catalog for everyone.
       const search = await request(app.getHttpServer())
         .get('/v1/species')
@@ -636,6 +651,100 @@ describe('identifications (Identificação)', () => {
         .from(species)
         .where(eq(species.gbifKey, 2868241));
       expect(rows).toHaveLength(1);
+      expect(await namesOf(seedId)).toEqual([
+        { name: 'Costela-de-adão', isPrimary: true },
+      ]);
+    });
+
+    it('leaves the names of an existing species without one as they are', async () => {
+      const session = await newSession();
+      // A species with no name yet, the way a choice used to add it.
+      const existingId = await addSeedSpecies({
+        scientificName: 'Epipremnum aureum',
+        gbifKey: 2868323,
+      });
+      plantIdentifier.answers(rawCandidate({ commonNames: ['Jiboia'] }));
+      const identification = await identifyNewPhoto(session);
+
+      await choose(session, identification.id, { candidateIndex: 0 }).expect(
+        200,
+      );
+
+      expect(await namesOf(existingId)).toEqual([]);
+    });
+
+    it('adds a new species with no name when the candidate showed none', async () => {
+      const session = await newSession();
+      plantIdentifier.answers(rawCandidate({ commonNames: ['Dourados 1'] }));
+      const identification = await identifyNewPhoto(session);
+
+      const response = await choose(session, identification.id, {
+        candidateIndex: 0,
+      }).expect(200);
+
+      const chosen = (response.body as { species: SpeciesItemBody }).species;
+      expect(chosen.commonName).toBe('Epipremnum aureum');
+      expect(await namesOf(chosen.id)).toEqual([]);
+    });
+
+    describe('the first care guide of a species the choice added', () => {
+      /** Identifies the samambaia-de-metro and chooses it. */
+      async function chooseSamambaia(
+        session: AuthTokensBody,
+      ): Promise<SpeciesItemBody> {
+        plantIdentifier.answers(
+          rawCandidate({
+            scientificName: 'Goniophlebium subauriculatum',
+            commonNames: ['Samambaia de-metro'],
+            gbifKey: 4028759,
+          }),
+        );
+        const identification = await identifyNewPhoto(session);
+        const response = await choose(session, identification.id, {
+          candidateIndex: 0,
+        }).expect(200);
+        return (response.body as { species: SpeciesItemBody }).species;
+      }
+
+      function openSpecies(session: AuthTokensBody, id: string): request.Test {
+        return request(app.getHttpServer())
+          .get(`/v1/species/${id}`)
+          .set('Authorization', `Bearer ${session.accessToken}`);
+      }
+
+      it("is asked with the candidate's name", async () => {
+        const session = await newSession();
+        const chosen = await chooseSamambaia(session);
+
+        await openSpecies(session, chosen.id).expect(200);
+
+        expect(careGuideWriter.requests).toEqual([
+          {
+            scientificName: 'Goniophlebium subauriculatum',
+            knownNames: ['Samambaia-de-metro'],
+          },
+        ]);
+      });
+
+      it("keeps the candidate's name primary and Claude's differing one as an alternative", async () => {
+        const session = await newSession();
+        careGuideWriter.writes(
+          'Goniophlebium subauriculatum',
+          careGuideContent({ commonName: 'samambaia-azul' }),
+        );
+        const chosen = await chooseSamambaia(session);
+
+        const response = await openSpecies(session, chosen.id).expect(200);
+
+        expect(response.body).toMatchObject({
+          commonName: 'Samambaia-de-metro',
+          otherNames: ['samambaia-azul'],
+        });
+        expect(await namesOf(chosen.id)).toEqual([
+          { name: 'Samambaia-de-metro', isPrimary: true },
+          { name: 'samambaia-azul', isPrimary: false },
+        ]);
+      });
     });
 
     it('reuses the species a previous choice added', async () => {
