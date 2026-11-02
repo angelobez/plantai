@@ -109,6 +109,8 @@ The stack also holds the maintenance routine (`infra/maintenance.ts`): a second 
 
 The account's Lambda concurrency quota must be at least 120 to reserve 20 (AWS keeps 100 unreserved). `cdk:deploy` checks it first and, below that, stops with what to ask for in Service Quotas (AWS Lambda, "Concurrent executions", `L-B99A9384`).
 
+**First deploy:** `scripts/aws-first-deploy-wizard.sh` (from the repository root, with AWS credentials for the account and `gh` logged in as a repository admin) walks through what only the account owner can do, in order: CDK bootstrap, the concurrency quota, every SSM parameter (typed hidden or generated, never on disk or in the shell history), the first `cdk:deploy` from the notebook with the certificate's validation CNAME in Registro.br while it waits, the GitHub `production` environment (only `main` may deploy; variable `AWS_DEPLOY_ROLE_ARN`, secrets `MIGRATION_DATABASE_URL` and `ALERT_EMAIL`) and the `api.` CNAME, ending with `GET https://api.plantai.ia.br/v1/health`. A re-run skips what is done. `scripts/aws-first-deploy-wizard.sh --check` only checks that its SSM parameter list covers `api/.env.example`.
+
 ## Running the app on a phone
 Needs Flutter 3.47 (Dart 3.13), the Android SDK and JDK 17, plus the API running on the notebook (above). From `app/`:
 
