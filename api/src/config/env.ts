@@ -97,10 +97,15 @@ export function parseEnvWith<T extends z.ZodType>(
 }
 
 /**
- * Reads `.env` from the working directory when there is one (local runs and
- * drizzle-kit), then validates the whole process environment.
+ * Reads `.env` from the working directory into the process environment when
+ * there is one (local runs and drizzle-kit). Variables already set win.
  */
-export function loadEnv(): Env {
+export function loadDotEnv(): void {
   if (existsSync('.env')) process.loadEnvFile('.env');
+}
+
+/** {@link loadDotEnv}, then validates the whole process environment. */
+export function loadEnv(): Env {
+  loadDotEnv();
   return parseEnv(process.env);
 }

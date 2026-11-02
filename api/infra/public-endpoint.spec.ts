@@ -207,7 +207,7 @@ describe('ApiStack public endpoint', () => {
       });
     });
 
-    it('trusts only the main branch of angelobez/plantai', () => {
+    it('trusts only the production environment of angelobez/plantai', () => {
       const role = template.findResources('AWS::IAM::Role')[deployRole()];
       expect(role?.Properties).toMatchObject({
         AssumeRolePolicyDocument: {
@@ -224,9 +224,10 @@ describe('ApiStack public endpoint', () => {
                 StringEquals: {
                   'token.actions.githubusercontent.com:aud':
                     'sts.amazonaws.com',
-                  // The immutable format (owner and repository ids).
+                  // The immutable format (owner and repository ids). Only
+                  // `main` may deploy to the environment (its branch policy).
                   'token.actions.githubusercontent.com:sub':
-                    'repo:angelobez@109678169/plantai@1426449697:ref:refs/heads/main',
+                    'repo:angelobez@109678169/plantai@1426449697:environment:production',
                 },
               },
             },

@@ -10,16 +10,18 @@ import { Construct } from 'constructs';
 const GITHUB_OIDC_ISSUER = 'token.actions.githubusercontent.com';
 
 /**
- * The only token subject trusted: a workflow of angelobez/plantai on `main`.
+ * The only token subject trusted: a job of angelobez/plantai that runs in its
+ * `production` environment (the deploy job of .github/workflows/ci.yml).
  * The repository was created after 2026-07-15, so GitHub writes its `sub`
  * in the immutable format, with the owner and repository ids
  * (`gh api repos/angelobez/plantai/actions/oidc/customization/sub`); the
- * plain `repo:angelobez/plantai:...` would never match. A job with a GitHub
- * environment gets `...:environment:<name>` by default, so the repository's
- * subject template must list only `repo` and `ref` (runbook, #92).
+ * plain `repo:angelobez/plantai:...` would never match. A job with an
+ * environment gets `...:environment:<name>` instead of `...:ref:<ref>`, so
+ * the "only `main`" rule lives in the environment's deployment branch
+ * policy, which admits only `main` (runbook, #92).
  */
 export const GITHUB_DEPLOY_SUBJECT =
-  'repo:angelobez@109678169/plantai@1426449697:ref:refs/heads/main';
+  'repo:angelobez@109678169/plantai@1426449697:environment:production';
 
 /** The roles of `cdk bootstrap` (default qualifier) that a deploy uses. */
 const CDK_BOOTSTRAP_ROLES = ['deploy', 'file-publishing', 'lookup'];
@@ -45,7 +47,7 @@ export class GithubDeployRole extends Construct {
 
     this.role = new Role(this, 'Role', {
       description:
-        'GitHub Actions deploy of the API (main of angelobez/plantai)',
+        'GitHub Actions deploy of the API (production environment of angelobez/plantai)',
       assumedBy: new WebIdentityPrincipal(provider.oidcProviderArn, {
         StringEquals: {
           [`${GITHUB_OIDC_ISSUER}:aud`]: 'sts.amazonaws.com',
