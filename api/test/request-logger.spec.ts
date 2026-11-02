@@ -45,6 +45,7 @@ describe('request logger', () => {
       .set('X-Search-Location', '-23.5505,-46.6333')
       .set('Cookie', 'session=secret-cookie')
       .set('X-App-Version', '0.0.7')
+      .set('X-Origin-Verify', 'secret-origin-value')
       .expect(200);
 
     const line = logger.lines.find((l) => l.includes('GET /v1/health 200'));
@@ -57,6 +58,38 @@ describe('request logger', () => {
     expect(everything).not.toContain('secret-access-token');
     expect(everything).not.toContain('-23.5505');
     expect(everything).not.toContain('secret-cookie');
+    expect(everything).not.toContain('secret-origin-value');
+  });
+
+  it('never logs the visitor IP nor any cloudfront-viewer-* header', async () => {
+    await request(app.getHttpServer())
+      .get('/v1/health')
+      .set('X-Forwarded-For', '203.0.113.7, 10.0.0.1')
+      .set('X-Real-IP', '203.0.113.8')
+      .set('Forwarded', 'for=203.0.113.9;proto=https')
+      .set('CloudFront-Viewer-Address', '203.0.113.10:54321')
+      .set('CloudFront-Viewer-City', 'Secret City')
+      .set('CloudFront-Viewer-Some-Future-Header', 'future-secret')
+      .expect(200);
+
+    const line = logger.lines.find(
+      (l) => l.includes('GET /v1/health 200') && l.includes('x-real-ip'),
+    );
+    expect(line).toBeDefined();
+    for (const name of [
+      'x-forwarded-for',
+      'forwarded',
+      'cloudfront-viewer-address',
+      'cloudfront-viewer-city',
+      'cloudfront-viewer-some-future-header',
+    ]) {
+      expect(line).toContain(name);
+    }
+
+    const everything = logger.lines.join('\n');
+    for (const secret of ['203.0.113', 'Secret City', 'future-secret']) {
+      expect(everything).not.toContain(secret);
+    }
   });
 
   it('never logs the body of /auth nor the Authorization', async () => {

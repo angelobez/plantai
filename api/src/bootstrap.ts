@@ -4,6 +4,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import { ZodSerializerInterceptor } from 'nestjs-zod';
 import { AppModule } from './app.module';
+import { ENV } from './config/config.module';
 import type { Env } from './config/env';
 import { DomainError } from './errors/domain-error';
 import {
@@ -11,6 +12,7 @@ import {
   sendProblem,
 } from './errors/problem-details.filter';
 import { ZodValidationPipe } from './errors/validation';
+import { originSecretCheck } from './http/origin-secret';
 import { setupOpenApi } from './openapi/openapi';
 
 /**
@@ -19,6 +21,13 @@ import { setupOpenApi } from './openapi/openapi';
  * initializes the app, because the last fallback must come after the routes.
  */
 export async function configureApp(app: INestApplication): Promise<void> {
+  // Ahead of everything else (router, /docs, fallback): in AWS only what came
+  // through CloudFront gets in.
+  const originCheck = originSecretCheck(
+    app.get<Env>(ENV).CLOUDFRONT_ORIGIN_SECRET,
+  );
+  if (originCheck) app.use(originCheck);
+
   app.setGlobalPrefix('v1');
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.useGlobalPipes(new ZodValidationPipe());
