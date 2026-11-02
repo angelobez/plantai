@@ -14,7 +14,7 @@ The route to the MVP is charted as a [Wayfinder map](../../issues?q=label%3Awayf
 ## Repository layout
 | Path | What lives there |
 | --- | --- |
-| `api/` | NestJS API (see [Running the API locally](#running-the-api-locally)) |
+| `api/` | NestJS API (see [Running the API locally](#running-the-api-locally)) and its AWS infrastructure in `api/infra/` (see [AWS infrastructure](#aws-infrastructure-cdk)) |
 | `app/` | Flutter app, Android only (see [Running the app on a phone](#running-the-app-on-a-phone)) |
 | `CLAUDE.md` | Working agreement for Claude Code sessions |
 | `CONTEXT.md` | Domain glossary (created as terms are settled) |
@@ -86,6 +86,25 @@ To document a route:
 Then run `npm run openapi:update` (from `api/`) and commit `api/openapi.json` with the change.
 
 Checks, the same ones CI runs: `npm run format:check`, `npm run lint`, `npm run typecheck` and `npm test`. The tests start their own PostGIS (and, for the storage adapter, S3 emulator) with Testcontainers, so Docker must be running; they do not touch the services from `compose.yaml`.
+
+### AWS infrastructure (CDK)
+The production infrastructure is AWS CDK in TypeScript, in `api/infra/` (ADR 0004, ADR 0005): one stack, `PlantaiApi`, in `us-east-1`. It holds the API function (Node.js 24, x86_64, 1 GB, 60 s, reserved concurrency 20) behind a Function URL, its log group (30 days) and the private photo bucket (kept if the stack goes, `unattached` photos deleted after 1 day). The function reads its secrets from the SSM Parameter Store under `/plantai/production` (one `SecureString` per variable of `.env`, such as `/plantai/production/DATABASE_URL`) and talks to S3 with its role, without `S3_ENDPOINT` or keys. `infra/api-stack.spec.ts` checks the synthesized template in `npm test`, without calling AWS.
+
+From `api/`:
+
+```sh
+npm run lambda:package   # build/lambda: dist/ + production node_modules for Linux x86_64
+npm run lambda:check     # runs that package in public.ecr.aws/lambda/nodejs:24 and asks GET /v1/health (Docker)
+npm run cdk:synth        # package + cdk synth (cdk.out/)
+npm run cdk:diff         # package + what a deploy would change (needs AWS credentials)
+npm run cdk:deploy       # package + concurrency quota check + cdk deploy (needs AWS credentials)
+```
+
+`lambda:check` starts a throwaway PostGIS and the official Lambda image with the package mounted as `/var/task`, with placeholder variables (no SSM), and posts a Function URL event for `GET /v1/health` to the image's runtime emulator. A `200` shows the package boots on Lambda's Linux, with the native `argon2` and `sharp` loaded. Run it after changing dependencies or the packaging.
+
+Two traps of the Node.js 24 runtime, both covered: it refuses a handler that declares a callback parameter (`lambdaEntry()` in `src/lambda-entry.ts` takes `(event, context)` only), and it starts Node with `--no-experimental-require-module` unless `NODE_OPTIONS` asks for it, which breaks the `require()` of Nest's ESM packages (the stack sets `NODE_OPTIONS=--experimental-require-module --enable-source-maps`).
+
+The account's Lambda concurrency quota must be at least 120 to reserve 20 (AWS keeps 100 unreserved). `cdk:deploy` checks it first and, below that, stops with what to ask for in Service Quotas (AWS Lambda, "Concurrent executions", `L-B99A9384`).
 
 ## Running the app on a phone
 Needs Flutter 3.47 (Dart 3.13), the Android SDK and JDK 17, plus the API running on the notebook (above). From `app/`:
