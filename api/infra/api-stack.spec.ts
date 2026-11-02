@@ -16,6 +16,7 @@ function synthesize(): Template {
   const stack = new ApiStack(app, 'TestApi', {
     env: { account: '123456789012', region: 'us-east-1' },
     code: Code.fromInline('exports.handler = async () => ({});'),
+    alertEmail: 'alerts@example.com',
   });
   return Template.fromStack(stack);
 }
@@ -114,14 +115,13 @@ describe('ApiStack', () => {
 
   describe('logs', () => {
     it('keeps the function logs for 30 days in a group of the stack', () => {
-      const group = logicalIdOf('AWS::Logs::LogGroup');
-      template.hasResourceProperties('AWS::Logs::LogGroup', {
-        RetentionInDays: 30,
-      });
-      template.hasResourceProperties('AWS::Lambda::Function', {
-        Handler: 'dist/lambda.handler',
-        LoggingConfig: { LogGroup: { Ref: group } },
-      });
+      const api = template.findResources('AWS::Lambda::Function')[
+        logicalIdOf('AWS::Lambda::Function', { Handler: 'dist/lambda.handler' })
+      ] as { Properties: { LoggingConfig: { LogGroup: { Ref: string } } } };
+      const group = api.Properties.LoggingConfig.LogGroup.Ref;
+      expect(
+        template.findResources('AWS::Logs::LogGroup')[group]?.Properties,
+      ).toMatchObject({ RetentionInDays: 30 });
     });
   });
 

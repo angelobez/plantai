@@ -4,15 +4,11 @@ import {
   Module,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
 import { ENV } from '../config/config.module';
 import type { Env } from '../config/env';
-import * as schema from './schema';
+import { connectDatabase, type Database } from './connect';
 
-export type Database = PostgresJsDatabase<typeof schema> & {
-  $client: postgres.Sql;
-};
+export type { Database } from './connect';
 
 /** Injection token for the Drizzle {@link Database}. */
 export const DATABASE = Symbol('DATABASE');
@@ -23,15 +19,7 @@ export const DATABASE = Symbol('DATABASE');
     {
       provide: DATABASE,
       inject: [ENV],
-      useFactory: (env: Env): Database =>
-        drizzle(
-          postgres(env.DATABASE_URL, {
-            // Fail fast when the database is down instead of hanging requests.
-            connect_timeout: 5,
-            onnotice: () => undefined,
-          }),
-          { schema },
-        ),
+      useFactory: (env: Env): Database => connectDatabase(env.DATABASE_URL),
     },
   ],
   exports: [DATABASE],
