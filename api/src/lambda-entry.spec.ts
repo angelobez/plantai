@@ -24,6 +24,23 @@ describe('lambdaEntry', () => {
     expect(later).toBe('handled c');
   });
 
+  it('starts again on the next invocation after a failed start', async () => {
+    let starts = 0;
+    const handler = lambdaEntry<string, string>(() => {
+      starts += 1;
+      if (starts === 1) {
+        return Promise.reject(new Error('SSM unavailable'));
+      }
+      return Promise.resolve((event) => Promise.resolve(`handled ${event}`));
+    });
+
+    await expect(handler('a', context)).rejects.toThrow('SSM unavailable');
+    const later = await handler('b', context);
+
+    expect(starts).toBe(2);
+    expect(later).toBe('handled b');
+  });
+
   it('takes no callback, which the Node.js 24 runtime refuses to load', () => {
     const handler = lambdaEntry(() =>
       Promise.resolve(() => Promise.resolve('handled')),

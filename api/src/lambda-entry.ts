@@ -23,14 +23,18 @@ export async function loadLambdaEnv(): Promise<Env> {
 /**
  * Wraps a Lambda entry so [start] (reading the SSM, creating the app) runs
  * once per cold start, and the handler it gives is reused while the instance
- * stays warm. A failed start fails every invocation of that instance.
+ * stays warm. A failed start fails that invocation and is forgotten, so the
+ * next invocation of the instance starts again instead of failing forever.
  */
 export function lambdaEntry<TEvent, TResult>(
   start: () => Promise<LambdaHandler<TEvent, TResult>>,
 ): LambdaHandler<TEvent, TResult> {
   let started: Promise<LambdaHandler<TEvent, TResult>> | undefined;
   return async (event, context) => {
-    started ??= start();
+    started ??= start().catch((error: unknown) => {
+      started = undefined;
+      throw error;
+    });
     const handler = await started;
     return handler(event, context);
   };
