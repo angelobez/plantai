@@ -3,7 +3,7 @@
  * (`infra/maintenance.ts`). The schedule sends `{ "task": "<name>" }`.
  * Kept free of runtime dependencies: the CDK app imports it too.
  */
-export const MAINTENANCE_TASKS = ['ping-database'] as const;
+export const MAINTENANCE_TASKS = ['ping-database', 'check-neon-usage'] as const;
 
 export type MaintenanceTask = (typeof MAINTENANCE_TASKS)[number];
 

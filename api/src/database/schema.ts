@@ -377,3 +377,19 @@ export const interests = pgTable(
   },
   (table) => [primaryKey({ columns: [table.listingId, table.userId] })],
 );
+
+/**
+ * What the maintenance routine (#95) remembers between runs, one row per
+ * {@link MaintenanceStateKey}, such as the Neon billing cycle it already
+ * alerted about.
+ */
+export const maintenanceState = pgTable('maintenance_state', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+});
+
+/** The rows of {@link maintenanceState}: one source for every key. */
+export const MAINTENANCE_STATE_KEYS = ['neon-usage-alerted-period'] as const;
+
+export type MaintenanceStateKey = (typeof MAINTENANCE_STATE_KEYS)[number];
