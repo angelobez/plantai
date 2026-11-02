@@ -5,7 +5,16 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/', 'coverage/', 'eslint.config.mjs', 'jest.config.js'] },
+  {
+    ignores: [
+      'dist/',
+      'build/',
+      'cdk.out/',
+      'coverage/',
+      'eslint.config.mjs',
+      'jest.config.js',
+    ],
+  },
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   prettier,
