@@ -384,7 +384,7 @@ export const interests = pgTable(
  * alerted about.
  */
 export const maintenanceState = pgTable('maintenance_state', {
-  key: text('key').primaryKey(),
+  key: text('key').$type<MaintenanceStateKey>().primaryKey(),
   value: text('value').notNull(),
   updatedAt: timestamptz('updated_at').notNull().defaultNow(),
 });

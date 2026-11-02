@@ -124,17 +124,17 @@ Without it (as in CI) the release build is signed with the debug key, which cann
 Checks, the same ones CI runs: `dart format --set-exit-if-changed .`, `flutter analyze` and `flutter test`. After changing a `@JsonSerializable` model, regenerate its `.g.dart` with `dart run build_runner build` and commit it.
 
 ## Deploying the API (AWS)
-The production infrastructure is AWS CDK in TypeScript, in `api/infra/` (ADR 0004, ADR 0005): one stack, `PlantaiApi`, in `us-east-1`. It holds the API function (Node.js 24, x86_64, 1 GB, 60 s, reserved concurrency 20) behind a Function URL, CloudFront with the ACM certificate for `https://api.plantai.ia.br` in front of it, the private photo bucket (kept if the stack goes, `unattached` photos deleted after 1 day), the maintenance routine with its `Alerts` SNS topic, a log group of 30 days per function, and the IAM role of the GitHub deploy. The Function URL refuses (`403`) any request without CloudFront's secret `X-Origin-Verify` header, so the API is only reachable through the domain. The function talks to S3 with its role, without `S3_ENDPOINT` or keys. `infra/*.spec.ts` check the synthesized template in `npm test`, without calling AWS.
+The production infrastructure is AWS CDK in TypeScript, in `api/infra/` (ADR 0004, ADR 0005): one stack, `PlantaiApi`, in `us-east-1`. It holds the API function (Node.js 24, x86_64, 1 GB, 60 s, reserved concurrency 20) behind a Function URL, CloudFront with the ACM certificate for `https://api.plantai.ia.br` in front of it, the private photo bucket (kept if the stack goes, `unattached` photos deleted after 1 day), the maintenance routine with its `Alerts` SNS topic, a log group of 30 days per function, and the IAM role of the GitHub deploy. The Function URL refuses (`403`) any request without CloudFront's secret `X-Origin-Verify` header, so the API is only reachable through the domain. The Function URL takes at most 6 MB per request and base64-encodes a binary body, so an upload over about 4.4 MB gets Lambda's own `413` instead of the API's `problem+json`; the API caps photos at 4 MB (`MAX_PHOTO_BYTES`), and the app sends well under 1 MB. The function talks to S3 with its role, without `S3_ENDPOINT` or keys. `infra/*.spec.ts` check the synthesized template in `npm test`, without calling AWS.
 
 ### How a version goes live
-Every merge to `main` that changes `api/` (or `.github/workflows/`) deploys, through the **Deploy API** job of `.github/workflows/ci.yml`, after the API job passed on the same commit. A merge of only `app/` or docs deploys nothing. The job runs in the GitHub `production` environment and signs in to AWS by OIDC, assuming the role the stack creates (no AWS key in GitHub). In order:
+Every merge to `main` that leaves `api/` (or `.github/workflows/`) different from what is in production deploys, through the **Deploy API** job of `.github/workflows/ci.yml`, after the API job passed on the same commit. The comparison is against the commit of the last successful deployment of the `production` environment (GitHub's deployments, read by the **Detect changed folders** job), not against the previous push, so a merge whose run was cancelled is deployed by the next run. A merge of only `app/` or docs, with production already up to date, deploys nothing; with no successful deployment yet, any merge deploys. The job runs in the GitHub `production` environment and signs in to AWS by OIDC, assuming the role the stack creates (no AWS key in GitHub). In order:
 
 1. `npm run db:migrate` on Neon's direct connection (`MIGRATION_DATABASE_URL`). A failed migration stops the job here, and the function keeps the code it had.
 2. `npm run cdk:deploy -- --require-approval never`: packages the Lambda, checks the concurrency quota and deploys the stack.
 3. `GET https://api.plantai.ia.br/v1/health` for about two minutes, failing the job unless it answers `200`. A red job here means the new version **is** live (there is no automatic rollback): fix forward or revert the PR.
 4. The run's summary shows the commit and the `apiVersion` the deployed API reports. `apiVersion` comes from `api/package.json` and is not bumped per delivery, so the commit is what identifies the code.
 
-Deploys never overlap: the next one waits for the one running. GitHub keeps only one waiting, so a third merge during a deploy cancels the one in between; if that one had API changes and the newer one did not, re-run it from the Actions tab. When a deploy fails, look at the job's step that failed, then at the `PlantaiApi` events in CloudFormation and at the API's logs (below).
+Deploys never overlap: the next one waits for the one running. GitHub keeps only one waiting, so a third merge during a deploy cancels the one in between; the newer run still deploys its API changes, because they are not in production yet. When a deploy fails, look at the job's step that failed, then at the `PlantaiApi` events in CloudFormation and at the API's logs (below).
 
 ### First deploy and manual setup
 Two wizards, run from the repository root on the notebook with AWS credentials for the account (`AWS_PROFILE` is honored), walk through what only the account owner can do. Re-runs skip what is done, and secrets are typed hidden or generated, reaching the AWS CLI through stdin, never on disk or in the shell history.
@@ -196,9 +196,9 @@ One GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every pull requ
 | Job | Runs when | What it does |
 | --- | --- | --- |
 | Detect changed folders | always | Lists the changed files and decides which parts run |
-| API | `api/` changed | `npm ci`, `format:check`, `lint`, `typecheck`, `test` (Testcontainers on the runner's Docker), Node 24 |
+| API | `api/` changed, or a deploy is due | `npm ci`, `format:check`, `lint`, `typecheck`, `test` (Testcontainers on the runner's Docker), Node 24 |
 | App | `app/` changed | `flutter pub get`, `dart format --set-exit-if-changed .`, `flutter analyze`, `flutter test`, Flutter 3.47.7 |
-| Deploy API | push to `main` and `api/` changed, after API passed | Migrations, `cdk deploy`, health check on the domain (see [Deploying the API](#deploying-the-api-aws)) |
+| Deploy API | push to `main` and `api/` differs from the last successful deploy, after API passed | Migrations, `cdk deploy`, health check on the domain (see [Deploying the API](#deploying-the-api-aws)) |
 | `ci` | always | Fails if any job that ran failed or was cancelled; skipped jobs are fine |
 
 Changing the workflow itself runs both parts. A docs-only PR runs neither, and `ci` still goes green.

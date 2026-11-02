@@ -16,9 +16,14 @@ jobs:
   changes:
     name: Detect changed folders
     runs-on: ubuntu-latest
+    # Reads the deployments of the `production` environment (see `deploy`).
+    permissions:
+      contents: read
+      deployments: read
     outputs:
       api: ${{ steps.filter.outputs.api }}
       app: ${{ steps.filter.outputs.app }}
+      deploy: ${{ steps.deploy.outputs.deploy }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -56,11 +61,57 @@ jobs:
           echo "api=$api app=$app"
           echo "api=$api" >> "$GITHUB_OUTPUT"
           echo "app=$app" >> "$GITHUB_OUTPUT"
+      # Decides the deploy against the last commit that reached production,
+      # not against the previous push: GitHub cancels a run still waiting in
+      # the concurrency group when a newer one arrives, so the API changes of
+      # a cancelled run are only deployed if a later run looks back past it.
+      # Without a successful deployment, or with one this history does not
+      # reach, it deploys.
+      - id: deploy
+        name: Compare against the last deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          deployed=""
+          # Newest first. A deployment that succeeded turns `inactive` once a
+          # newer one succeeds, so any `success` status counts.
+          if ids=$(gh api "repos/$REPOSITORY/deployments?environment=production&per_page=30" --jq '.[].id'); then
+            for id in $ids; do
+              if [ "$(gh api "repos/$REPOSITORY/deployments/$id/statuses?per_page=100" \
+                --jq 'any(.[]; .state == "success")')" = true ]; then
+                deployed=$(gh api "repos/$REPOSITORY/deployments/$id" --jq .sha) || deployed=""
+                break
+              fi
+            done
+          else
+            echo "Could not list the deployments of production"
+          fi
+          deploy=true
+          if [ -z "$deployed" ]; then
+            echo "No successful deployment found; deploying"
+          elif ! git merge-base --is-ancestor "$deployed" "$HEAD_SHA" 2>/dev/null; then
+            echo "Last deployed commit $deployed is not behind $HEAD_SHA; deploying"
+          else
+            files=$(git diff --name-only "$deployed..$HEAD_SHA")
+            echo "Changed since the last deploy ($deployed):"
+            echo "$files"
+            if ! echo "$files" | grep -qE '^(api/|\.github/workflows/)'; then
+              deploy=false
+            fi
+          fi
+          echo "deploy=$deploy"
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
 
   api:
     name: API
     needs: changes
-    if: needs.changes.outputs.api == 'true'
+    # Also when only the deploy needs it, which waits for it to pass.
+    if: >-
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -120,8 +171,8 @@ jobs:
             esac
           done
 
-  # Publishes the API after a merge to `main` that changed it, once the API
-  # job passed on the same commit. The `production` environment admits only
+  # Publishes the API when `main` has API (or workflow) changes that are not
+  # in production yet, once the API job passed on the same commit. The `production` environment admits only
   # `main` and holds AWS_DEPLOY_ROLE_ARN (variable), MIGRATION_DATABASE_URL
   # and ALERT_EMAIL (secrets); the runbook of #92 sets it up. AWS trusts the
   # environment's OIDC subject (api/infra/github-deploy-role.ts), so no AWS
@@ -131,7 +182,7 @@ jobs:
     needs: [changes, api]
     if: >-
       github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-      needs.changes.outputs.api == 'true'
+      needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:

@@ -1,8 +1,7 @@
 import { sql } from 'drizzle-orm';
-import type { Database } from '../database/connect';
 import { maintenanceState } from '../database/schema';
-import type { AlertPublisher } from './alert-publisher';
-import type { NeonApi } from './neon-api';
+import type { MaintenanceContext } from './maintenance';
+import { CU_SECONDS_PER_CU_HOUR } from './neon-api';
 
 /** The Neon Free plan suspends the compute past this, until the next cycle. */
 export const NEON_FREE_CU_HOURS = 100;
@@ -33,13 +32,9 @@ export async function checkNeonUsage({
   db,
   neon,
   alerts,
-}: {
-  db: Database;
-  neon: NeonApi;
-  alerts: AlertPublisher;
-}): Promise<NeonUsageReport> {
+}: MaintenanceContext): Promise<NeonUsageReport> {
   const usage = await neon.projectUsage();
-  const cuHours = usage.computeTimeSeconds / 3600;
+  const cuHours = usage.computeTimeSeconds / CU_SECONDS_PER_CU_HOUR;
   const periodStart = usage.consumptionPeriodStart;
   const report = {
     cuHours: Math.round(cuHours * 100) / 100,

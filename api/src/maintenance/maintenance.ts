@@ -36,7 +36,7 @@ export interface MaintenanceResult {
 }
 
 /** What the tasks work with, created once per cold start. */
-interface MaintenanceContext {
+export interface MaintenanceContext {
   db: Database;
   neon: NeonApi;
   alerts: AlertPublisher;
