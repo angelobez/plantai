@@ -44,6 +44,11 @@ const envSchema = z
       (value) => (value === '' ? undefined : value),
       z.string().min(1).default(DEFAULT_CARE_GUIDE_MODEL),
     ),
+    /**
+     * The value CloudFront sends in the `X-Origin-Verify` header. Set (in
+     * AWS), the API refuses every request without it; unset, no check.
+     */
+    CLOUDFRONT_ORIGIN_SECRET: optional(z.string().min(32)),
   })
   .superRefine((env, context) => {
     const keys = ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;
