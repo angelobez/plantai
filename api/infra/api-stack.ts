@@ -18,13 +18,18 @@ import {
 } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
 import { UNATTACHED_TAG } from '../src/photo-storage/photo-storage';
+import { GithubDeployRole } from './github-deploy-role';
 import { PackagedFunction } from './packaged-function';
+import { API_DOMAIN, PublicEndpoint } from './public-endpoint';
 
 /**
  * The cap on simultaneous executions of the API (ADR 0004): it contains the
  * spending and matches Pl@ntNet's 20 simultaneous calls per client.
  */
 export const API_RESERVED_CONCURRENCY = 20;
+
+/** Pl@ntNet answers in ~2 s; a care guide is up to two 25 s Claude calls. */
+const API_TIMEOUT = Duration.seconds(60);
 
 export interface ApiStackProps extends StackProps {
   /** The package of `npm run lambda:package`; every function runs from it. */
@@ -33,7 +38,8 @@ export interface ApiStackProps extends StackProps {
 
 /**
  * The production infrastructure of the API (#87), in `us-east-1`: the API
- * function behind a Function URL, its logs and the photo bucket.
+ * function behind a Function URL and CloudFront (api.plantai.ia.br), its logs,
+ * the photo bucket and the role of the GitHub deploy.
  */
 export class ApiStack extends Stack {
   readonly code: Code;
@@ -67,8 +73,7 @@ export class ApiStack extends Stack {
       description: 'PlantAí API (NestJS through serverless-express)',
       // The premise of docs/research/custos-fase-2.md.
       memorySize: 1024,
-      // Pl@ntNet answers in ~2 s; a care guide is up to two 25 s Claude calls.
-      timeout: Duration.seconds(60),
+      timeout: API_TIMEOUT,
       reservedConcurrentExecutions: API_RESERVED_CONCURRENCY,
       environment: {
         // No S3_ENDPOINT nor keys: the SDK uses the function's role.
@@ -106,6 +111,35 @@ export class ApiStack extends Stack {
     new CfnOutput(this, 'ApiFunctionUrl', {
       value: this.functionUrl.url,
       description: 'The origin of the CloudFront distribution',
+    });
+
+    this.addPublicEndpoint();
+  }
+
+  /** api.plantai.ia.br and the role of the GitHub deploy (#91). */
+  private addPublicEndpoint(): void {
+    const endpoint = new PublicEndpoint(this, 'PublicEndpoint', {
+      functionUrl: this.functionUrl,
+      readTimeout: API_TIMEOUT,
+    });
+    const { distributionDomainName } = endpoint.distribution;
+    new CfnOutput(this, 'ApiUrl', {
+      value: `https://${API_DOMAIN}`,
+      description: 'The address of the API for the app',
+    });
+    new CfnOutput(this, 'ApiDistributionUrl', {
+      value: `https://${distributionDomainName}`,
+      description: 'The CloudFront URL, before the api. CNAME exists',
+    });
+    new CfnOutput(this, 'ApiDistributionDomainName', {
+      value: distributionDomainName,
+      description: `The target of the ${API_DOMAIN} CNAME in Registro.br`,
+    });
+
+    const deploy = new GithubDeployRole(this, 'GithubDeploy');
+    new CfnOutput(this, 'GithubDeployRoleArn', {
+      value: deploy.role.roleArn,
+      description: 'AWS_DEPLOY_ROLE_ARN of the production environment',
     });
   }
 }

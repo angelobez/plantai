@@ -86,8 +86,8 @@ describe('ApiStack', () => {
         template.findResources('AWS::Lambda::Function'),
       ).map((fn) =>
         Object.keys(
-          (fn as { Properties: { Environment: { Variables: object } } })
-            .Properties.Environment.Variables,
+          (fn as { Properties: { Environment?: { Variables: object } } })
+            .Properties.Environment?.Variables ?? {},
         ),
       );
       for (const names of variables) {
@@ -114,14 +114,15 @@ describe('ApiStack', () => {
 
   describe('logs', () => {
     it('keeps the function logs for 30 days in a group of the stack', () => {
-      const group = logicalIdOf('AWS::Logs::LogGroup');
-      template.hasResourceProperties('AWS::Logs::LogGroup', {
-        RetentionInDays: 30,
-      });
-      template.hasResourceProperties('AWS::Lambda::Function', {
-        Handler: 'dist/lambda.handler',
-        LoggingConfig: { LogGroup: { Ref: group } },
-      });
+      const api = Object.values(
+        template.findResources('AWS::Lambda::Function', {
+          Properties: { Handler: 'dist/lambda.handler' },
+        }),
+      )[0] as { Properties: { LoggingConfig: { LogGroup: { Ref: string } } } };
+      const group = api.Properties.LoggingConfig.LogGroup.Ref;
+      expect(
+        template.findResources('AWS::Logs::LogGroup')[group]?.Properties,
+      ).toEqual({ RetentionInDays: 30 });
     });
   });
 
