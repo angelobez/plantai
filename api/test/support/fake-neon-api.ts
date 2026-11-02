@@ -1,4 +1,5 @@
 import {
+  CU_SECONDS_PER_CU_HOUR,
   type NeonApi,
   NeonApiError,
   type NeonProjectUsage,
@@ -26,7 +27,7 @@ export class FakeNeonApi implements NeonApi {
   /** Makes the next calls answer [cuHours] used since [periodStart]. */
   uses(cuHours: number, periodStart = NOVEMBER): this {
     this.next = {
-      computeTimeSeconds: cuHours * 3600,
+      computeTimeSeconds: cuHours * CU_SECONDS_PER_CU_HOUR,
       consumptionPeriodStart: periodStart,
     };
     return this;

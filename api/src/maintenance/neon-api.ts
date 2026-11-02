@@ -3,11 +3,14 @@ import { z } from 'zod';
 /** The Neon API (https://neon.com/docs/reference/api-reference). */
 export const NEON_API_URL = 'https://console.neon.tech/api/v2';
 
+/** A CU-hour in the CU-seconds of {@link NeonProjectUsage.computeTimeSeconds}. */
+export const CU_SECONDS_PER_CU_HOUR = 3600;
+
 /** What the project has used in the current billing cycle. */
 export interface NeonProjectUsage {
   /**
    * Compute time of the cycle, in CU-seconds: weighted by the compute size,
-   * so `/ 3600` gives the CU-hours the Free plan caps at 100
+   * so dividing by {@link CU_SECONDS_PER_CU_HOUR} gives the CU-hours the Free plan caps at 100
    * (https://neon.com/docs/introduction/usage-calculations).
    */
   computeTimeSeconds: number;
