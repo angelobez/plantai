@@ -94,4 +94,52 @@ describe('maintenance routine', () => {
       AlarmActions: [{ Ref: topic() }],
     });
   });
+
+  it('checks the Neon usage every day, through the EventBridge Scheduler', () => {
+    template.hasResourceProperties('AWS::Scheduler::Schedule', {
+      ScheduleExpression: 'cron(0 8 * * ? *)',
+      ScheduleExpressionTimezone: 'America/Sao_Paulo',
+      State: 'ENABLED',
+      Target: {
+        Arn: { 'Fn::GetAtt': [routine(), 'Arn'] },
+        Input: JSON.stringify({ task: 'check-neon-usage' }),
+      },
+    });
+  });
+
+  it('tells the routine which topic gets the alerts', () => {
+    template.hasResourceProperties('AWS::Lambda::Function', {
+      Handler: 'dist/maintenance-lambda.handler',
+      Environment: {
+        Variables: Match.objectLike({ ALERTS_TOPIC_ARN: { Ref: topic() } }),
+      },
+    });
+  });
+
+  it('lets the routine publish to the alerts topic, and to nothing else', () => {
+    const fn = template.findResources('AWS::Lambda::Function')[routine()] as {
+      Properties: { Role: { 'Fn::GetAtt': [string, string] } };
+    };
+    const role = fn.Properties.Role['Fn::GetAtt'][0];
+    const statements = Object.values(
+      template.findResources('AWS::IAM::Policy', {
+        Properties: { Roles: [{ Ref: role }] },
+      }),
+    ).flatMap(
+      (policy) =>
+        (policy as { Properties: { PolicyDocument: { Statement: unknown[] } } })
+          .Properties.PolicyDocument.Statement,
+    ) as { Action: string | string[]; Resource: unknown }[];
+
+    const sns = statements.filter((statement) =>
+      [statement.Action].flat().some((action) => action.startsWith('sns:')),
+    );
+    expect(sns).toEqual([
+      expect.objectContaining({
+        Action: 'sns:Publish',
+        Effect: 'Allow',
+        Resource: { Ref: topic() },
+      }),
+    ]);
+  });
 });

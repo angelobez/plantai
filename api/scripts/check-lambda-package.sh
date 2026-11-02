@@ -129,8 +129,12 @@ if ! echo "$response" | grep -q '"statusCode":200'; then
 fi
 echo "[check-lambda-package] OK: GET /v1/health answered 200 on $lambda_image"
 
-# The maintenance routine needs only DATABASE_URL (no Nest, no API keys).
-maintenance_port="$(start_function "$name-maintenance" dist/maintenance-lambda.handler)"
+# The maintenance routine (no Nest): placeholder Neon and SNS settings, which
+# ping-database does not use (it does not call Neon nor publish).
+maintenance_port="$(start_function "$name-maintenance" dist/maintenance-lambda.handler \
+  -e NEON_API_KEY=check-placeholder \
+  -e NEON_PROJECT_ID=check-placeholder \
+  -e ALERTS_TOPIC_ARN=arn:aws:sns:us-east-1:000000000000:check-placeholder)"
 echo "[check-lambda-package] invoking dist/maintenance-lambda.handler"
 response="$(invoke "$maintenance_port" '{ "task": "ping-database" }')"
 echo "$response"

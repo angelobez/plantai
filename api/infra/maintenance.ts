@@ -32,7 +32,8 @@ export interface MaintenanceProps {
  * The maintenance routine (#94): a second function of the API package,
  * called by the EventBridge Scheduler (in AWS, so it keeps running when the
  * repository goes quiet), and the e-mail alerts topic, which also gets an
- * alarm whenever the routine fails. Add a task with {@link schedule}.
+ * alarm whenever the routine fails and the routine's own alerts (#95). Add a
+ * task with {@link schedule}.
  */
 export class Maintenance extends Construct {
   readonly routine: PackagedFunction;
@@ -53,7 +54,9 @@ export class Maintenance extends Construct {
       memorySize: 256,
       // Waking a suspended Neon compute takes a few seconds.
       timeout: Duration.seconds(30),
+      environment: { ALERTS_TOPIC_ARN: this.alerts.topicArn },
     });
+    this.alerts.grantPublish(this.routine.function);
 
     new Alarm(this, 'RoutineErrors', {
       alarmDescription:
@@ -79,6 +82,17 @@ export class Maintenance extends Construct {
         timeZone: TimeZone.AMERICA_SAO_PAULO,
       }),
       'ping-database',
+    );
+
+    // Neon suspends a Free project past 100 CU-hours in the month (#95).
+    this.schedule(
+      'CheckNeonUsage',
+      ScheduleExpression.cron({
+        hour: '8',
+        minute: '0',
+        timeZone: TimeZone.AMERICA_SAO_PAULO,
+      }),
+      'check-neon-usage',
     );
   }
 
