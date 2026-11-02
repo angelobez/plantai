@@ -18,6 +18,7 @@ import {
 } from 'aws-cdk-lib/aws-s3';
 import type { Construct } from 'constructs';
 import { UNATTACHED_TAG } from '../src/photo-storage/photo-storage';
+import { Maintenance } from './maintenance';
 import { PackagedFunction } from './packaged-function';
 
 /**
@@ -29,17 +30,21 @@ export const API_RESERVED_CONCURRENCY = 20;
 export interface ApiStackProps extends StackProps {
   /** The package of `npm run lambda:package`; every function runs from it. */
   code: Code;
+  /** Receives the alerts topic's e-mails (infra/maintenance.ts). */
+  alertEmail: string;
 }
 
 /**
  * The production infrastructure of the API (#87), in `us-east-1`: the API
- * function behind a Function URL, its logs and the photo bucket.
+ * function behind a Function URL, its logs, the photo bucket and the
+ * maintenance routine with its alerts.
  */
 export class ApiStack extends Stack {
   readonly code: Code;
   readonly api: PackagedFunction;
   readonly functionUrl: FunctionUrl;
   readonly photoBucket: Bucket;
+  readonly maintenance: Maintenance;
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
@@ -101,6 +106,11 @@ export class ApiStack extends Stack {
     // The lock (the CloudFront origin secret) is in the API itself (#88).
     this.functionUrl = this.api.function.addFunctionUrl({
       authType: FunctionUrlAuthType.NONE,
+    });
+
+    this.maintenance = new Maintenance(this, 'Maintenance', {
+      code: this.code,
+      alertEmail: props.alertEmail,
     });
 
     new CfnOutput(this, 'ApiFunctionUrl', {

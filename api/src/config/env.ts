@@ -73,7 +73,19 @@ export class InvalidEnvError extends Error {
  * the returned typed config, never `process.env`.
  */
 export function parseEnv(source: Record<string, string | undefined>): Env {
-  const result = envSchema.safeParse(source);
+  return parseEnvWith(envSchema, source);
+}
+
+/**
+ * Validates [source] against [schema], failing with the same
+ * {@link InvalidEnvError} as the API's. For an entry with its own, smaller
+ * environment, such as the maintenance routine.
+ */
+export function parseEnvWith<T extends z.ZodType>(
+  schema: T,
+  source: Record<string, string | undefined>,
+): z.infer<T> {
+  const result = schema.safeParse(source);
   if (result.success) return result.data;
 
   const problems = result.error.issues.map(

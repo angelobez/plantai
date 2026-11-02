@@ -11,8 +11,20 @@ if (!existsSync(`${LAMBDA_PACKAGE_DIR}/dist/lambda.js`)) {
   );
 }
 
+/**
+ * Who gets the alerts e-mails (SNS). Given at deploy time, not committed:
+ * the repository is public. In CI it comes from the `production` environment.
+ */
+const alertEmail = process.env.ALERT_EMAIL;
+if (!alertEmail) {
+  throw new Error(
+    'ALERT_EMAIL is not set; export the e-mail that gets the alerts (e.g. ALERT_EMAIL=you@example.com npm run cdk:synth)',
+  );
+}
+
 const app = new App();
 new ApiStack(app, STACK_NAME, {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: STACK_REGION },
   code: Code.fromAsset(LAMBDA_PACKAGE_DIR),
+  alertEmail,
 });

@@ -95,6 +95,7 @@ From `api/`:
 ```sh
 npm run lambda:package   # build/lambda: dist/ + production node_modules for Linux x86_64
 npm run lambda:check     # runs that package in public.ecr.aws/lambda/nodejs:24 and asks GET /v1/health (Docker)
+export ALERT_EMAIL=you@example.com   # the alerts e-mail; every cdk:* script needs it
 npm run cdk:synth        # package + cdk synth (cdk.out/)
 npm run cdk:diff         # package + what a deploy would change (needs AWS credentials)
 npm run cdk:deploy       # package + concurrency quota check + cdk deploy (needs AWS credentials)
@@ -103,6 +104,8 @@ npm run cdk:deploy       # package + concurrency quota check + cdk deploy (needs
 `lambda:check` starts a throwaway PostGIS and the official Lambda image with the package mounted as `/var/task`, with placeholder variables (no SSM), and posts a Function URL event for `GET /v1/health` to the image's runtime emulator. A `200` shows the package boots on Lambda's Linux, with the native `argon2` and `sharp` loaded. Run it after changing dependencies or the packaging.
 
 Two traps of the Node.js 24 runtime, both covered: it refuses a handler that declares a callback parameter (`lambdaEntry()` in `src/lambda-entry.ts` takes `(event, context)` only), and it starts Node with `--no-experimental-require-module` unless `NODE_OPTIONS` asks for it, which breaks the `require()` of Nest's ESM packages (the stack sets `NODE_OPTIONS=--experimental-require-module --enable-source-maps`).
+
+The stack also holds the maintenance routine (`infra/maintenance.ts`): a second function of the same package, with its own entry (`dist/maintenance-lambda.handler`, `src/maintenance-lambda.ts`) and no Nest, that the EventBridge Scheduler calls with `{ "task": "<name>" }`. The `ping-database` task runs `select 1` on Neon every Monday at 9:00 (São Paulo), so Neon never deletes the Free project for inactivity. Any error of the routine sets off a CloudWatch alarm that publishes to the `Alerts` SNS topic, which e-mails `ALERT_EMAIL`. That address is given at deploy time, not committed: export `ALERT_EMAIL` before any `cdk:*` script (in CI it comes from the `production` environment), and confirm the subscription from the e-mail AWS sends after the first deploy. To run a task by hand: `aws lambda invoke --function-name <routine name, from the stack's resources> --cli-binary-format raw-in-base64-out --payload '{"task":"ping-database"}' /dev/stdout`. `lambda:check` boots this entry too, with the same `ping-database` task.
 
 The account's Lambda concurrency quota must be at least 120 to reserve 20 (AWS keeps 100 unreserved). `cdk:deploy` checks it first and, below that, stops with what to ask for in Service Quotas (AWS Lambda, "Concurrent executions", `L-B99A9384`).
 

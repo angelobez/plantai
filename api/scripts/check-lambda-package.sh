@@ -5,6 +5,8 @@
 # `GET /v1/health` with a Function URL event. A `200` proves the package boots
 # on Lambda's Linux: the native argon2 and sharp load, Nest starts and the
 # handler reaches a real PostGIS (a throwaway container, as in the tests).
+# Then it runs the maintenance entry (dist/maintenance-lambda.handler) with
+# the weekly `ping-database` task against the same PostGIS.
 #
 # The environment is a placeholder one (no SSM prefix, fake keys): health
 # only reads the database. Needs Docker.
@@ -26,7 +28,7 @@ if [[ ! -f "$package/dist/lambda.js" ]]; then
 fi
 
 cleanup() {
-  docker rm -f "$name-fn" "$name-db" >/dev/null 2>&1 || true
+  docker rm -f "$name-fn" "$name-maintenance" "$name-db" >/dev/null 2>&1 || true
   docker network rm "$name" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -47,11 +49,38 @@ for _ in $(seq 60); do
 done
 sleep 2
 
-docker run -d --name "$name-fn" --network "$name" --platform linux/amd64 \
-  -p 127.0.0.1::8080 \
-  -v "$package:/var/task:ro" \
-  -e NODE_OPTIONS="$node_options" \
-  -e DATABASE_URL=postgres://postgres:postgres@db:5432/postgres \
+database_url='postgres://postgres:postgres@db:5432/postgres'
+
+# Starts the package in the Lambda image as container [1] with handler [2]
+# and the extra `-e` flags after them; prints the published port.
+start_function() {
+  local container="$1" handler="$2"
+  shift 2
+  docker run -d --name "$container" --network "$name" --platform linux/amd64 \
+    -p 127.0.0.1::8080 \
+    -v "$package:/var/task:ro" \
+    -e NODE_OPTIONS="$node_options" \
+    -e DATABASE_URL="$database_url" \
+    "$@" "$lambda_image" "$handler" >/dev/null
+  docker port "$container" 8080/tcp | head -n1 | cut -d: -f2
+}
+
+# Posts event [2] to the runtime emulator on port [1], retrying while it
+# starts; prints the answer.
+invoke() {
+  local port="$1" event="$2" response=''
+  for _ in $(seq 30); do
+    if response="$(curl -sf -X POST \
+      "http://127.0.0.1:$port/2015-03-31/functions/function/invocations" \
+      -d "$event")"; then
+      break
+    fi
+    sleep 1
+  done
+  echo "$response"
+}
+
+port="$(start_function "$name-fn" dist/lambda.handler \
   -e MIN_APP_VERSION=0.0.0 \
   -e PLANTNET_API_KEY=placeholder \
   -e JWT_SECRET=placeholder-placeholder-placeholder-00 \
@@ -59,9 +88,7 @@ docker run -d --name "$name-fn" --network "$name" --platform linux/amd64 \
   -e EMAIL_FROM='PlantAí <check@example.com>' \
   -e S3_BUCKET=placeholder \
   -e S3_REGION=us-east-1 \
-  -e ANTHROPIC_API_KEY=placeholder \
-  "$lambda_image" dist/lambda.handler >/dev/null
-port="$(docker port "$name-fn" 8080/tcp | head -n1 | cut -d: -f2)"
+  -e ANTHROPIC_API_KEY=placeholder)"
 
 # A Function URL request (payload format 2.0) for GET /v1/health.
 event='{
@@ -92,15 +119,7 @@ event='{
 }'
 
 echo "[check-lambda-package] invoking dist/lambda.handler"
-response=''
-for _ in $(seq 30); do
-  if response="$(curl -sf -X POST \
-    "http://127.0.0.1:$port/2015-03-31/functions/function/invocations" \
-    -d "$event")"; then
-    break
-  fi
-  sleep 1
-done
+response="$(invoke "$port" "$event")"
 echo "$response"
 
 if ! echo "$response" | grep -q '"statusCode":200'; then
@@ -109,3 +128,16 @@ if ! echo "$response" | grep -q '"statusCode":200'; then
   exit 1
 fi
 echo "[check-lambda-package] OK: GET /v1/health answered 200 on $lambda_image"
+
+# The maintenance routine needs only DATABASE_URL (no Nest, no API keys).
+maintenance_port="$(start_function "$name-maintenance" dist/maintenance-lambda.handler)"
+echo "[check-lambda-package] invoking dist/maintenance-lambda.handler"
+response="$(invoke "$maintenance_port" '{ "task": "ping-database" }')"
+echo "$response"
+
+if [[ "$response" != '{"task":"ping-database"}' ]]; then
+  echo "[check-lambda-package] FAILED: the ping-database task did not succeed" >&2
+  docker logs "$name-maintenance" >&2 || true
+  exit 1
+fi
+echo "[check-lambda-package] OK: the maintenance routine pinged the database on $lambda_image"
