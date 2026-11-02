@@ -24,7 +24,7 @@ interface PhotoBody {
   expiresAt: string;
 }
 
-const MAX_BYTES = 6 * 1024 * 1024;
+const MAX_BYTES = 4 * 1024 * 1024;
 
 /** A small JPEG, as the app sends it after `image_picker` reduced it. */
 function jpeg(width = 40, height = 20): sharp.Sharp {
@@ -180,7 +180,7 @@ describe('POST /photos', () => {
 
   it.each([
     ['a file that is not an image', () => Buffer.from('not a photo at all')],
-    ['a file over 6 MB', () => Buffer.alloc(MAX_BYTES + 1, 0xff)],
+    ['a file over 4 MB', () => Buffer.alloc(MAX_BYTES + 1, 0xff)],
   ])('rejects %s with VALIDATION_FAILED', async (_case, file) => {
     const session = await signUpAndVerify(app, outbox);
     const storedBefore = photoStorage.keys().length;

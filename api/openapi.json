@@ -1811,7 +1811,7 @@
         ],
         "requestBody": {
           "required": true,
-          "description": "The photo in the `file` field, at most 6 MB. Any format sharp reads; it is stored as JPEG, upright and without metadata. At most 50 per User per day.",
+          "description": "The photo in the `file` field, at most 4 MB. Any format sharp reads; it is stored as JPEG, upright and without metadata. At most 50 per User per day.",
           "content": {
             "multipart/form-data": {
               "schema": {
