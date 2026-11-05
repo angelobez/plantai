@@ -13,8 +13,14 @@ import { invalidField } from '../errors/validation';
 /** The multipart field that carries the photo. */
 export const PHOTO_FIELD = 'file';
 
-/** The Lambda request ceiling (ADR 0004); the app sends well under 1 MB. */
-export const MAX_PHOTO_BYTES = 6 * 1024 * 1024;
+/**
+ * Below what the Lambda Function URL takes (ADR 0004): it base64-encodes a
+ * binary body and refuses an event over 6 MB with its own `413`, so a photo
+ * over about 4.4 MB never reaches the API. At 4 MB the limit the API states
+ * holds in production, and a file over it gets a `VALIDATION_FAILED`. The app
+ * sends well under 1 MB.
+ */
+export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 const parseUpload = multer({
   storage: multer.memoryStorage(),
@@ -30,7 +36,7 @@ function toDomainError(error: unknown): DomainError {
   if (error instanceof MulterError) {
     return invalidPhoto(
       error.code === 'LIMIT_FILE_SIZE'
-        ? 'file is larger than 6 MB'
+        ? `file is larger than ${String(MAX_PHOTO_BYTES / 1024 / 1024)} MB`
         : `unexpected multipart content (${error.code})`,
       error,
     );

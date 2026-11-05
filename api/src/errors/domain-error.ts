@@ -25,6 +25,8 @@ export const ERROR_STATUS = {
   OWN_LISTING: HttpStatus.CONFLICT,
   /** Not a failure: another request is writing the care guide; try again. */
   CARE_GUIDE_GENERATING: HttpStatus.ACCEPTED,
+  /** The request skipped CloudFront: no or wrong origin secret header. */
+  DIRECT_ACCESS_FORBIDDEN: HttpStatus.FORBIDDEN,
   INTERNAL_ERROR: HttpStatus.INTERNAL_SERVER_ERROR,
   HEALTH_CHECK_FAILED: HttpStatus.SERVICE_UNAVAILABLE,
 } as const satisfies Record<string, number>;

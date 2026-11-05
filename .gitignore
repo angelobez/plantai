@@ -7,6 +7,7 @@ dist/
 *.log
 .dart_tool/
 build/
+cdk.out/
 .flutter-plugins*
 .claude/worktrees/
 

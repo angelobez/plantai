@@ -44,6 +44,11 @@ const envSchema = z
       (value) => (value === '' ? undefined : value),
       z.string().min(1).default(DEFAULT_CARE_GUIDE_MODEL),
     ),
+    /**
+     * The value CloudFront sends in the `X-Origin-Verify` header. Set (in
+     * AWS), the API refuses every request without it; unset, no check.
+     */
+    CLOUDFRONT_ORIGIN_SECRET: optional(z.string().min(32)),
   })
   .superRefine((env, context) => {
     const keys = ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const;
@@ -68,7 +73,19 @@ export class InvalidEnvError extends Error {
  * the returned typed config, never `process.env`.
  */
 export function parseEnv(source: Record<string, string | undefined>): Env {
-  const result = envSchema.safeParse(source);
+  return parseEnvWith(envSchema, source);
+}
+
+/**
+ * Validates [source] against [schema], failing with the same
+ * {@link InvalidEnvError} as the API's. For an entry with its own, smaller
+ * environment, such as the maintenance routine.
+ */
+export function parseEnvWith<T extends z.ZodType>(
+  schema: T,
+  source: Record<string, string | undefined>,
+): z.infer<T> {
+  const result = schema.safeParse(source);
   if (result.success) return result.data;
 
   const problems = result.error.issues.map(
@@ -80,10 +97,15 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
 }
 
 /**
- * Reads `.env` from the working directory when there is one (local runs and
- * drizzle-kit), then validates the whole process environment.
+ * Reads `.env` from the working directory into the process environment when
+ * there is one (local runs and drizzle-kit). Variables already set win.
  */
-export function loadEnv(): Env {
+export function loadDotEnv(): void {
   if (existsSync('.env')) process.loadEnvFile('.env');
+}
+
+/** {@link loadDotEnv}, then validates the whole process environment. */
+export function loadEnv(): Env {
+  loadDotEnv();
   return parseEnv(process.env);
 }

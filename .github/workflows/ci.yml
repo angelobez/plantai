@@ -16,9 +16,14 @@ jobs:
   changes:
     name: Detect changed folders
     runs-on: ubuntu-latest
+    # Reads the deployments of the `production` environment (see `deploy`).
+    permissions:
+      contents: read
+      deployments: read
     outputs:
       api: ${{ steps.filter.outputs.api }}
       app: ${{ steps.filter.outputs.app }}
+      deploy: ${{ steps.deploy.outputs.deploy }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -56,11 +61,57 @@ jobs:
           echo "api=$api app=$app"
           echo "api=$api" >> "$GITHUB_OUTPUT"
           echo "app=$app" >> "$GITHUB_OUTPUT"
+      # Decides the deploy against the last commit that reached production,
+      # not against the previous push: GitHub cancels a run still waiting in
+      # the concurrency group when a newer one arrives, so the API changes of
+      # a cancelled run are only deployed if a later run looks back past it.
+      # Without a successful deployment, or with one this history does not
+      # reach, it deploys.
+      - id: deploy
+        name: Compare against the last deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          deployed=""
+          # Newest first. A deployment that succeeded turns `inactive` once a
+          # newer one succeeds, so any `success` status counts.
+          if ids=$(gh api "repos/$REPOSITORY/deployments?environment=production&per_page=30" --jq '.[].id'); then
+            for id in $ids; do
+              if [ "$(gh api "repos/$REPOSITORY/deployments/$id/statuses?per_page=100" \
+                --jq 'any(.[]; .state == "success")')" = true ]; then
+                deployed=$(gh api "repos/$REPOSITORY/deployments/$id" --jq .sha) || deployed=""
+                break
+              fi
+            done
+          else
+            echo "Could not list the deployments of production"
+          fi
+          deploy=true
+          if [ -z "$deployed" ]; then
+            echo "No successful deployment found; deploying"
+          elif ! git merge-base --is-ancestor "$deployed" "$HEAD_SHA" 2>/dev/null; then
+            echo "Last deployed commit $deployed is not behind $HEAD_SHA; deploying"
+          else
+            files=$(git diff --name-only "$deployed..$HEAD_SHA")
+            echo "Changed since the last deploy ($deployed):"
+            echo "$files"
+            if ! echo "$files" | grep -qE '^(api/|\.github/workflows/)'; then
+              deploy=false
+            fi
+          fi
+          echo "deploy=$deploy"
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
 
   api:
     name: API
     needs: changes
-    if: needs.changes.outputs.api == 'true'
+    # Also when only the deploy needs it, which waits for it to pass.
+    if: >-
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -100,7 +151,8 @@ jobs:
       - run: flutter test
 
   # The only required check on `main`. It always runs, so a docs-only PR is not
-  # left waiting for a job the folder filter skipped.
+  # left waiting for a job the folder filter skipped. The deploy job is left
+  # out of its `needs`: it runs only after a merge, never in a PR's gate.
   ci:
     name: ci
     needs: [changes, api, app]
@@ -118,3 +170,99 @@ jobs:
               *) echo "A job ended as '$result'"; exit 1 ;;
             esac
           done
+
+  # Publishes the API when `main` has API (or workflow) changes that are not
+  # in production yet, once the API job passed on the same commit. The `production` environment admits only
+  # `main` and holds AWS_DEPLOY_ROLE_ARN (variable), MIGRATION_DATABASE_URL
+  # and ALERT_EMAIL (secrets); the runbook of #92 sets it up. AWS trusts the
+  # environment's OIDC subject (api/infra/github-deploy-role.ts), so no AWS
+  # key is stored in GitHub.
+  deploy:
+    name: Deploy API
+    needs: [changes, api]
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://api.plantai.ia.br/v1/health
+    permissions:
+      id-token: write
+      contents: read
+    # One deploy at a time, in order: a new one waits instead of cancelling
+    # the one running (migrations and CloudFormation must not overlap).
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+      # Before the new code: the new function never runs on an old schema. A
+      # failed migration stops the job here, and the function keeps running
+      # the code it had. Neon's direct connection, not the pooler.
+      - name: Apply the database migrations
+        env:
+          DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: npm run db:migrate
+      # Packages the Lambda, checks the concurrency quota and deploys the
+      # stack. The CDK CLI assumes the bootstrap roles to publish the assets
+      # and run CloudFormation. ALERT_EMAIL is a secret, so it is masked in
+      # the log.
+      - name: Deploy the stack
+        env:
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: npm run cdk:deploy -- --require-approval never
+      # Through the domain: the Function URL answers 403 without CloudFront's
+      # origin header. Retries for about two minutes while the new version
+      # warms up.
+      - name: Check the API on its domain
+        env:
+          HEALTH_URL: https://api.plantai.ia.br/v1/health
+        run: |
+          for attempt in $(seq 1 12); do
+            status=$(curl --silent --output health.json --write-out '%{http_code}' \
+              --max-time 15 "$HEALTH_URL" || true)
+            echo "Attempt $attempt: HTTP $status"
+            if [ "$status" = 200 ]; then break; fi
+            if [ "$attempt" -lt 12 ]; then sleep 10; fi
+          done
+          if [ "$status" != 200 ]; then
+            echo "::error::GET $HEALTH_URL answered $status instead of 200"
+            cat health.json 2>/dev/null || true
+            exit 1
+          fi
+          cat health.json
+      # The API version is the one the deployed API reports (`apiVersion` of
+      # the health answer, from api/package.json); the commit pins the code.
+      - name: Write the deploy summary
+        env:
+          SHA: ${{ github.sha }}
+          SERVER_URL: ${{ github.server_url }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          api_version=$(jq -r .apiVersion health.json)
+          postgis_version=$(jq -r .postgisVersion health.json)
+          {
+            echo "## API deployed"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Commit | [\`${SHA:0:7}\`]($SERVER_URL/$REPOSITORY/commit/$SHA) |"
+            echo "| API version | \`$api_version\` |"
+            echo "| PostGIS | \`$postgis_version\` |"
+            echo "| URL | https://api.plantai.ia.br |"
+          } >> "$GITHUB_STEP_SUMMARY"

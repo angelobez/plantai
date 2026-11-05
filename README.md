@@ -14,7 +14,7 @@ The route to the MVP is charted as a [Wayfinder map](../../issues?q=label%3Awayf
 ## Repository layout
 | Path | What lives there |
 | --- | --- |
-| `api/` | NestJS API (see [Running the API locally](#running-the-api-locally)) |
+| `api/` | NestJS API (see [Running the API locally](#running-the-api-locally)) and its AWS infrastructure in `api/infra/` (see [Deploying the API](#deploying-the-api-aws)) |
 | `app/` | Flutter app, Android only (see [Running the app on a phone](#running-the-app-on-a-phone)) |
 | `CLAUDE.md` | Working agreement for Claude Code sessions |
 | `CONTEXT.md` | Domain glossary (created as terms are settled) |
@@ -123,14 +123,82 @@ Without it (as in CI) the release build is signed with the debug key, which cann
 
 Checks, the same ones CI runs: `dart format --set-exit-if-changed .`, `flutter analyze` and `flutter test`. After changing a `@JsonSerializable` model, regenerate its `.g.dart` with `dart run build_runner build` and commit it.
 
+## Deploying the API (AWS)
+The production infrastructure is AWS CDK in TypeScript, in `api/infra/` (ADR 0004, ADR 0005): one stack, `PlantaiApi`, in `us-east-1`. It holds the API function (Node.js 24, x86_64, 1 GB, 60 s, reserved concurrency 20) behind a Function URL, CloudFront with the ACM certificate for `https://api.plantai.ia.br` in front of it, the private photo bucket (kept if the stack goes, `unattached` photos deleted after 1 day), the maintenance routine with its `Alerts` SNS topic, a log group of 30 days per function, and the IAM role of the GitHub deploy. The Function URL refuses (`403`) any request without CloudFront's secret `X-Origin-Verify` header, so the API is only reachable through the domain. The Function URL takes at most 6 MB per request and base64-encodes a binary body, so an upload over about 4.4 MB gets Lambda's own `413` instead of the API's `problem+json`; the API caps photos at 4 MB (`MAX_PHOTO_BYTES`), and the app sends well under 1 MB. The function talks to S3 with its role, without `S3_ENDPOINT` or keys. `infra/*.spec.ts` check the synthesized template in `npm test`, without calling AWS.
+
+### How a version goes live
+Every merge to `main` that leaves `api/` (or `.github/workflows/`) different from what is in production deploys, through the **Deploy API** job of `.github/workflows/ci.yml`, after the API job passed on the same commit. The comparison is against the commit of the last successful deployment of the `production` environment (GitHub's deployments, read by the **Detect changed folders** job), not against the previous push, so a merge whose run was cancelled is deployed by the next run. A merge of only `app/` or docs, with production already up to date, deploys nothing; with no successful deployment yet, any merge deploys. The job runs in the GitHub `production` environment and signs in to AWS by OIDC, assuming the role the stack creates (no AWS key in GitHub). In order:
+
+1. `npm run db:migrate` on Neon's direct connection (`MIGRATION_DATABASE_URL`). A failed migration stops the job here, and the function keeps the code it had.
+2. `npm run cdk:deploy -- --require-approval never`: packages the Lambda, checks the concurrency quota and deploys the stack.
+3. `GET https://api.plantai.ia.br/v1/health` for about two minutes, failing the job unless it answers `200`. A red job here means the new version **is** live (there is no automatic rollback): fix forward or revert the PR.
+4. The run's summary shows the commit and the `apiVersion` the deployed API reports. `apiVersion` comes from `api/package.json` and is not bumped per delivery, so the commit is what identifies the code.
+
+Deploys never overlap: the next one waits for the one running. GitHub keeps only one waiting, so a third merge during a deploy cancels the one in between; the newer run still deploys its API changes, because they are not in production yet. When a deploy fails, look at the job's step that failed, then at the `PlantaiApi` events in CloudFormation and at the API's logs (below).
+
+### First deploy and manual setup
+Two wizards, run from the repository root on the notebook with AWS credentials for the account (`AWS_PROFILE` is honored), walk through what only the account owner can do. Re-runs skip what is done, and secrets are typed hidden or generated, reaching the AWS CLI through stdin, never on disk or in the shell history.
+
+- `scripts/aws-first-deploy-wizard.sh` (also needs `gh` logged in as a repository admin): CDK bootstrap, the concurrency quota, every SSM parameter (including the project-scoped Neon API key), the first `cdk:deploy` from the notebook (it creates the OIDC role the CI needs) with the certificate's validation CNAME in Registro.br while it waits, the GitHub `production` environment and the `api.` CNAME, ending with `GET https://api.plantai.ia.br/v1/health`. `--check` only checks that its SSM parameter list covers `api/.env.example` (no AWS call). Re-run it to change or rotate a secret, such as the Neon key.
+- `scripts/aws-after-first-deploy-wizard.sh`, once the stack is up: confirms the SNS e-mail subscription of the alerts, runs both maintenance tasks by hand, verifies `plantai.ia.br` in Resend (DKIM on `resend._domainkey`, MX and SPF on the `send.` subdomain, in Registro.br), sets `RESEND_API_KEY` and `EMAIL_FROM=PlantAí <nao-responda@plantai.ia.br>` in the SSM, forces a cold start of the API and ends with a real sign-up whose code must arrive from that address.
+
+### Secrets
+- **AWS:** one `SecureString` per production variable of `api/.env.example` (the list is `SSM_PARAMS` in the first wizard) under the SSM prefix `/plantai/production/` (such as `/plantai/production/DATABASE_URL`, Neon's pooled connection), read by both functions once, at cold start, before the environment is validated (a missing one fails the start with the same message as locally). Both functions may only read that prefix. A changed value is picked up only by new instances: force them with the second wizard (stage 6), any change to the function's configuration, or the next deploy. `S3_BUCKET`, `S3_REGION` and `ALERTS_TOPIC_ARN` are plain environment variables set by the stack; `S3_ENDPOINT` and the S3 keys are never set in AWS.
+- **GitHub:** the `production` environment, which only `main` may use, holds the variable `AWS_DEPLOY_ROLE_ARN` (stack output `GithubDeployRoleArn`) and the secrets `MIGRATION_DATABASE_URL` (Neon's direct connection, for the migrations) and `ALERT_EMAIL` (a secret so it is masked in the logs). The role trusts only this repository's `production` environment (`api/infra/github-deploy-role.ts`).
+- Nothing else: no secret in the repository, the template or the Lambda console.
+
+### Stack diff and local checks
+From `api/`, with AWS credentials for the account for `cdk:diff` and `cdk:deploy`:
+
+```sh
+npm run lambda:package   # build/lambda: dist/ + production node_modules for Linux x86_64
+npm run lambda:check     # runs that package in public.ecr.aws/lambda/nodejs:24 and asks GET /v1/health (Docker)
+export ALERT_EMAIL=you@example.com   # the alerts e-mail; every cdk:* script needs it
+npm run cdk:synth        # package + cdk synth (cdk.out/)
+npm run cdk:diff         # package + what a deploy would change; review it before a risky merge
+npm run cdk:deploy       # package + concurrency quota check + cdk deploy (normally the CI does it)
+```
+
+`lambda:check` starts a throwaway PostGIS and the official Lambda image with the package mounted as `/var/task`, with placeholder variables (no SSM), and posts a Function URL event for `GET /v1/health` to the image's runtime emulator, then boots the maintenance entry with `ping-database`. A `200` shows the package boots on Lambda's Linux, with the native `argon2` and `sharp` loaded. Run it after changing dependencies or the packaging.
+
+Two traps of the Node.js 24 runtime, both covered: it refuses a handler that declares a callback parameter (`lambdaEntry()` in `src/lambda-entry.ts` takes `(event, context)` only), and it starts Node with `--no-experimental-require-module` unless `NODE_OPTIONS` asks for it, which breaks the `require()` of Nest's ESM packages (the stack sets `NODE_OPTIONS=--experimental-require-module --enable-source-maps`).
+
+The account's Lambda concurrency quota must be at least 120 to reserve 20 (AWS keeps 100 unreserved). `cdk:deploy` checks it first and, below that, stops with what to ask for in Service Quotas (AWS Lambda, "Concurrent executions", `L-B99A9384`).
+
+### Logs (CloudWatch)
+Each function writes to its own log group, created by the stack and kept 30 days: the API's logical id starts with `ApiLogs`, the routine's with `MaintenanceRoutineLogs`. The request log has no bodies and redacts `Authorization`, the IP headers (`x-forwarded-for`, `x-real-ip`, `forwarded`), every `cloudfront-viewer-*` header and `X-Origin-Verify`. Without `RESEND_API_KEY`, e-mails (sign-up codes included) land in the API's log instead of being sent.
+
+```sh
+# the log group names
+aws cloudformation describe-stack-resources --stack-name PlantaiApi \
+  --query "StackResources[?ResourceType=='AWS::Logs::LogGroup'].[LogicalResourceId,PhysicalResourceId]" --output table
+aws logs tail <log group> --since 1h            # or --follow while testing
+```
+
+In the console: CloudWatch → Log groups (`us-east-1`), or Lambda → the function → Monitor → View CloudWatch logs.
+
+### Maintenance routine
+A second function of the same package, with its own entry (`dist/maintenance-lambda.handler`, `src/maintenance-lambda.ts`) and no Nest, that the EventBridge Scheduler calls with `{ "task": "<name>" }` (`infra/maintenance.ts`):
+
+- `ping-database`, every Monday at 9:00 (São Paulo): runs `select 1` on Neon, so Neon never deletes the Free project for inactivity.
+- `check-neon-usage`, every day at 8:00 (São Paulo): reads `compute_time_seconds` and `consumption_period_start` from the Neon API (`GET /projects/{project_id}`, in CU-seconds, so `/ 3600` gives the CU-hours, see [Neon's usage calculations](https://neon.com/docs/introduction/usage-calculations)) and, above 80 of the Free plan's 100 CU-hours, publishes a warning to the `Alerts` topic, once per billing cycle (the alerted cycle is kept in the `maintenance_state` table; `DELETE FROM maintenance_state WHERE key = 'neon-usage-alerted-period'` sends it again). It reads `NEON_API_KEY` (a project-scoped key) and `NEON_PROJECT_ID` from the SSM, like the API secrets; without them the routine fails at start, ping included.
+
+Any error of the routine sets off a CloudWatch alarm that publishes to the `Alerts` SNS topic, which e-mails `ALERT_EMAIL`. That address is given at deploy time, not committed (export `ALERT_EMAIL` before any `cdk:*` script; in CI it comes from the `production` environment), and nothing arrives until the subscription is confirmed from the e-mail AWS sends after the first deploy (the second wizard checks it). Changing the address replaces the subscription, to be confirmed again. To run a task by hand (a failure also trips the alarm):
+
+```sh
+aws lambda invoke --function-name <routine, logical id MaintenanceRoutineFunction...> \
+  --cli-binary-format raw-in-base64-out --payload '{"task":"check-neon-usage"}' /dev/stdout
+```
+
 ## CI
 One GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every pull request and on every push to `main`:
 
 | Job | Runs when | What it does |
 | --- | --- | --- |
 | Detect changed folders | always | Lists the changed files and decides which parts run |
-| API | `api/` changed | `npm ci`, `format:check`, `lint`, `typecheck`, `test` (Testcontainers on the runner's Docker), Node 24 |
+| API | `api/` changed, or a deploy is due | `npm ci`, `format:check`, `lint`, `typecheck`, `test` (Testcontainers on the runner's Docker), Node 24 |
 | App | `app/` changed | `flutter pub get`, `dart format --set-exit-if-changed .`, `flutter analyze`, `flutter test`, Flutter 3.47.7 |
+| Deploy API | push to `main` and `api/` differs from the last successful deploy, after API passed | Migrations, `cdk deploy`, health check on the domain (see [Deploying the API](#deploying-the-api-aws)) |
 | `ci` | always | Fails if any job that ran failed or was cancelled; skipped jobs are fine |
 
 Changing the workflow itself runs both parts. A docs-only PR runs neither, and `ci` still goes green.
