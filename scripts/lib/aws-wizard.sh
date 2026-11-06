@@ -77,14 +77,23 @@ ssm_exists() {
 }
 
 # ssm_put NAME VALUE: writes the SecureString $SSM_PREFIX/NAME (overwriting).
-# The request goes through stdin (--cli-input-json), never through argv. The
-# description names the wizard that wrote it.
+# The request goes through a private temporary file (--cli-input-json), never
+# through argv; AWS CLI v2 can't parse --cli-input-json from /dev/stdin. The
+# file is created with mode 600 and removed right after. The description names
+# the wizard that wrote it.
 ssm_put() {
-  local name="$1" value json
+  local name="$1" value json request status=0
   value=$(json_string "$2") || return 1
   json=$(printf '{"Name":"%s","Type":"SecureString","Overwrite":true,"Description":"PlantAí API (scripts/%s)","Value":%s}' \
     "$SSM_PREFIX/$name" "$(basename "$0")" "$value")
-  printf '%s' "$json" | aws ssm put-parameter --cli-input-json file:///dev/stdin >/dev/null
+  request=$(mktemp) || return 1
+  printf '%s' "$json" >"$request"
+  aws ssm put-parameter --cli-input-json "file://$request" >/dev/null || status=$?
+  rm -f "$request"
+  if ((status != 0)); then
+    warn "could not write $SSM_PREFIX/$name (see the AWS error above)."
+    return 1
+  fi
   printf '  %s✓ written%s %s/%s (SecureString)\n' "$GREEN" "$RESET" "$SSM_PREFIX" "$name"
 }
 
